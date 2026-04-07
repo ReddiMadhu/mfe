@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
-  Upload, Link2, FileSpreadsheet, Tag, BarChart3, Shield, Zap, Globe, Eye, TrendingUp,
+  Upload, Link2, FileSpreadsheet, Tag, BarChart3, Shield, Zap, Globe, Eye, TrendingUp, MapPin,
   CheckCircle2, Loader2, AlertCircle, ChevronRight, Play, Brain, X, Lock, ArrowRight,
 } from 'lucide-react';
 import { uploadFile, runNormalize, runGeocode, suggestColumns, confirmColumns, runMapCodes, runNormalizeValues, forgetMapping } from '@/lib/api';
