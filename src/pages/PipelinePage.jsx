@@ -185,11 +185,24 @@ function ResultTable({ title, data, headers }) {
   );
 }
 
-// ── Step 2: Auto processing (Normalize → Geocode) ──────────────────────────
-function ProcessingStep({ isPreviewing, onDone }) {
-  const { stepStatus, agentStates, uploadMeta, normalizeResult, geocodeResult } = usePipelineStore();
-  const isRunning = stepStatus.normalize === 'running' || stepStatus.geocode === 'running';
-  const bothDone  = stepStatus.normalize === 'done' && stepStatus.geocode === 'done';
+function MetricBadge({ label, value, color = '' }) {
+  return (
+    <div className={cn('flex flex-col items-center justify-center px-4 py-2.5 rounded-lg bg-muted/30 border border-border/50 shadow-sm min-w-[90px]', color)}>
+      <span className="text-sm font-bold tabular-nums mb-0.5">{value ?? '—'}</span>
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</span>
+    </div>
+  );
+}
+
+// ── Step 2: Address Normalization ──────────────────────────
+function NormalizeStep({ isPreviewing, onDone }) {
+  const { stepStatus, agentStates, uploadMeta, normalizeResult } = usePipelineStore();
+  const isRunning = stepStatus.normalize === 'running';
+  const isDone  = stepStatus.normalize === 'done';
+
+  // Address-only columns
+  const addrRegex = /address|street|city|state|postal|country|zip/i;
+  const filteredHeaders = isDone && normalizeResult ? normalizeResult.headers.filter(h => addrRegex.test(h)) : [];
 
   return (
     <div className="space-y-6">
@@ -197,52 +210,96 @@ function ProcessingStep({ isPreviewing, onDone }) {
         <ResultTable title="Data Uploaded Successfully" data={uploadMeta?.sample?.slice(0, 10)} headers={uploadMeta?.headers} />
       ) : (
         <div className="space-y-4 animate-in fade-in duration-500">
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { key: 'normalize', label: 'Address Normalization', desc: 'Standardizing address fields' },
-              { key: 'geocode',   label: 'Geocode Addresses',    desc: 'Resolving lat/lon via Geoapify' },
-            ].map(s => {
-              const st = stepStatus[s.key];
-              return (
-                <div key={s.key} className={cn(
-                  'rounded-xl border p-3.5 flex items-center gap-3 transition-all duration-500',
-                  st === 'running' ? 'border-primary/40 bg-primary/5'   :
-                  st === 'done'    ? 'border-emerald-500/30 bg-emerald-500/5' :
-                                     'border-border/30 opacity-50'
-                )}>
-                  <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
-                    st === 'running' ? 'bg-primary/15' : st === 'done' ? 'bg-emerald-500/15' : 'bg-muted'
-                  )}>
-                    {st === 'running' ? <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                    : st === 'done'   ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    :                   <div className="w-2 h-2 rounded-full bg-border" />}
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-foreground">{s.label}</p>
-                    <p className="text-[10px] text-muted-foreground">{s.desc}</p>
-                  </div>
-                </div>
-              );
-            })}
+          <div className={cn(
+            'rounded-xl border p-3.5 flex items-center gap-3 transition-all duration-500',
+            isRunning ? 'border-primary/40 bg-primary/5' : isDone ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-border/30 opacity-50'
+          )}>
+            <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
+              isRunning ? 'bg-primary/15' : isDone ? 'bg-emerald-500/15' : 'bg-muted'
+            )}>
+              {isRunning ? <Loader2 className="w-4 h-4 text-primary animate-spin" />
+              : isDone   ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              :            <div className="w-2 h-2 rounded-full bg-border" />}
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-foreground">Address Normalization</p>
+              <p className="text-[10px] text-muted-foreground">Standardizing address fields via LLM</p>
+            </div>
           </div>
           
           {isRunning && (
-            <LiveProgressView agentStates={agentStates} agents={['address_normalizer', 'geocoder']} />
+            <LiveProgressView agentStates={agentStates} agents={['address_normalizer']} />
           )}
 
-          {stepStatus.normalize === 'done' && normalizeResult && (
-             <ResultTable title="Normalized Data" data={normalizeResult.sample} headers={normalizeResult.headers} />
+          {isDone && normalizeResult && (
+             <ResultTable title="Normalized Addresses" data={normalizeResult.sample} headers={filteredHeaders} />
           )}
 
-          {stepStatus.geocode === 'done' && geocodeResult && (
-             <ResultTable title="Geocoded Data" data={geocodeResult.sample} headers={geocodeResult.headers} />
-          )}
-
-          {bothDone && (
+          {isDone && (
             <div className="flex flex-col gap-4 pt-2">
-              <div className="flex items-center gap-2 text-sm text-emerald-500 font-medium animate-in zoom-in-95 duration-500">
-                <CheckCircle2 size={16} /> Data ready — processing complete
-              </div>
+              <Button onClick={onDone} className="w-full gradient-primary glow-primary text-white font-bold h-11">
+                Continue to Geocoding
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Step 3: Geocode Addresses ──────────────────────────
+function GeocodeStep({ isPending, onDone }) {
+  const { stepStatus, agentStates, geocodeResult } = usePipelineStore();
+  const isRunning = stepStatus.geocode === 'running';
+  const isDone  = stepStatus.geocode === 'done';
+  const isIdle = stepStatus.geocode === 'idle';
+
+  return (
+    <div className="space-y-6">
+      {isPending ? (
+         <div className="text-sm text-muted-foreground italic px-2">Complete Address Normalization first to unlock geocoding...</div>
+      ) : (
+        <div className="space-y-4 animate-in fade-in duration-500">
+          <div className={cn(
+            'rounded-xl border p-3.5 flex items-center gap-3 transition-all duration-500',
+            isRunning ? 'border-primary/40 bg-primary/5' : isDone ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-border/30 opacity-50'
+          )}>
+            <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
+              isRunning ? 'bg-primary/15' : isDone ? 'bg-emerald-500/15' : 'bg-muted'
+            )}>
+              {isRunning ? <Loader2 className="w-4 h-4 text-primary animate-spin" />
+              : isDone   ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              :            <div className="w-2 h-2 rounded-full bg-border" />}
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-foreground">Geocode Addresses</p>
+              <p className="text-[10px] text-muted-foreground">Resolving lat/lon attributes via Geoapify</p>
+            </div>
+          </div>
+          
+          {isRunning && (
+            <LiveProgressView agentStates={agentStates} agents={['geocoder']} />
+          )}
+
+          {isDone && geocodeResult && (
+             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500 pt-2">
+                <div className="flex items-center gap-2 mb-2">
+                   <MetricBadge label="Geocoded" value={geocodeResult.geocoded} color="text-emerald-600 bg-emerald-50/50 border-emerald-100" />
+                   <MetricBadge label="Provided" value={geocodeResult.provided} />
+                   <MetricBadge label="Failed" value={geocodeResult.failed} color="text-rose-500 bg-rose-50/50 border-rose-100" />
+                   <MetricBadge label="Flags" value={geocodeResult.flags_added} color="text-amber-600 bg-amber-50/50 border-amber-100" />
+                </div>
+                <ResultTable 
+                  title="Geocoded Sample Data" 
+                  data={geocodeResult.sample} 
+                  headers={geocodeResult.headers?.filter(h => /lat|lon|address|city|street|zip/i.test(h))} 
+                />
+             </div>
+          )}
+
+          {isDone && (
+            <div className="flex flex-col gap-4 pt-2">
               <Button onClick={onDone} className="w-full gradient-primary glow-primary text-white font-bold h-11">
                 Continue to Agent Selection
               </Button>
@@ -603,14 +660,18 @@ export default function PipelinePage() {
 
   useAgentStream(activeId);
 
-  // current wizard step: 1=acquire, 2=processing, 3=agents, 4=mapping
-  const [step, setStep] = useState(routeId ? 3 : 1);
+  // current wizard step: 1=acquire, 2=normalize, 3=geocode, 4=agents, 5=mapping
+  const [step, setStep] = useState(routeId ? 4 : 1);
   const [agentChosen, setAgentChosen] = useState(false);
   const isPreviewing = stepStatus.preview !== 'done';
   const uploadMeta = usePipelineStore(s => s.uploadMeta);
 
-  const handleProcessed = useCallback(() => {
+  const handleNormalizationDone = useCallback(() => {
     setStep(3);
+  }, []);
+
+  const handleGeocodingDone = useCallback(() => {
+    setStep(4);
   }, []);
 
   const geocodeMutation = useMutation({
@@ -631,15 +692,18 @@ export default function PipelinePage() {
       setStepStatus('normalize', 'done');
       setNormalizeResult(data);
       toast.success('Normalization complete');
-      geocodeMutation.mutate();
     },
     onError: (err) => { setStepStatus('normalize', 'error'); toast.error(`Normalization failed: ${err.message}`); }
   });
 
-  const handleStartPipeline = useCallback(() => {
+  const handleStartNormalization = useCallback(() => {
     setStepStatus('preview', 'done');
     normalizeMutation.mutate();
   }, [setStepStatus, normalizeMutation]);
+
+  const handleStartGeocoding = useCallback(() => {
+    geocodeMutation.mutate();
+  }, [geocodeMutation]);
 
   const handleUploaded = useCallback((id) => {
     setUploadId(id);
@@ -648,7 +712,7 @@ export default function PipelinePage() {
 
   const handleAgentSelected = useCallback(() => {
     setAgentChosen(true);
-    setStep(4);
+    setStep(5);
   }, []);
 
   return (
@@ -671,24 +735,36 @@ export default function PipelinePage() {
         <AcquireStep onDone={handleUploaded} />
       </Section>
 
-      <Section step={2} current={step} title="Address Normalization & Geocoding" icon={Globe}
+      <Section step={2} current={step} title="Address Normalization" icon={Globe}
         headerAction={
           isPreviewing && step === 2 ? (
-            <Button onClick={handleStartPipeline} size="sm" className="h-8 gap-1.5 gradient-primary glow-primary-sm text-white rounded-lg">
+            <Button onClick={handleStartNormalization} size="sm" className="h-8 gap-1.5 gradient-primary glow-primary-sm text-white rounded-lg">
               <Zap size={14} className="fill-white" /> Start Agent
             </Button>
           ) : undefined
         }
       >
-        <ProcessingStep isPreviewing={isPreviewing} onDone={handleProcessed} />
+        <NormalizeStep isPreviewing={isPreviewing} onDone={handleNormalizationDone} />
       </Section>
 
-      <Section step={3} current={step} title="Select Agent" icon={Tag}
-        badge={step === 3 ? 'Choose processing mode' : undefined}>
+      <Section step={3} current={step} title="Geocode Addresses" icon={MapPin}
+        headerAction={
+          step === 3 && stepStatus.geocode === 'idle' ? (
+            <Button onClick={handleStartGeocoding} size="sm" className="h-8 gap-1.5 gradient-primary glow-primary-sm text-white rounded-lg">
+              <Zap size={14} className="fill-white" /> Start Geocoding
+            </Button>
+          ) : undefined
+        }
+      >
+        <GeocodeStep isPending={stepStatus.normalize !== 'done'} onDone={handleGeocodingDone} />
+      </Section>
+
+      <Section step={4} current={step} title="Select Agent" icon={Tag}
+        badge={step === 4 ? 'Choose processing mode' : undefined}>
         <AgentSelectStep onSelect={handleAgentSelected} />
       </Section>
 
-      <Section step={4} current={step} title="Column Mapping" icon={Tag}
+      <Section step={5} current={step} title="Column Mapping" icon={Tag}
         badge={targetFormat}>
         <MappingStep uploadId={activeId} targetFormat={targetFormat} onDone={() => navigate(`/session/${activeId}/done`)} />
       </Section>
