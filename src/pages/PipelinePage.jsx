@@ -243,55 +243,6 @@ function GeocodeStep({ activeId }) {
   );
 }
 
-// ── Step 4: Select Agent ──────────────────────────────────────────────────
-function AgentSelectStep({ onSelectCatAI, onSelectUnderwriting }) {
-  return (
-    <div className="space-y-5 animate-in fade-in duration-500">
-      <p className="text-sm text-muted-foreground">Geocoding complete. Choose the agent workflow to run on your data:</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* CatAI Agent */}
-        <button onClick={onSelectCatAI}
-          className="text-left rounded-2xl border-2 border-violet-300/50 bg-violet-500/5 p-5 hover:border-violet-500/60 hover:bg-violet-500/10 transition-all group">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-violet-500" />
-            </div>
-            <div>
-              <p className="font-bold text-sm text-foreground">Start CatAI Agent</p>
-              <p className="text-[10px] text-muted-foreground">CAT Modeling · AIR / RMS</p>
-            </div>
-          </div>
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Column mapping, occupancy & construction code normalization, and final CAT model output (AIR CEDE / RMS EDM).
-          </p>
-          <div className="mt-3 flex items-center gap-1.5 text-violet-500 text-xs font-semibold">
-            Select schema <ArrowRight className="w-3.5 h-3.5" />
-          </div>
-        </button>
-
-        {/* Underwriting Agent (stub) */}
-        <button onClick={onSelectUnderwriting}
-          className="text-left rounded-2xl border-2 border-blue-300/40 bg-blue-500/5 p-5 hover:border-blue-400/60 hover:bg-blue-500/8 transition-all group opacity-80">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-blue-500" />
-            </div>
-            <div>
-              <p className="font-bold text-sm text-foreground">Start Underwriting Agent</p>
-              <p className="text-[10px] text-muted-foreground">Risk Underwriting · Beta</p>
-            </div>
-          </div>
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Automated risk scoring, COPE analysis, and underwriting decision support pipeline.
-          </p>
-          <div className="mt-3 flex items-center gap-1.5 text-blue-400 text-xs font-medium">
-            <Lock className="w-3 h-3" /> Coming soon
-          </div>
-        </button>
-      </div>
-    </div>
-  );
-}
 
 // ── Step 4b: Underwriting stub ────────────────────────────────────────────
 function UnderwritingStep() {
@@ -506,7 +457,7 @@ function CodeMappingStep({ uploadId, onDone }) {
   const mapCodesMutation = useMutation({
     mutationFn: () => runMapCodes(uploadId),
     onMutate:   () => setStepStatus('mapCodes', 'running'),
-    onSuccess:  () => { setStepStatus('mapCodes', 'done'); toast.success('Code mapping complete'); setTimeout(() => onDone(), 10000); },
+    onSuccess:  () => { setStepStatus('mapCodes', 'done'); toast.success('Code mapping complete'); setTimeout(() => onDone(), 2000); },
     onError:    (err) => { setStepStatus('mapCodes', 'error'); toast.error(err.message); },
   });
 
@@ -521,7 +472,7 @@ function CodeMappingStep({ uploadId, onDone }) {
       {isDone && (
         <div className="h-[450px] animate-in fade-in slide-in-from-bottom-2 duration-500">
           <StepDiffTable uploadId={uploadId} step="map-codes" stepColor="text-violet-500" stepBgColor="bg-violet-500/10" />
-          <p className="text-center text-xs text-muted-foreground animate-pulse mt-2">Auto-advancing to normalize values in 10s…</p>
+          <p className="text-center text-xs text-muted-foreground animate-pulse mt-2">Auto-advancing to normalize values in 2s…</p>
         </div>
       )}
     </div>
@@ -537,7 +488,7 @@ function NormalizeValuesStep({ uploadId, onDone }) {
   const normalizeMutation = useMutation({
     mutationFn: () => runNormalizeValues(uploadId),
     onMutate:   () => setStepStatus('normalizeValues', 'running'),
-    onSuccess:  (data) => { setStepStatus('normalizeValues', 'done'); setCatResult(data); toast.success('Value normalization complete'); setTimeout(() => onDone(), 10000); },
+    onSuccess:  (data) => { setStepStatus('normalizeValues', 'done'); setCatResult(data); toast.success('Value normalization complete'); setTimeout(() => onDone(), 2000); },
     onError:    (err) => { setStepStatus('normalizeValues', 'error'); toast.error(err.message); },
   });
 
@@ -552,7 +503,7 @@ function NormalizeValuesStep({ uploadId, onDone }) {
       {isDone && (
         <div className="h-[450px] animate-in fade-in slide-in-from-bottom-2 duration-500">
           <StepDiffTable uploadId={uploadId} step="normalize" stepColor="text-amber-500" stepBgColor="bg-amber-500/10" />
-          <p className="text-center text-xs text-muted-foreground animate-pulse mt-2">Entering Dashboard in 10s…</p>
+          <p className="text-center text-xs text-muted-foreground animate-pulse mt-2">Entering Dashboard in 2s…</p>
         </div>
       )}
     </div>
@@ -593,7 +544,6 @@ export default function PipelinePage() {
       setStepStatus('geocode', 'done');
       setGeocodeResult(data);
       toast.success(`Geocoding complete — ${data.geocoded} geocoded`);
-      setTimeout(() => advance(4), 10000);
     },
     onError: (err) => { setStepStatus('geocode', 'error'); toast.error(`Geocoding failed: ${err.message}`); },
   });
@@ -605,7 +555,7 @@ export default function PipelinePage() {
       setStepStatus('normalize', 'done');
       setNormalizeResult(data);
       toast.success('Normalization complete');
-      setTimeout(() => advance(3), 10000);
+      setTimeout(() => advance(3), 2000);
     },
     onError: (err) => { setStepStatus('normalize', 'error'); toast.error(`Normalization failed: ${err.message}`); },
   });
@@ -677,15 +627,19 @@ export default function PipelinePage() {
         <NormalizeStep activeId={activeId} />
       </Section>
 
-      <Section {...sectionProps} stepNum={3} title="Geocode Addresses" icon={MapPin}>
+      <Section {...sectionProps} stepNum={3} title="Geocode Addresses" icon={MapPin}
+        headerAction={stepStatus.geocode === 'done' ? (
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" className="h-8 border-violet-200 bg-violet-50 hover:bg-violet-100 text-violet-600 gap-1.5" onClick={() => { setAgentType('catai'); advance(5); }}>
+              <Sparkles className="w-3.5 h-3.5" /> Start CatAI Agent
+            </Button>
+            <Button size="sm" variant="outline" disabled className="h-8 opacity-60 gap-1.5">
+              <Building2 className="w-3.5 h-3.5 text-blue-500" /> Start Underwriting Agent
+            </Button>
+          </div>
+        ) : null}
+      >
         <GeocodeStep activeId={activeId} />
-      </Section>
-
-      <Section {...sectionProps} stepNum={4} title="Select Agent Workflow" icon={Sparkles}>
-        <AgentSelectStep
-          onSelectCatAI={() => { setAgentType('catai'); advance(5); }}
-          onSelectUnderwriting={() => { setAgentType('underwriting'); advance(5); }}
-        />
       </Section>
 
       {/* CatAI path */}
