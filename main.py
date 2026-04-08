@@ -298,41 +298,6 @@ async def message_stream(upload_id: str, request: Request):
 
 # â”€â”€ Step 2: Address Normalization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-@app.post("/normalize/{upload_id}", tags=["Pipeline"])
-async def run_address_normalization(upload_id: str):
-    """Normalize raw addresses before geocoding."""
-    session = _get_session_or_404(upload_id)
-    from agents.address_normalizer import normalize_addresses
-    
-    dispatch_event(upload_id, "address_normalizer", "start")
-    dispatch_event(upload_id, "address_normalizer", "log", "Agent starting... Loading rows.")
-    
-    rows = session["raw_rows"]
-    
-    # Run the normalizer (we adapt it directly here, skipping the SSE integration in the tool for brevity)
-    normalized, flags = normalize_addresses(rows)
-    
-    dispatch_event(upload_id, "address_normalizer", "log", f"Normalized {len(rows)} addresses.")
-    dispatch_event(upload_id, "address_normalizer", "done", result={"flags_added": len(flags)})
-
-    headers = session.get("headers", [])
-    if normalized and "_CombinedAddress" in normalized[0] and "_CombinedAddress" not in headers:
-        headers.append("_CombinedAddress")
-
-    session_store.update_session(upload_id, {"raw_rows": normalized, "headers": headers})
-    session_store.append_flags(upload_id, flags)
-    session_store.session_mark_stage(upload_id, "address_normalize")
-    dispatch_event(upload_id, "pipeline", "stage_complete", "address_normalize")
-    
-    return NormalizeResponse(
-        upload_id=upload_id,
-        total_rows=len(rows),
-        flags_added=len(flags),
-        sample=normalized[:10],
-        headers=headers,
-        normalization_summary={"flags": len(flags)}
-    )
-
 
 # â”€â”€ Step 2a: Suggest columns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -683,7 +648,10 @@ async def normalize_endpoint(upload_id: str):
 
 def _safe_float(v) -> float:
     if v is None: return 0.0
-    s = str(v).strip().replace(",", "").replace("$", "").replace("Â£", "").replace("â‚¬", "").replace("Â¥", "").replace("â‚¹", "")
+    if isinstance(v, (int, float)): return float(v)
+    s = str(v).strip().replace(",", "")
+    for sym in ["$", "£", "€", "¥", "₹"]:
+        s = s.replace(sym, "")
     try: return float(s)
     except (ValueError, TypeError): return 0.0
 
@@ -693,9 +661,9 @@ def _bucket_year(year_val) -> str:
         y = int(float(s))
         if y <= 0: return "Unknown"
         if y < 1995: return "Pre 1995"
-        if y <= 2001: return "1995 â€“ 2001"
-        if y <= 2010: return "2002 â€“ 2010"
-        if y <= 2017: return "2011 â€“ 2017"
+        if y <= 2001: return "1995 – 2001"
+        if y <= 2010: return "2002 – 2010"
+        if y <= 2017: return "2011 – 2017"
         return "Post 2017"
     except (ValueError, TypeError): return "Unknown"
 
@@ -705,18 +673,27 @@ def _bucket_stories(stories_val) -> str:
         n = int(float(s))
         if n <= 0: return "Unknown"
         if n == 1: return "1"
-        if n <= 3: return "2â€“3"
-        if n <= 7: return "4â€“7"
+        if n <= 3: return "2–3"
+        if n <= 7: return "4–7"
         return "7+"
     except (ValueError, TypeError): return "Unknown"
 
 @app.get("/summary/{upload_id}", tags=["Output"])
 def slip_summary(upload_id: str):
     session = _get_session_or_404(upload_id)
-    _require_stage(session, "normalization", "/summary")
 
     target = session.get("target_format", "AIR")
-    final_rows = session.get("final_rows", [])
+
+    # Prefer the most-normalized rows available:
+    # final_rows (CatAI full pipeline) → geo_rows (geocoded + address-normalized) → raw_rows
+    final_rows = session.get("final_rows") or []
+    if not final_rows:
+        final_rows = session.get("geo_rows") or []
+    if not final_rows:
+        final_rows = session.get("raw_rows") or []
+
+    if not final_rows:
+        raise HTTPException(status_code=422, detail="No processed rows available. Run the pipeline first.")
 
     if target == "AIR":
         bldg_col, cont_col, bi_col, tiv_col = "BuildingValue", "ContentsValue", "TimeElementValue", "TIV"
@@ -730,6 +707,31 @@ def slip_summary(upload_id: str):
         year_col, stories_col = "YEARBUILT", "NUMSTORIES"
         country_col, state_col, city_col, street_col, zip_col = "CNTRYCODE", "STATECODE", "CITY", "STREETNAME", "POSTALCODE"
         loc_id_col = "LOCNUM"
+
+    # If geo_rows are being used (not yet CatAI mapped), dynamically resolve column names
+    # from actual keys in the first row so we don't silently miss all data.
+    if final_rows:
+        sample_keys = set(final_rows[0].keys())
+
+        def _resolve(preferred, *fallbacks):
+            if preferred in sample_keys:
+                return preferred
+            for fb in fallbacks:
+                if fb in sample_keys:
+                    return fb
+            return preferred   # keep original so result is just empty, not an error
+
+        bldg_col     = _resolve(bldg_col, "BuildingValue", "BLDG_VALUE", "BldgValue", "Floor Area (sqft)")
+        cont_col     = _resolve(cont_col, "ContentsValue", "CONT_VALUE", "ContValue")
+        bi_col       = _resolve(bi_col, "TimeElementValue", "BI_VALUE", "BIValue")
+        tiv_col      = _resolve(tiv_col, "TIV", "TotalInsuredValue", "Total Value")
+        year_col     = _resolve(year_col, "YearBuilt", "YEARBUILT", "Year Built", "year_built")
+        stories_col  = _resolve(stories_col, "NumberOfStories", "NUMSTORIES", "Floors", "Stories", "num_stories")
+        country_col  = _resolve(country_col, "CountryISO", "CNTRYCODE", "Country")
+        state_col    = _resolve(state_col, "Area", "STATECODE", "State", "Province")
+        city_col     = _resolve(city_col, "City", "CITY", "Town")
+        street_col   = _resolve(street_col, "Street", "STREETNAME", "Address", "_CombinedAddress")
+        zip_col      = _resolve(zip_col, "PostalCode", "POSTALCODE", "Zip", "ZipCode", "Postal")
 
     total_bldg = total_cont = total_bi = total_tiv_col = 0.0
     country_state_map: Dict[str, Dict] = {}
@@ -779,10 +781,10 @@ def slip_summary(upload_id: str):
     top_locs = sorted(loc_rows, key=lambda r: r["tiv"], reverse=True)[:10]
     cs_list = sorted(country_state_map.values(), key=lambda r: r["tiv"], reverse=True)
 
-    year_order = ["Unknown", "Pre 1995", "1995 â€“ 2001", "2002 â€“ 2010", "2011 â€“ 2017", "Post 2017"]
+    year_order = ["Unknown", "Pre 1995", "1995 – 2001", "2002 – 2010", "2011 – 2017", "Post 2017"]
     year_dist  = [{"label": k, "tiv": year_map.get(k, 0.0)} for k in year_order if k in year_map]
 
-    story_order = ["Unknown", "1", "2â€“3", "4â€“7", "7+"]
+    story_order = ["Unknown", "1", "2–3", "4–7", "7+"]
     story_dist  = [{"label": k, "tiv": story_map.get(k, 0.0)} for k in story_order if k in story_map]
 
     return {
@@ -858,34 +860,7 @@ def session_diff(upload_id: str, step: str = Query(..., pattern="^(geocode|map-c
     pairs: List[Dict] = []
     after_rows: List[Dict] = []
 
-    if step == "normalize-address":
-        # Before: original upload data. After: normalized rows.
-        original_rows = session.get("original_raw_rows", [])
-        norm_rows = session.get("raw_rows", [])
-        if not original_rows:
-            raise HTTPException(status_code=422, detail="No original snapshot available. Re-upload the file.")
-        # Override raw_rows for row-building loop below
-        raw_rows = original_rows
-        after_rows = norm_rows
-        full_address_mode = False
-        full_address_src = None
-
-        # Detect address-related columns that exist in the originals
-        import re as _re
-        addr_pat = _re.compile(r'address|street|city|state|area|postal|zip|country|nation|lat|lon|_combined', _re.IGNORECASE)
-        orig_keys = list(original_rows[0].keys()) if original_rows else []
-        norm_keys = set(norm_rows[0].keys()) if norm_rows else set()
-
-        for col in orig_keys:
-            if addr_pat.search(col):
-                after_col = col if col in norm_keys else None
-                pairs.append({"label": col, "before": col, "after": after_col})
-        # New columns added by normalization (e.g. _CombinedAddress)
-        for col in norm_keys:
-            if col not in set(orig_keys) and (addr_pat.search(col) or col.startswith('_')):
-                pairs.append({"label": col, "before": None, "after": col})
-
-    elif step == "geocode":
+    if step == "geocode":
         _require_stage(session, "geocoding", f"/session-diff (step={step})")
         after_rows = session.get("geo_rows", [])
         # Use normalized rows (pre-geocode) as the before-state
