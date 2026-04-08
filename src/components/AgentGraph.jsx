@@ -78,9 +78,8 @@ function makePath(fromNode, toNode) {
   const y1 = fromNode.top  + NCY;
   const x2 = toNode.left;
   const y2 = toNode.top  + NCY;
-  if (Math.abs(y1 - y2) < 2) return `M ${x1} ${y1} L ${x2} ${y2}`;
   
-  // Calculate dynamic tension based on horizontal gap
+  // Calculate dynamic tension based on horizontal gap (use Bezier for all paths to ensure smooth rendering and consistency)
   const dx = x2 - x1;
   const cxOffset = Math.max(12, dx * 0.4); 
   return `M ${x1} ${y1} C ${x1 + cxOffset} ${y1}, ${x2 - cxOffset} ${y2}, ${x2} ${y2}`;
@@ -184,8 +183,8 @@ function EdgePath({ d, sourceStatus, targetStatus }) {
   const isFullyDone = isSourceDone && isTargetDone;
   const isCurrentlyRunning = isSourceDone && isTargetRunning;
 
-  // #10b981 is green, #34d399 is light green
-  const stroke = isFullyDone ? '#10b981' : isCurrentlyRunning ? '#34d399' : '#cbd5e1';
+  // #10b981 is green, #34d399 is light green, #94a3b8 is slate-400 (visible grey)
+  const stroke = isFullyDone ? '#10b981' : isCurrentlyRunning ? '#34d399' : '#94a3b8';
 
   return (
     <path
@@ -196,7 +195,7 @@ function EdgePath({ d, sourceStatus, targetStatus }) {
       strokeLinecap="round"
       strokeDasharray={isCurrentlyRunning ? '6 4' : undefined}
       className={isCurrentlyRunning ? 'animate-flow-dash' : undefined}
-      opacity={isFullyDone ? 0.85 : isCurrentlyRunning ? 0.75 : 0.4}
+      opacity={isFullyDone ? 0.9 : isCurrentlyRunning ? 0.75 : 0.6}
     />
   );
 }
