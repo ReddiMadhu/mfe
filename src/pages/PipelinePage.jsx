@@ -8,7 +8,7 @@ import {
   ArrowRight, Sparkles, Building2, Lock,
 } from 'lucide-react';
 import {
-  uploadFile, runNormalize, runGeocode,
+  uploadFile, runGeocode,
   suggestColumns, confirmColumns, runMapCodes, runNormalizeValues, forgetMapping,
 } from '@/lib/api';
 import { usePipelineStore } from '@/store/usePipelineStore';
@@ -207,23 +207,6 @@ function AcquireStep({ onStartPipeline }) {
   );
 }
 
-// ── Step 2: Address Normalization (auto-runs, shows StepDiffTable) ─────────
-function NormalizeStep({ activeId }) {
-  const { stepStatus, agentStates } = usePipelineStore();
-  const isRunning = stepStatus.normalize === 'running';
-  const isDone    = stepStatus.normalize === 'done';
-
-  return (
-    <div className="space-y-4 animate-in fade-in duration-500">
-      {isRunning && <LiveProgressView agentStates={agentStates} agents={['address_normalizer']} />}
-      {isDone && (
-        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500 h-[440px]">
-          <StepDiffTable uploadId={activeId} step="normalize-address" stepColor="text-cyan-500" stepBgColor="bg-cyan-500/10" />
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── Step 3: Geocode (auto-runs, shows StepDiffTable) ──────────────────────
 function GeocodeStep({ activeId }) {
@@ -548,29 +531,9 @@ export default function PipelinePage() {
     onError: (err) => { setStepStatus('geocode', 'error'); toast.error(`Geocoding failed: ${err.message}`); },
   });
 
-  const normalizeMutation = useMutation({
-    mutationFn: () => runNormalize(activeId),
-    onMutate:   () => setStepStatus('normalize', 'running'),
-    onSuccess:  (data) => {
-      setStepStatus('normalize', 'done');
-      setNormalizeResult(data);
-      toast.success('Normalization complete');
-      setTimeout(() => advance(3), 2000);
-    },
-    onError: (err) => { setStepStatus('normalize', 'error'); toast.error(`Normalization failed: ${err.message}`); },
-  });
-
-  // Auto-run normalization when step advances to 2
+  // Auto-run geocoding when step advances to 2
   useEffect(() => {
-    if (step === 2 && (!stepStatus.normalize || stepStatus.normalize === 'idle') && activeId) {
-      normalizeMutation.mutate();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, activeId]);
-
-  // Auto-run geocoding when step advances to 3
-  useEffect(() => {
-    if (step === 3 && (!stepStatus.geocode || stepStatus.geocode === 'idle') && activeId) {
+    if (step === 2 && (!stepStatus.geocode || stepStatus.geocode === 'idle') && activeId) {
       geocodeMutation.mutate();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -604,6 +567,9 @@ export default function PipelinePage() {
           stepStatus={stepStatus}
           onNodeClick={handleNodeClick}
           currentPipelineStep={step}
+          isGeocodeDone={stepStatus.geocode === 'done'}
+          onStartCat={() => { setAgentType('catai'); advance(5); }}
+          onStartUnderwriting={() => { setAgentType('underwriting'); advance(5); }}
         />
       </div>
 
@@ -623,22 +589,7 @@ export default function PipelinePage() {
         <AcquireStep onStartPipeline={handleUploaded} />
       </Section>
 
-      <Section {...sectionProps} stepNum={2} title="Address Normalization" icon={Globe}>
-        <NormalizeStep activeId={activeId} />
-      </Section>
-
-      <Section {...sectionProps} stepNum={3} title="Geocode Addresses" icon={MapPin}
-        headerAction={stepStatus.geocode === 'done' ? (
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" className="h-8 border-violet-200 bg-violet-50 hover:bg-violet-100 text-violet-600 gap-1.5" onClick={() => { setAgentType('catai'); advance(5); }}>
-              <Sparkles className="w-3.5 h-3.5" /> Start CatAI Agent
-            </Button>
-            <Button size="sm" variant="outline" disabled className="h-8 opacity-60 gap-1.5">
-              <Building2 className="w-3.5 h-3.5 text-blue-500" /> Start Underwriting Agent
-            </Button>
-          </div>
-        ) : null}
-      >
+      <Section {...sectionProps} stepNum={2} title="Address Normalization and Geocoding" icon={MapPin}>
         <GeocodeStep activeId={activeId} />
       </Section>
 

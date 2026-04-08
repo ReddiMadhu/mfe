@@ -2,9 +2,10 @@ import { useMemo } from 'react';
 import {
   FileSpreadsheet, Table2, MapPin, Globe, Tag, BarChart3, FileOutput,
   ShieldCheck, CloudRain, Layers, Eye, TrendingUp, Award,
-  Loader2, Check, Lock, AlertCircle,
+  Loader2, Check, Lock, AlertCircle, Play,
 } from 'lucide-react';
 import { usePipelineStore } from '@/store/usePipelineStore';
+import { cn } from '@/lib/utils';
 
 // ─── Node dimensions ─────────────────────────────────────────────────────────
 const NW  = 136;   // card width
@@ -16,39 +17,34 @@ const NCY = NH / 2;
 // right-edge x = node.left + NW
 // left-edge  x = node.left
 const NODES = [
-  // ── Sequential ─────────────────────────────────────────────────────────────
-  { id: 'upload',      label: 'Upload Data',               icon: FileSpreadsheet, agentKey: 'upload',            left: 0,    top: 90,  locked: false, color: '#3b82f6' },
-  { id: 'preview',     label: 'Data Preview',              icon: Table2,          agentKey: 'preview',           left: 155,  top: 90,  locked: false, color: '#6366f1' },
-  { id: 'normalize',   label: 'Address Normalization',     icon: MapPin,          agentKey: 'address_normalizer',left: 310,  top: 90,  locked: false, color: '#06b6d4' },
-  { id: 'geocode',     label: 'Geocoding Analysis',        icon: Globe,           agentKey: 'geocoder',          left: 465,  top: 90,  locked: false, color: '#0ea5e9' },
+  { id: 'upload',      label: 'Upload SOV',                icon: FileSpreadsheet, agentKey: 'upload',            left: 0,    top: 85,  locked: false, color: '#3b82f6' },
+  { id: 'geocode',     label: 'Data Agent',                icon: MapPin,           agentKey: 'geocoder',          left: 170,  top: 85,  locked: false, color: '#0ea5e9' },
 
   // ── Parallel col 1 ───────────────────────────────────────────────
   // UPPER SECTION: Cat AI path (separated vertically)
-  { id: 'catMap',      label: 'Occupancy and Construction Mapping', icon: Tag,             agentKey: 'cat_code_mapper',   left: 640, top: 0,   locked: false, color: '#8b5cf6' },
+  { id: 'catMap',      label: 'Occupancy and Construction Mapping', icon: Tag,             agentKey: 'cat_code_mapper',   left: 560, top: 15,   locked: false, color: '#8b5cf6' },
   
   // LOWER SECTION: Underwriting agents
-  { id: 'cope',        label: 'COPE Triage',               icon: ShieldCheck,     agentKey: 'cope_triage',       left: 640, top: 52,  locked: false, color: '#f59e0b' },
-  { id: 'hazards',     label: 'Hazard Assessment',         icon: CloudRain,       agentKey: 'hazard_data',       left: 640, top: 90,  locked: false, color: '#ef4444' },
-  { id: 'geospatial',  label: 'Spatial Indexing',          icon: Layers,          agentKey: 'geospatial_data',   left: 640, top: 128, locked: false, color: '#10b981' },
+  { id: 'cope',        label: 'COPE Triage',               icon: ShieldCheck,     agentKey: 'cope_triage',       left: 560, top: 85, locked: false, color: '#f59e0b' },
+  { id: 'hazards',     label: 'Hazard Assessment',         icon: CloudRain,       agentKey: 'hazard_data',       left: 560, top: 120, locked: false, color: '#ef4444' },
+  { id: 'geospatial',  label: 'Spatial Indexing',          icon: Layers,          agentKey: 'geospatial_data',   left: 560, top: 155, locked: false, color: '#10b981' },
 
   // ── Parallel col 2 ───────────────────────────────────────────────
-  { id: 'catNorm',     label: 'Value Normalization',       icon: BarChart3,       agentKey: 'cat_normalizer',    left: 795, top: 0,   locked: false, color: '#f97316' },
-  { id: 'objAnalysis', label: 'Object Detection',          icon: Eye,             agentKey: 'object_detection',  left: 795, top: 128, locked: false, color: '#ec4899' },
+  { id: 'catNorm',     label: 'Value Normalization',       icon: BarChart3,       agentKey: 'cat_normalizer',    left: 720, top: 15,   locked: false, color: '#f97316' },
+  { id: 'objAnalysis', label: 'Object Detection',          icon: Eye,             agentKey: 'object_detection',  left: 720, top: 155, locked: false, color: '#ec4899' },
 
   // ── Parallel col 3 ──────────────────────────────────────────────
-  { id: 'catOut',      label: 'Output Formatting',         icon: FileOutput,      agentKey: 'cat_output',        left: 950, top: 0,   locked: false, color: '#64748b' },
-  { id: 'riskModel',   label: 'Risk Modeling',             icon: TrendingUp,      agentKey: 'risk_model',        left: 950, top: 90,  locked: false, color: '#4f46e5' },
+  { id: 'catOut',      label: 'Output Formatting',         icon: FileOutput,      agentKey: 'cat_output',        left: 880, top: 15,   locked: false, color: '#64748b' },
+  { id: 'riskModel',   label: 'Risk Modeling',             icon: TrendingUp,      agentKey: 'risk_model',        left: 880, top: 120, locked: false, color: '#4f46e5' },
 
   // ── Final col ───────────────────────────────────────────────────
-  { id: 'propensity',  label: 'Quote Propensity',          icon: Award,           agentKey: 'quote_propensity',  left: 1105, top: 90,  locked: false, color: '#f43f5e' },
+  { id: 'propensity',  label: 'Quote Propensity',          icon: Award,           agentKey: 'quote_propensity',  left: 1040, top: 120, locked: false, color: '#f43f5e' },
 ];
 
 // Maps node id → wizard step number (for non-blocking navigation)
 const NODE_STEP_MAP = {
   upload:    1,
-  preview:   1,
-  normalize: 2,
-  geocode:   3,
+  geocode:   2,
   catMap:    7,
   catNorm:   8,
   catOut:    9,
@@ -56,9 +52,7 @@ const NODE_STEP_MAP = {
 
 // ─── Edge definitions ────────────────────────────────────────────────────────
 const EDGES = [
-  { from: 'upload',      to: 'preview'     },
-  { from: 'preview',     to: 'normalize'   },
-  { from: 'normalize',   to: 'geocode'     },
+  { from: 'upload',      to: 'geocode'   },
   { from: 'geocode',     to: 'catMap'      },
   { from: 'geocode',     to: 'cope'        },
   { from: 'geocode',     to: 'hazards'     },
@@ -88,8 +82,6 @@ function makePath(fromNode, toNode) {
 // ─── Stats per node ───────────────────────────────────────────────────────────
 const NODE_STATS = {
   upload:      (r) => [{ l: 'Rows',    v: r?.total_rows   }, { l: 'Cols',   v: r?.total_cols   }],
-  preview:     (r) => [{ l: 'Mapped',  v: r?.mapped_cols  }, { l: 'Quality',v: r?.quality      }],
-  normalize:   (r) => [{ l: 'Cleaned', v: r?.normalized   }, { l: 'Flags',  v: r?.flags_added  }],
   geocode:     (r) => [{ l: 'OK',      v: r?.geocoded     }, { l: 'Failed', v: r?.failed       }],
   catMap:      (r) => [{ l: 'Occ',     v: r?.occ_mapped   }, { l: 'Const',  v: r?.const_mapped }],
   cope:        (r) => [{ l: 'Records', v: r?.records      }, { l: 'Qual',   v: r?.avg_quality  }],
@@ -202,9 +194,9 @@ function EdgePath({ d, sourceStatus, targetStatus }) {
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 const CONTAINER_W = 1245;
-const CONTAINER_H = 164;
+const CONTAINER_H = 205;
 
-export default function AgentGraph({ activeId, agentStates = {}, stepStatus = {}, onNodeClick, currentPipelineStep = 0 }) {
+export default function AgentGraph({ activeId, agentStates = {}, stepStatus = {}, onNodeClick, currentPipelineStep = 0, isGeocodeDone = false, onStartCat, onStartUnderwriting }) {
   const geocodeResult = usePipelineStore(s => s.geocodeResult);
   const uploadMeta    = usePipelineStore(s => s.uploadMeta);
 
@@ -219,11 +211,6 @@ export default function AgentGraph({ activeId, agentStates = {}, stepStatus = {}
     // Fallback to stepStatus and global state
     if (node.id === 'upload') {
       return activeId ? 'done' : 'running'; // Upload is done if we have an ID, otherwise it's the first step
-    }
-    if (node.id === 'preview') {
-      if (stepStatus.preview === 'done' || uploadMeta) return 'done';
-      if (activeId) return 'running'; // Active after upload
-      return 'pending';
     }
     if (node.id === 'normalize') {
       if (stepStatus.normalize === 'idle') return 'pending';
@@ -262,6 +249,58 @@ export default function AgentGraph({ activeId, agentStates = {}, stepStatus = {}
   return (
     <div className="w-full py-4 flex justify-center overflow-visible">
       <div className="relative shrink-0" style={{ width: CONTAINER_W, height: CONTAINER_H }}>
+
+        {/* ── Group Wrappers Layer ── */}
+        
+        {/* Data Agent Wrapper (Removed) */}
+
+        {/* CAT Agent Wrapper */}
+        <div className={cn("absolute border border-dashed rounded-2xl transition-all", isGeocodeDone ? 'border-violet-400/50 bg-violet-50/20' : 'border-slate-300 bg-slate-50/20 grayscale opacity-70')}
+          style={{ left: 540, top: -5, width: 496, height: 65, zIndex: 0 }}>
+          
+          {/* Centered Top Label */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-auto">
+            <div className={cn("text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm ring-4 ring-[#f9fafb]", isGeocodeDone ? "text-violet-700 border-violet-200 bg-white" : "text-slate-500 border-slate-200 bg-slate-50")}>
+              CAT Agent
+            </div>
+          </div>
+
+          {/* Top-Right Play Button */}
+          <div className="absolute top-0 right-4 -translate-y-1/2 z-20 pointer-events-auto">
+            <button
+              onClick={onStartCat}
+              disabled={!isGeocodeDone}
+              className={cn("flex items-center justify-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-full transition-all shadow-md border ring-4 ring-[#f9fafb]", isGeocodeDone ? 'bg-violet-600 text-white hover:bg-violet-500 border-violet-500 hover:shadow-violet-500/25 cursor-pointer' : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed')}
+            >
+              <Play size={10} className={cn("fill-current", !isGeocodeDone && "opacity-50")} />
+              <span>Start</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Underwriting Agent Wrapper */}
+        <div className={cn("absolute border border-dashed rounded-2xl transition-all", isGeocodeDone ? 'border-blue-400/50 bg-blue-50/10' : 'border-slate-300 bg-slate-50/20 grayscale opacity-70')}
+          style={{ left: 540, top: 75, width: 656, height: 125, zIndex: 0 }}>
+          
+          {/* Centered Top Label */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-auto">
+            <div className={cn("text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm ring-4 ring-[#f9fafb]", isGeocodeDone ? "text-blue-600 border-blue-200 bg-white" : "text-slate-500 border-slate-200 bg-slate-50")}>
+              Underwriting Agent
+            </div>
+          </div>
+
+          {/* Top-Right Coming Soon Button */}
+          <div className="absolute top-0 right-4 -translate-y-1/2 z-20 pointer-events-auto">
+            <button
+              onClick={onStartUnderwriting}
+              disabled={true} /* Keeping this disabled as per existing "Coming Soon" stub */
+              className="flex items-center justify-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-full transition-all shadow-sm border bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed ring-4 ring-[#f9fafb]"
+            >
+              <Lock size={10} />
+              <span>Coming Soon</span>
+            </button>
+          </div>
+        </div>
 
         {/* SVG edge layer */}
         <svg

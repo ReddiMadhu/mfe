@@ -42,19 +42,20 @@ function buildGroups(step, pairs, fullAddressMode) {
 
   if (step === 'normalize-address') {
     const groups = [
-      { title: 'Street',       keywords: ['street', 'address1', 'address2', 'fulladdress'] },
+      { title: 'Street',       keywords: ['street', 'address'], exclude: ['_combined', 'fulladdress'] },
       { title: 'City',         keywords: ['city', 'town'] },
-      { title: 'State / Area', keywords: ['state', 'area', 'province', 'region'] },
+      { title: 'State / Area', keywords: ['state', 'area', 'province', 'region'], exclude: ['floor', 'sqft', 'roof'] },
       { title: 'Postal Code',  keywords: ['zip', 'postal', 'postcode'] },
       { title: 'Country',      keywords: ['country', 'nation', 'cntr', 'iso'] },
       { title: 'Coordinates',  keywords: ['lat', 'lon', 'lng'] },
-      { title: 'Combined',     keywords: ['combined', '_combined'] },
+      { title: 'Combined',     keywords: ['combined', '_combined', 'fulladdress'] },
     ];
     const used = new Set();
     const result = groups.map(g => {
       const matched = pairs.filter(p => {
         if (used.has(p.label)) return false;
         const key = p.label.toLowerCase();
+        if (g.exclude && g.exclude.some(ex => key.includes(ex))) return false;
         return g.keywords.some(kw => key.includes(kw));
       });
       matched.forEach(p => used.add(p.label));

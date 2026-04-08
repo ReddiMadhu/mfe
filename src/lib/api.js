@@ -17,9 +17,7 @@ export const uploadFile = (file, targetFormat, rulesConfig) => {
   return req(`/upload?target_format=${targetFormat}`, { method: 'POST', body: fd });
 };
 
-// Address normalization (auto-triggered)
-export const runNormalize = (uploadId) =>
-  req(`/normalize/${uploadId}`, { method: 'POST' });
+
 
 // Geocoding (auto-triggered)
 export const runGeocode = (uploadId) =>
