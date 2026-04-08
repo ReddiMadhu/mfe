@@ -1,4 +1,4 @@
-﻿import { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { useMutation } from '@tanstack/react-query';
@@ -46,8 +46,11 @@ export default function UploadPage() {
 
   const onDrop = useCallback((accepted, rejected) => {
     if (rejected.length > 0) { toast.error('Only CSV and XLSX files are accepted'); return; }
-    setFile(accepted[0]);
-  }, []);
+    const selectedFile = accepted[0];
+    setFile(selectedFile);
+    reset();
+    uploadMutation.mutate({ file: selectedFile, format: targetFormat, rules: localRules });
+  }, [targetFormat, localRules, reset, uploadMutation.mutate]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -94,16 +97,20 @@ export default function UploadPage() {
           {file ? (
             <div className="flex flex-col items-center gap-3 p-8">
               <div className="w-14 h-14 rounded-xl gradient-primary glow-primary-sm flex items-center justify-center">
-                <FileSpreadsheet className="w-7 h-7 text-white" />
+                {uploadMutation.isPending ? <Loader2 className="w-7 h-7 text-white animate-spin" /> : <FileSpreadsheet className="w-7 h-7 text-white" />}
               </div>
               <div className="text-center">
                 <p className="font-semibold text-foreground">{file.name}</p>
-                <p className="text-xs text-muted-foreground mt-1">{(file.size / 1024).toFixed(1)} KB â€” ready to upload</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {uploadMutation.isPending ? 'Uploading...' : `${(file.size / 1024).toFixed(1)} KB`}
+                </p>
               </div>
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive h-7 text-xs mt-1"
-                onClick={(e) => { e.stopPropagation(); setFile(null); }}>
-                <X className="w-3 h-3 mr-1" /> Remove
-              </Button>
+              {!uploadMutation.isPending && (
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive h-7 text-xs mt-1"
+                  onClick={(e) => { e.stopPropagation(); setFile(null); }}>
+                  <X className="w-3 h-3 mr-1" /> Remove
+                </Button>
+              )}
             </div>
           ) : (
             <div className="flex flex-col items-center gap-4 p-10 text-center">
@@ -170,11 +177,7 @@ export default function UploadPage() {
         </AccordionItem>
       </Accordion>
 
-      <Button id="btn-upload-continue" size="lg" onClick={() => { reset(); uploadMutation.mutate({ file, format: targetFormat, rules: localRules }); }}
-        disabled={!file || uploadMutation.isPending}
-        className="w-full gradient-primary glow-primary text-white font-semibold rounded-xl h-12 text-base hover:opacity-90 transition-opacity disabled:opacity-40">
-        {uploadMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploadingâ€¦</> : <>Continue to Pipeline <ChevronRight className="w-4 h-4 ml-2" /></>}
-      </Button>
+
 
       {/* Data Preview */}
       {rawPreview.length > 0 && (

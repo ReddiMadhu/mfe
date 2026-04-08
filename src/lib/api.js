@@ -56,3 +56,12 @@ export const forgetMapping = (sourceCol, targetFormat) =>
 // Session info
 export const getSession = (uploadId) =>
   req(`/session/${uploadId}`);
+
+// Session stage status (for hydration after refresh)
+export const getSessionStatus = (uploadId) =>
+  req(`/session/${uploadId}/status`);
+
+// Session Diff
+export const getSessionDiff = (uploadId, step) =>
+  req(`/session-diff/${uploadId}?step=${step}`);
+

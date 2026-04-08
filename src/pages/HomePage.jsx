@@ -1,15 +1,15 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Zap, Network, Shield, BarChart3, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Zap, Network, Shield, BarChart3, CheckCircle2, FolderUp, MapPin, Globe, Brain, Scale, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePipelineStore } from '@/store/usePipelineStore';
 
 const STEPS = [
-  { icon: '📂', label: 'Upload & Preview', desc: 'CSV / XLSX file with property exposure data' },
-  { icon: '📍', label: 'Address Normalization', desc: 'Auto-extract street, city, state, ZIP, country' },
-  { icon: '🌐', label: 'Geocode Addresses', desc: 'Resolve precise lat/lon coordinates' },
-  { icon: '🔷', label: 'CAT Agent', desc: 'AIR/RMS column mapping, occupancy & construction coding' },
-  { icon: '⚖️', label: 'Underwriting Agent', desc: 'COPE, hazards, risk model, propensity (coming soon)' },
-  { icon: '📊', label: 'Dashboard', desc: 'TIV summary, country/state breakdown, export' },
+  { icon: FolderUp, label: 'Upload & Preview', desc: 'CSV / XLSX file with property exposure data' },
+  { icon: Globe, label: 'Address Normalization', desc: 'Auto-extract street, city, state, ZIP, country' },
+  { icon: MapPin, label: 'Geocode Addresses', desc: 'Resolve precise lat/lon coordinates' },
+  { icon: Brain, label: 'CAT Agent', desc: 'AIR/RMS column mapping, occupancy & construction coding' },
+  { icon: Scale, label: 'Underwriting Agent', desc: 'COPE, hazards, risk model, propensity (coming soon)' },
+  { icon: LayoutDashboard, label: 'Dashboard', desc: 'TIV summary, country/state breakdown, export' },
 ];
 
 const FEATURES = [
@@ -64,7 +64,7 @@ export default function HomePage() {
           {STEPS.map((s, i) => (
             <div key={i} className="flex items-center gap-2">
               <div className="glass rounded-xl px-4 py-2.5 flex items-center gap-2 text-sm">
-                <span>{s.icon}</span>
+                <s.icon className="w-4 h-4 text-primary" />
                 <span className="font-medium text-foreground">{s.label}</span>
               </div>
               {i < STEPS.length - 1 && (

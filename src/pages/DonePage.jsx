@@ -91,9 +91,8 @@ function DownloadAction({ format, label, icon: Icon, uploadId }) {
   );
 }
 
-export default function DonePage() {
-  const { id: uploadId } = useParams();
-  const navigate = useNavigate();
+export function DashboardView({ uploadId }) {
+
 
   const { data, isLoading } = useQuery({
     queryKey: ['slip-summary', uploadId],
@@ -115,24 +114,7 @@ export default function DonePage() {
   const st      = data?.stories_dist    ?? [];
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="mb-6 text-center">
-        <div className="w-14 h-14 rounded-2xl gradient-primary glow-primary flex items-center justify-center mx-auto mb-3">
-          <CheckCircle2 className="w-7 h-7 text-white" />
-        </div>
-        <h1 className="text-3xl font-bold mb-1"><span className="gradient-text">Pipeline Complete!</span></h1>
-        <p className="text-muted-foreground text-sm">Exposure data processed and ready for CAT modeling.</p>
-        <code className="text-xs font-mono text-muted-foreground/40 mt-1 block">Session: {uploadId?.slice(0, 16)}…</code>
-      </div>
-
-      {/* KPI Strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <KpiCard icon={MapPin}     label="Total Locations"    value={fmtN.format(data?.total_risks ?? 0)} iconBg="bg-cyan-500" />
-        <KpiCard icon={DollarSign} label="Total TIV"          value={fmt.format(grand)}                   iconBg="gradient-primary" />
-        <KpiCard icon={Building2}  label="Building Value"     value={fmt.format(lv.building ?? 0)}        iconBg="bg-violet-500" />
-        <KpiCard icon={TrendingUp} label="Countries / States" value={`${new Set(cs.map(r => r.country)).size} / ${cs.length}`} iconBg="bg-emerald-500" />
-      </div>
+    <div className="pt-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
       {/* Export bar */}
       <div className="glass rounded-2xl p-4 mb-8 flex flex-wrap items-center justify-between gap-3 border border-border/40">
@@ -206,9 +188,64 @@ export default function DonePage() {
         )}
       </div>
 
+      {/* Top Locations by TIV */}
+      <div className="mb-8">
+        <SectionTitle num="3" title="Top Locations by TIV" />
+        {isLoading ? <TableSkeleton rows={10} cols={7} /> : (
+          <div className="glass rounded-2xl overflow-hidden border border-border/30">
+            <table className="w-full text-[12px] border-collapse table-fixed">
+              <colgroup>
+                <col style={{ width: 70  }} />
+                <col />
+                <col style={{ width: 130 }} />
+                <col style={{ width: 70  }} />
+                <col style={{ width: 80  }} />
+                <col style={{ width: 150 }} />
+                <col style={{ width: 80  }} />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th className={cn(HEADER_CLASS, 'text-left')}>Loc ID</th>
+                  <th className={cn(HEADER_CLASS, 'text-left')}>Address</th>
+                  <th className={cn(HEADER_CLASS, 'text-left')}>City</th>
+                  <th className={cn(HEADER_CLASS, 'text-left')}>State</th>
+                  <th className={cn(HEADER_CLASS, 'text-left')}>ZIP</th>
+                  <th className={cn(HEADER_CLASS, 'text-right')}>TIV</th>
+                  <th className={cn(HEADER_CLASS, 'text-right')}>% Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topLocs.map((r, i) => (
+                  <tr key={i} className={cn('hover:bg-muted/25 transition-colors', i % 2 === 1 && 'bg-muted/10')}>
+                    <td className={cn(CELL_CLASS, 'text-muted-foreground/60 font-mono text-[11px]')}>{r.loc_id || '—'}</td>
+                    <td className={cn(CELL_CLASS, 'truncate max-w-0')} title={r.address}>{r.address || '—'}</td>
+                    <td className={cn(CELL_CLASS)}>{r.city || '—'}</td>
+                    <td className={cn(CELL_CLASS, 'font-medium')}>{r.state || '—'}</td>
+                    <td className={cn(CELL_CLASS, 'font-mono text-[11px] text-muted-foreground')}>{r.zip || '—'}</td>
+                    <td className={cn(CELL_CLASS, 'text-right tabular-nums font-semibold')}>{fmt.format(r.tiv)}</td>
+                    <td className={cn(CELL_CLASS, 'text-right tabular-nums text-muted-foreground')}>{pct(r.tiv, grand)}</td>
+                  </tr>
+                ))}
+                <tr className="bg-primary/[0.04] border-t-2 border-primary/15">
+                  <td colSpan={5} className="px-4 py-3 text-right text-[11px] font-semibold text-muted-foreground border-t border-primary/10">
+                    Top {topLocs.length} Total
+                  </td>
+                  <td className="px-4 py-3 text-right text-[12px] font-bold tabular-nums text-primary border-t border-primary/10">
+                    {fmt.format(topTiv)}
+                  </td>
+                  <td className="px-4 py-3 text-right text-[12px] font-bold tabular-nums border-t border-primary/10">
+                    {pct(topTiv, grand)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* Occupancy + Construction side by side */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        {[{ num: '3', title: 'Occupancy Distribution', data: occ, colorClass: 'bg-primary/60' }, { num: '4', title: 'Construction Distribution', data: cst, colorClass: 'bg-violet-500/60' }].map(({ num, title, data: dist, colorClass }) => (
+        {[{ num: '4', title: 'Occupancy Distribution', data: occ, colorClass: 'bg-primary/60' }, { num: '5', title: 'Construction Distribution', data: cst, colorClass: 'bg-violet-500/60' }].map(({ num, title, data: dist, colorClass }) => (
           <div key={num}>
             <SectionTitle num={num} title={title} />
             {isLoading ? <TableSkeleton rows={6} cols={3} /> : (
@@ -237,10 +274,37 @@ export default function DonePage() {
         ))}
       </div>
 
-      {/* Return */}
-      <Button id="btn-return-home" variant="outline" size="lg" onClick={() => navigate('/')} className="w-full h-12 rounded-xl border-border/60 text-muted-foreground hover:text-foreground hover:border-border">
-        <Home className="w-4 h-4 mr-2" /> Return to Home
-      </Button>
+      {/* Year Built + Stories side by side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {[{ num: '6', title: 'Year Built', data: yb, colorClass: 'bg-emerald-500/60' }, { num: '7', title: 'Number of Stories', data: st, colorClass: 'bg-amber-500/60' }].map(({ num, title, data: dist, colorClass }) => (
+          <div key={num}>
+            <SectionTitle num={num} title={title} />
+            {isLoading ? <TableSkeleton rows={6} cols={3} /> : (
+              <div className="glass rounded-2xl overflow-hidden border border-border/30">
+                <table className="w-full text-[12px] border-collapse table-fixed">
+                  <colgroup><col /><col style={{ width: 110 }} /><col style={{ width: 120 }} /></colgroup>
+                  <thead><tr>
+                    <th className={cn(HEADER_CLASS, 'text-left')}>Type</th>
+                    <th className={cn(HEADER_CLASS, 'text-center')}>Share</th>
+                    <th className={cn(HEADER_CLASS, 'text-right')}>Total TIV</th>
+                  </tr></thead>
+                  <tbody>
+                    {dist.map((r, i) => (
+                      <tr key={i} className={cn('hover:bg-muted/25 transition-colors', i % 2 === 1 && 'bg-muted/10')}>
+                        <td className={CELL_CLASS}>{r.label}</td>
+                        <td className={CELL_CLASS}><PctBar value={r.tiv} total={grand} colorClass={colorClass} /></td>
+                        <td className={cn(CELL_CLASS, 'text-right tabular-nums font-medium')}>{fmt.format(r.tiv)}</td>
+                      </tr>
+                    ))}
+                    <TotalRow cells={[{ content: 'Total', isLabel: true }, { content: '' }, { content: fmt.format(grand), align: 'right' }]} />
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
     </div>
   );
 }

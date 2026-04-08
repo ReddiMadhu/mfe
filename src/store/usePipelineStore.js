@@ -1,15 +1,22 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
-export const usePipelineStore = create((set) => ({
+export const usePipelineStore = create(persist((set) => ({
   // Upload
   uploadId: null,
   targetFormat: 'AIR',
   uploadMeta: null,     // { row_count, headers, sample }
-  rawPreview: [],       // first 10 rows for DataPreview table
+  rawPreview: [],       // first N rows for DataPreview table
+  agentType: null,      // 'catai' | 'underwriting' | null
+
+  // Navigation: decoupled execution cursor vs display cursor
+  executionStep: 1,     // how far the pipeline inherently has progressed
+  activeViewStep: 1,    // which step's output is currently displayed
 
   // Step statuses
   stepStatus: {
-    preview: 'idle',        // 'idle' | 'running' | 'done' | 'error'
+    upload: 'idle',         // 'idle' | 'running' | 'done' | 'error'
+    preview: 'idle',
     normalize: 'idle',
     geocode: 'idle',
     mapping: 'idle',
@@ -30,6 +37,11 @@ export const usePipelineStore = create((set) => ({
   // --- Actions ---
   setUploadId: (id) => set({ uploadId: id }),
   setTargetFormat: (fmt) => set({ targetFormat: fmt }),
+  setAgentType: (type) => set({ agentType: type }),
+
+  // Setting the active view step (user clicks a completed node)
+  setExecutionStep: (step) => set({ executionStep: step }),
+  setActiveViewStep: (step) => set({ activeViewStep: step }),
 
   setUploadMeta: (meta) => set({
     uploadMeta: meta,
@@ -70,7 +82,10 @@ export const usePipelineStore = create((set) => ({
     uploadId: null,
     uploadMeta: null,
     rawPreview: [],
-    stepStatus: { normalize: 'idle', geocode: 'idle', mapping: 'idle', mapCodes: 'idle', normalizeValues: 'idle' },
+    agentType: null,
+    activeViewStep: 1,
+    executionStep: 1,
+    stepStatus: { upload: 'idle', preview: 'idle', normalize: 'idle', geocode: 'idle', mapping: 'idle', mapCodes: 'idle', normalizeValues: 'idle' },
     agentStates: {},
     normalizeResult: null,
     geocodeResult: null,
@@ -78,4 +93,7 @@ export const usePipelineStore = create((set) => ({
     catResult: null,
     summaryData: null,
   }),
+}), { 
+  name: 'pipeline-state',
+  storage: createJSONStorage(() => sessionStorage)
 }));

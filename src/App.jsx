@@ -5,7 +5,6 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import TopBar from '@/components/TopBar';
 import HomePage from '@/pages/HomePage';
 import PipelinePage from '@/pages/PipelinePage';
-import DonePage from '@/pages/DonePage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -23,7 +22,7 @@ export default function App() {
                 <Route path="/"                    element={<HomePage />} />
                 <Route path="/pipeline"            element={<PipelinePage />} />
                 <Route path="/pipeline/:id"        element={<PipelinePage />} />
-                <Route path="/session/:id/done"    element={<DonePage />} />
+                <Route path="/session/:id/done"    element={<Navigate to="/pipeline" replace />} />
                 {/* Legacy redirects in case any old links are used */}
                 <Route path="/upload"                   element={<Navigate to="/pipeline" replace />} />
                 <Route path="/session/:id/processing"   element={<Navigate to="/pipeline" replace />} />
