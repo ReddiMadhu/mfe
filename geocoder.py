@@ -1,358 +1,285 @@
 """
-geocoder.py â€” Geoapify geocoding with LRU cache and ISO 3166 state validation.
+output_builder.py — Assemble the final XLSX or CSV output.
+
+The column order is driven by AIR_OUTPUT_COLUMNS / RMS_OUTPUT_COLUMNS constants.
+Unmapped source columns are appended alphabetically at the end.
+A second sheet "QA_Summary" provides a quality report.
 """
-import httpx
-import json
+import csv
+import io
 import logging
-import os
-import pathlib
-import re
-import unicodedata
-from functools import lru_cache
-from typing import Dict, Optional
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
 
-from agents.address_normalizer import normalize_address_fields
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.utils import get_column_letter
 
-logger = logging.getLogger("geocoder")
+logger = logging.getLogger("output_builder")
 
-GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY", "")
-GEOAPIFY_URL = "https://api.geoapify.com/v1/geocode/search"
-GEOCODE_TIMEOUT = 8.0
+# ── AIR output column order ────────────────────────────────────────────────────
+# Follows the AIR Touchstone / Common User Schema (CUC) format.
 
-# â”€â”€ Reference data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-_REF_DIR = pathlib.Path(__file__).parent.parent / "reference"
-_iso3166: Dict[str, str] = {}   # state_name_lower â†’ state_code
-_iso3166r: Dict[str, str] = {}  # state_code_upper â†’ state_name
-_alpha3_to_alpha2: Dict[str, str] = {}
+AIR_OUTPUT_COLUMNS: List[str] = [
+    # Identity
+    "PolicyID", "InsuredName", "LocationID", "LocationName",
+    # Address
+    "Street", "City", "Area", "PostalCode", "CountryISO",
+    # Coordinates
+    "Latitude", "Longitude",
+    # Construction & Occupancy
+    "ConstructionCodeType", "ConstructionCode",
+    "OccupancyCodeType", "OccupancyCode",
+    # Building attributes
+    "RiskCount", "NumberOfStories", "GrossArea",
+    "YearBuilt", "YearRetrofitted",
+    # Secondary modifiers
+    "SprinklerSystem", "RoofGeometry", "FoundationType",
+    "WallSiding", "SoftStory", "WallType",
+    # Financials
+    "BuildingValue", "ContentsValue", "TimeElementValue",
+    "Currency", "LineOfBusiness",
+]
+
+# ── RMS output column order ────────────────────────────────────────────────────
+# Follows the RMS Exposure Data Module (EDM) standard.
+
+RMS_OUTPUT_COLUMNS: List[str] = [
+    # Core identity & geo
+    "ACCNTNUM", "LOCNUM", "LOCNAME",
+    "STREETNAME", "CITY", "STATECODE", "POSTALCODE", "CNTRYCODE",
+    "Latitude", "Longitude",
+    # Structural & secondary modifiers
+    "BLDGSCHEME", "BLDGCLASS", "OCCSCHEME", "OCCTYPE",
+    "NUMBLDGS", "NUMSTORIES", "FLOORAREA",
+    "YEARBUILT", "YEARUPGRAD",
+    "SPRINKLER", "ROOFGEOM", "FOUNDATION", "CLADDING", "SOFTSTORY", "WALLTYPE",
+    # Values (peril-specific)
+    "EQCV1VAL", "EQCV2VAL", "EQCV3VAL",
+    "WSCV1VAL", "WSCV2VAL", "WSCV3VAL",
+    "TOCV1VAL", "TOCV2VAL", "TOCV3VAL",
+    "FLCV1VAL", "FLCV2VAL", "FLCV3VAL",
+    "TRCV1VAL", "TRCV2VAL", "TRCV3VAL",
+    "FRCV1VAL", "FRCV2VAL", "FRCV3VAL",
+    # Currency (peril-specific)
+    "EQCV1LCUR", "EQCV2LCUR", "EQCV3LCUR",
+    "WSCV1LCUR", "WSCV2LCUR", "WSCV3LCUR",
+    "TOCV1LCUR", "TOCV2LCUR", "TOCV3LCUR",
+    "FLCV1LCUR", "FLCV2LCUR", "FLCV3LCUR",
+    "TRCV1LCUR", "TRCV2LCUR", "TRCV3LCUR",
+    "FRCV1LCUR", "FRCV2LCUR", "FRCV3LCUR",
+]
+
+# ── Styling constants ──────────────────────────────────────────────────────────
+HEADER_FILL = PatternFill("solid", fgColor="1F3864")
+HEADER_FONT = Font(bold=True, color="FFFFFF", size=10)
+HEADER_ALIGN = Alignment(horizontal="center", vertical="center", wrap_text=True)
+QA_HEADER_FILL = PatternFill("solid", fgColor="2E75B6")
+QA_HEADER_FONT = Font(bold=True, color="FFFFFF", size=10)
+ALT_ROW_FILL = PatternFill("solid", fgColor="EBF3FB")
 
 
-def load_reference_data() -> None:
-    """Load ISO reference data from JSON files into module-level dicts."""
-    global _iso3166, _iso3166r, _alpha3_to_alpha2
+# ── Build XLSX ─────────────────────────────────────────────────────────────────
 
-    states_path = _REF_DIR / "iso3166_states.json"
-    if states_path.exists():
-        data = json.loads(states_path.read_text(encoding="utf-8"))
-        # Expected shape: {"US": {"CA": "California", ...}, ...}
-        # or flat {"California": "CA", ...}
-        for country_or_code, value in data.items():
-            if isinstance(value, dict):
-                # Nested: country_code â†’ {state_code: state_name}
-                for code, name in value.items():
-                    _iso3166[name.lower()] = code.upper()
-                    _iso3166r[code.upper()] = name
-            elif isinstance(value, str):
-                # Flat: state_name â†’ code
-                _iso3166[country_or_code.lower()] = value.upper()
-                _iso3166r[value.upper()] = country_or_code
-        # Also load the alpha-3 â†’ alpha-2 section if present
-        alpha3 = data.get("_alpha3_to_alpha2", {})
-        _alpha3_to_alpha2.update(alpha3)
-
-    logger.info(f"Loaded {len(_iso3166)} ISO-3166 state entries")
-
-
-# â”€â”€ Address normalisation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-def _normalize_address(raw: str) -> str:
-    """Lowercase, remove double spaces, strip punctuation except commas/hyphens."""
-    raw = raw.strip().lower()
-    raw = re.sub(r"[^\w\s,\-]", " ", raw)
-    raw = re.sub(r"\s{2,}", " ", raw)
-    return raw
-
-
-def assemble_address(row: dict, target_format: str = "AIR") -> Optional[str]:
+def build_xlsx(
+    rows: List[Dict[str, Any]],
+    unmapped_cols: List[str],
+    flags: List[Dict],
+    target_format: str = "AIR",
+    upload_id: str = "",
+) -> io.BytesIO:
     """
-    Build an address string from a cleaned row dict for geocoding.
-    Supports both AIR and RMS canonical key names.
+    Build a streaming XLSX workbook with:
+      Sheet 1 — Locations (all processed rows in canonical column order)
+      Sheet 2 — QA_Summary (stats + flag details)
+    Returns a BytesIO buffer positioned at 0.
     """
-    def val(*keys: str) -> str:
-        for k in keys:
-            v = row.get(k)
-            if v and str(v).strip():
-                return str(v).strip()
-        return ""
+    wb = Workbook(write_only=True)
 
-    full = val("_CombinedAddress", "FullAddress", "Address")
-    if full:
-        return full
+    # ── Sheet 1: Locations ─────────────────────────────────────────────────────
+    ws_loc = wb.create_sheet("Locations")
 
-    if target_format == "AIR":
-        parts = [
-            val("Street"),
-            val("City"),
-            val("County"),
-            val("Area", "State"),
-            val("PostalCode"),
-            val("CountryISO"),
-        ]
-    else:  # RMS
-        parts = [
-            val("STREETNAME"),
-            val("CITY"),
-            val("COUNTY"),
-            val("STATECODE"),
-            val("POSTALCODE"),
-            val("CNTRYCODE"),
-        ]
+    base_cols = AIR_OUTPUT_COLUMNS if target_format == "AIR" else RMS_OUTPUT_COLUMNS
+    # Only output the canonical schema columns — unmapped source columns are
+    # excluded from the Locations sheet to keep output clean and EDM-compliant.
+    final_cols = base_cols
 
-    assembled = ", ".join(p for p in parts if p)
-    return assembled if assembled else None
+    # Set AutoFit column widths based on the minimum length of standard column sizes + buffer
+    for i, col_name in enumerate(final_cols, start=1):
+        col_letter = get_column_letter(i)
+        # Ensure column width is wide enough for the header text at least
+        ws_loc.column_dimensions[col_letter].width = max(len(col_name) + 2, 12)
 
+    # Styled header row
+    header_cells = []
+    for col_name in final_cols:
+        from openpyxl.cell.cell import WriteOnlyCell
+        cell = WriteOnlyCell(ws_loc, value=col_name)
+        cell.font = HEADER_FONT
+        cell.fill = HEADER_FILL
+        cell.alignment = HEADER_ALIGN
+        header_cells.append(cell)
+    ws_loc.append(header_cells)
 
-# â”€â”€ Geocoding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    if target_format == "RMS":
+        _clone_rms_perils(rows)
+        _format_rms_years(rows)
 
-@lru_cache(maxsize=2000)
-def geocode_address(normalized_address: str) -> dict:
-    """
-    Geocode a single normalized address string via Geoapify.
-    Result is fully serialisable (all plain Python types) so it can be cached.
-    """
-    if not normalized_address or not normalized_address.strip():
-        return {"status": "INSUFFICIENT_ADDRESS", "source": "Failed"}
+    # Data rows
+    for i, row in enumerate(rows):
+        row_data = []
+        for col_name in final_cols:
+            val = row.get(col_name)
+            # Coerce None-like values
+            if val is not None:
+                if isinstance(val, float) and (val != val):  # NaN
+                    val = None
+            row_data.append(val)
 
-    if not GEOAPIFY_API_KEY:
-        return {"status": "NO_API_KEY", "source": "Failed"}
+        data_cells = []
+        for val in row_data:
+            from openpyxl.cell.cell import WriteOnlyCell
+            cell = WriteOnlyCell(ws_loc, value=val)
+            if i % 2 == 1:
+                cell.fill = ALT_ROW_FILL
+            data_cells.append(cell)
+        ws_loc.append(data_cells)
 
-    params = {
-        "text": normalized_address,
-        "format": "json",
-        "limit": 1,
-        "lang": "en",
-        "apiKey": GEOAPIFY_API_KEY,
-    }
+    # ── Sheet 2: QA_Summary ────────────────────────────────────────────────────
+    ws_qa = wb.create_sheet("QA_Summary")
 
-    for attempt in range(3):
-        try:
-            with httpx.Client(timeout=GEOCODE_TIMEOUT) as client:
-                resp = client.get(GEOAPIFY_URL, params=params)
-                resp.raise_for_status()
-                data = resp.json()
-            break
-        except httpx.TimeoutException:
-            if attempt == 2:
-                return {"status": "TIMEOUT", "source": "Failed"}
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code >= 500 and attempt < 2:
-                import time; time.sleep(1 * (attempt + 1))
-                continue
-            return {"status": f"HTTP_{exc.response.status_code}", "source": "Failed"}
-        except Exception as exc:
-            return {"status": f"ERROR:{exc}", "source": "Failed"}
+    stats = _compute_qa_stats(rows, flags, target_format, upload_id)
+    from openpyxl.cell.cell import WriteOnlyCell
 
-    results = data.get("results", [])
-    if not results:
-        return {"status": "NO_RESULTS", "source": "Failed"}
+    # Section header
+    def qa_header_cell(text: str):
+        c = WriteOnlyCell(ws_qa, value=text)
+        c.font = QA_HEADER_FONT
+        c.fill = QA_HEADER_FILL
+        return c
 
-    r = results[0]
-    state_name = r.get("state", "")
-    state_code = _resolve_state_code(state_name)
+    def qa_cell(text: Any):
+        return WriteOnlyCell(ws_qa, value=text)
 
-    # Fallback to ISO-3166-2 for state code (e.g. "DE-BE" -> "BE") if primary state_name missing
-    iso2 = r.get("iso3166_2", "")
-    if not state_code and iso2 and "-" in iso2:
-        state_code = iso2.split("-")[-1].upper()
+    ws_qa.append([qa_header_cell("Field"), qa_header_cell("Value")])
+    for label, value in stats["summary_rows"]:
+        ws_qa.append([qa_cell(label), qa_cell(value)])
 
-    country_raw = (r.get("country_code") or "").strip()
-    country_iso = _resolve_country_alpha2(country_raw)
+    ws_qa.append([])  # blank row
 
-    return {
-        "status": "OK",
-        "source": "Geocoded",
-        "latitude": r.get("lat"),
-        "longitude": r.get("lon"),
-        "street": _join_street(r),
-        "city": r.get("city") or r.get("town") or r.get("village") or r.get("municipality") or "",
-        "county": r.get("county", ""),
-        "state": state_name,
-        "statecode": state_code,
-        "postcode": r.get("postcode", ""),
-        "country_iso": country_iso,
-        "formatted": r.get("formatted", ""),
-        "confidence": r.get("rank", {}).get("confidence", 0),
-        "state_code_validation": _validate_state_code(state_code),
-    }
+    if flags:
+        ws_qa.append([qa_header_cell("Row"), qa_header_cell("Field"),
+                      qa_header_cell("Issue"), qa_header_cell("Message")])
+        for flag in flags:
+            ws_qa.append([
+                qa_cell(flag.get("row_index", "")),
+                qa_cell(flag.get("field", "")),
+                qa_cell(flag.get("issue", "")),
+                qa_cell(flag.get("message", "")),
+            ])
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf
 
 
-def _join_street(r: dict) -> str:
-    housenumber = r.get("housenumber", "") or ""
-    street = r.get("street", "") or ""
-    return f"{housenumber} {street}".strip()
+def build_tsv(
+    rows: List[Dict[str, Any]],
+    unmapped_cols: List[str],
+    target_format: str = "AIR",
+) -> io.BytesIO:
+    """Build a TSV (tab-separated) output in the canonical column order. Returns BytesIO."""
+    base_cols = AIR_OUTPUT_COLUMNS if target_format == "AIR" else RMS_OUTPUT_COLUMNS
+    # Only output the canonical schema columns
+    final_cols = base_cols
+
+    if target_format == "RMS":
+        _clone_rms_perils(rows)
+        _format_rms_years(rows)
+
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=final_cols, extrasaction="ignore",
+                             lineterminator="\n", delimiter="\t")
+    writer.writeheader()
+    for row in rows:
+        writer.writerow({col: row.get(col, "") for col in final_cols})
+
+    raw = buf.getvalue().encode("utf-8-sig")  # BOM for Excel compatibility
+    return io.BytesIO(raw)
 
 
-def _clean_street_fallback(raw_input, city, postcode):
-    """
-    Strip matched city and postcode from raw input to isolate the street part
-    when the geocoder didn't return a specific street component.
-    """
-    if not raw_input:
-        return ""
-    s = str(raw_input).strip()
-
-    # Remove trailing country if it exists
-    s = re.sub(r",\s*[A-Za-z\s]+$", "", s)
-
-    # Remove postcode
-    if postcode:
-        s = re.sub(rf"\b{re.escape(str(postcode))}\b", "", s, flags=re.IGNORECASE)
-
-    # Remove city
-    if city:
-        s = re.sub(rf"\b{re.escape(str(city))}\b", "", s, flags=re.IGNORECASE)
-
-    # Clean up double commas, trailing commas, and extra spaces
-    s = re.sub(r",\s*,", ",", s)
-    s = re.sub(r"\s+", " ", s)
-    s = re.sub(r"[,\s]+$", "", s)
-    s = re.sub(r"^[,\s]+", "", s)
-
-    return s.strip()
 
 
-def _resolve_state_code(state_name: str) -> str:
-    if not state_name:
-        return ""
-    key = state_name.strip().lower()
-    return _iso3166.get(key, state_name[:2].upper() if len(state_name) >= 2 else state_name)
+def _clone_rms_perils(rows: List[Dict]) -> None:
+    """Clone EQ values to WS, TO, FL, TR, and FR peril columns."""
+    for row in rows:
+        # Values
+        val1 = row.get("EQCV1VAL")
+        val2 = row.get("EQCV2VAL")
+        val3 = row.get("EQCV3VAL")
+        
+        # Currencies
+        cur1 = row.get("EQCV1LCUR")
+        cur2 = row.get("EQCV2LCUR")
+        cur3 = row.get("EQCV3LCUR")
 
+        for prefix in ("WSCV", "TOCV", "FLCV", "TRCV", "FRCV"):
+            if val1 is not None and row.get(f"{prefix}1VAL") is None: row[f"{prefix}1VAL"] = val1
+            if val2 is not None and row.get(f"{prefix}2VAL") is None: row[f"{prefix}2VAL"] = val2
+            if val3 is not None and row.get(f"{prefix}3VAL") is None: row[f"{prefix}3VAL"] = val3
+            
+            if cur1 is not None and row.get(f"{prefix}1LCUR") is None: row[f"{prefix}1LCUR"] = cur1
+            if cur2 is not None and row.get(f"{prefix}2LCUR") is None: row[f"{prefix}2LCUR"] = cur2
+            if cur3 is not None and row.get(f"{prefix}3LCUR") is None: row[f"{prefix}3LCUR"] = cur3
+            
+def _format_rms_years(rows: List[Dict]) -> None:
+    """Format YEARBUILT and YEARUPGRAD to MM/DD/YYYY standard for RMS EDM."""
+    for row in rows:
+        for col in ("YEARBUILT", "YEARUPGRAD"):
+            val = row.get(col)
+            if val is not None and val != "":
+                try:
+                    y = int(val)
+                    if y == 9999:
+                        row[col] = "31//12/9999"
+                    elif 1700 <= y <= 2026:
+                        row[col] = f"01/01/{y}"
+                except (ValueError, TypeError):
+                    pass
 
-def _resolve_country_alpha2(raw: str) -> str:
-    """Convert alpha-2 or alpha-3 country code â†’ alpha-2."""
-    upper = raw.upper().strip()
-    if len(upper) == 2:
-        return upper
-    if upper in _alpha3_to_alpha2:
-        return _alpha3_to_alpha2[upper]
-    return upper
+# ── QA Stats ───────────────────────────────────────────────────────────────────
 
+def _compute_qa_stats(
+    rows: List[Dict],
+    flags: List[Dict],
+    target_format: str,
+    upload_id: str,
+) -> Dict:
+    total = len(rows)
+    geo_failed = sum(1 for r in rows if r.get("GeocodingStatus") not in ("OK", "PROVIDED"))
+    low_occ = sum(1 for r in rows
+                  if (r.get("Occupancy_Confidence") or 1.0) < 0.70)
+    low_const = sum(1 for r in rows
+                    if (r.get("Construction_Confidence") or 1.0) < 0.70)
+    currency_conflicts = sum(1 for r in rows if r.get("Currency_Conflicts"))
+    bad_years = sum(1 for r in rows if r.get("Year_Built_Flag") not in (None, "VALID"))
+    review_rows = len({f["row_index"] for f in flags})
 
-def _validate_state_code(code: str) -> str:
-    if not code:
-        return "MISSING"
-    if code.upper() in _iso3166r:
-        return "VALID"
-    if re.match(r"^[A-Z]{2}$", code.upper()):
-        return "UNRECOGNIZED"
-    return "INVALID_FORMAT"
+    fmt_label = "AIR Touchstone XLSX" if target_format == "AIR" else "RMS EDM CSV"
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
-
-# ── Row-level geocoding decision ───────────────────────────────────────────────
-
-def process_row_geocoding(row: dict, column_map: dict,
-                           target_format: str = "AIR") -> dict:
-    """
-    Apply the geocoding decision tree to one row.
-    1. If valid coordinates already present, trust them and normalize.
-    2. Otherwise assemble address string and geocode via Geoapify.
-    3. Normalize the extracted Geoapify components via address_normalizer.
-    Returns a dict of geo fields to merge into the row.
-    """
-    row_idx = row.get("_row_index", 0)
-
-    lat = row.get("Latitude")
-    lon = row.get("Longitude")
-
-    # ── Step 1: Valid coordinates already present — trust them ────────────────
-    if _is_valid_lat(lat) and _is_valid_lon(lon):
-        res = {
-            "Latitude":        float(lat),
-            "Longitude":       float(lon),
-            "Geosource":       "Provided",
-            "GeocodingStatus": "PROVIDED",
-        }
-        final_res, _addr_flags = normalize_address_fields({**row, **res}, row_idx, target_format)
-        output_keys = ["Latitude", "Longitude", "Street", "City", "Area", "PostalCode", "CountryISO", 
-                       "STREETNAME", "CITY", "STATECODE", "POSTALCODE", "CNTRYCODE", 
-                       "Geosource", "GeocodingStatus", "Geo_Confidence", "StateCodeValidation"]
-        return {k: v for k, v in final_res.items() if k in output_keys}
-
-    # ── Step 2: Assemble address and geocode ───────────────────────────
-    address_raw = assemble_address(row, target_format)
-    if not address_raw:
-        return {
-            "Geosource":       "Failed",
-            "GeocodingStatus": "INSUFFICIENT_ADDRESS",
-        }
-
-    normalized = _normalize_address(address_raw)
-    result = geocode_address(normalized)
-
-    if result["status"] != "OK":
-        res = {
-            "Geosource":       "Failed",
-            "GeocodingStatus": result["status"],
-        }
-        # In AIR, if only FullAddress was given and API fails, copy it to Street so the schema is not empty
-        if target_format == "AIR" and not row.get("Street"):
-            res["Street"] = row.get("FullAddress", "") or row.get("_CombinedAddress", "") or row.get("Address", "")
-        return res
-
-    # ── Step 3: Map Geoapify result back to canonical key names ───────────────
-    if target_format == "AIR":
-        # Determine isolated street if geocoder didn't return a specific one
-        final_street = result["street"]
-        if not final_street:
-            # Fallback: clean the input string of city/postcode
-            raw_in = row.get("Street") or row.get("FullAddress", "") or row.get("_CombinedAddress", "") or row.get("Address", "")
-            final_street = _clean_street_fallback(raw_in, result["city"], result["postcode"])
-
-        res = {
-            "Latitude":          result["latitude"],
-            "Longitude":         result["longitude"],
-            "Street":            final_street,
-            "City":              result["city"] or row.get("City", ""),
-            "Area":              result["statecode"] or row.get("Area", ""),
-            "PostalCode":        result["postcode"] or row.get("PostalCode", ""),
-            "CountryISO":        result["country_iso"] or row.get("CountryISO", ""),
-            "GeocodingStatus":   "OK",
-            "Geosource":         "Geocoded",
-            "Geo_Confidence":    result["confidence"],
-            "StateCodeValidation": result["state_code_validation"],
-        }
-    else:  # RMS
-        final_street = result["street"]
-        if not final_street:
-            raw_in = row.get("STREETNAME") or row.get("FullAddress", "") or row.get("_CombinedAddress", "") or row.get("Address", "")
-            final_street = _clean_street_fallback(raw_in, result["city"], result["postcode"])
-
-        res = {
-            "Latitude":          result["latitude"],
-            "Longitude":         result["longitude"],
-            "STREETNAME":        final_street,
-            "CITY":              result["city"] or row.get("CITY", ""),
-            "STATECODE":         result["statecode"] or row.get("STATECODE", ""),
-            "POSTALCODE":        result["postcode"] or row.get("POSTALCODE", ""),
-            "CNTRYCODE":         result["country_iso"] or row.get("CNTRYCODE", ""),
-            "GeocodingStatus":   "OK",
-            "Geosource":         "Geocoded",
-            "Geo_Confidence":    result["confidence"],
-            "StateCodeValidation": result["state_code_validation"],
-        }
-
-    # ── Step 4: Run Address Normalization strictly on the cleanly extracted fields ───
-    final_res, _addr_flags = normalize_address_fields({**row, **res}, row_idx, target_format)
-    
-    # We only want to return the newly generated geo fields and cleaned address fields.
-    output_keys = ["Latitude", "Longitude", "Street", "City", "Area", "PostalCode", "CountryISO", 
-                   "STREETNAME", "CITY", "STATECODE", "POSTALCODE", "CNTRYCODE", 
-                   "Geosource", "GeocodingStatus", "Geo_Confidence", "StateCodeValidation"]
-    
-    return {k: v for k, v in final_res.items() if k in output_keys}
-
-
-def _is_valid_lat(v) -> bool:
-    try:
-        f = float(v)
-        return -90 <= f <= 90 and f != 0
-    except (TypeError, ValueError):
-        return False
-
-
-def _is_valid_lon(v) -> bool:
-    try:
-        f = float(v)
-        return -180 <= f <= 180 and f != 0
-    except (TypeError, ValueError):
-        return False
-
+    summary_rows = [
+        ("Total rows processed", total),
+        ("Rows with geocoding failures", geo_failed),
+        ("Rows with low occupancy confidence (<0.70)", low_occ),
+        ("Rows with low construction confidence (<0.70)", low_const),
+        ("Rows with currency conflicts", currency_conflicts),
+        ("Rows with implausible / out-of-range years", bad_years),
+        ("Rows requiring manual review (any flag)", review_rows),
+        ("Total flags", len(flags)),
+        ("Target format", fmt_label),
+        ("Upload ID", upload_id),
+        ("Processing timestamp", ts),
+    ]
+    return {"summary_rows": summary_rows}

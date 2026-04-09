@@ -30,7 +30,7 @@ from models import (
     ReviewResponse, FlagEntry, CorrectRequest, CorrectResponse,
     SessionInfoResponse,
 )
-from output_builder import build_xlsx, build_csv
+from output_builder import build_xlsx, build_tsv
 
 # Agents
 import agents.geocoder as geocoder
@@ -316,8 +316,13 @@ def session_status(upload_id: str):
 
 
 @app.get("/suggest-columns/{upload_id}", response_model=SuggestColumnsResponse, tags=["Pipeline"])
-def suggest_columns_endpoint(upload_id: str):
+def suggest_columns_endpoint(upload_id: str, target_format: Optional[str] = Query(None, pattern="^(AIR|RMS)$")):
     session = _get_session_or_404(upload_id)
+    
+    if target_format and target_format != session.get("target_format"):
+        session["target_format"] = target_format
+        session_store.update_session(upload_id, {"target_format": target_format})
+
     # Use geo_rows headers post-geocoding so the mapper sees geocoded columns
     geo_rows = session.get("geo_rows", [])
     if geo_rows:
@@ -802,7 +807,7 @@ def slip_summary(upload_id: str):
 # â”€â”€ Download â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @app.get("/download/{upload_id}", tags=["Output"])
-def download(upload_id: str, format: str = Query("xlsx", pattern="^(xlsx|csv)$")):
+def download(upload_id: str, format: str = Query("xlsx", pattern="^(xlsx|tsv|txt)$")):
     session = _get_session_or_404(upload_id)
     _require_stage(session, "normalization", "/download")
 
@@ -812,10 +817,10 @@ def download(upload_id: str, format: str = Query("xlsx", pattern="^(xlsx|csv)$")
     target = session.get("target_format", "AIR")
     short_id = upload_id[:8]
 
-    if format == "csv":
-        buf = build_csv(final_rows, unmapped_cols, target)
-        filename = f"cat_output_{short_id}.csv"
-        media_type = "text/csv"
+    if format in ("tsv", "txt"):
+        buf = build_tsv(final_rows, unmapped_cols, target)
+        filename = f"cat_output_{short_id}.txt"
+        media_type = "text/tab-separated-values"
     else:
         buf = build_xlsx(final_rows, unmapped_cols, flags, target, upload_id)
         filename = f"cat_output_{short_id}.xlsx"
