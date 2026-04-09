@@ -124,7 +124,7 @@ export function DashboardView({ uploadId }) {
         </div>
         <div className="flex gap-3">
           <DownloadAction format="xlsx" label="Export to Excel" icon={FileSpreadsheet} uploadId={uploadId} />
-          <DownloadAction format="csv"  label="Export CSV"      icon={FileText}        uploadId={uploadId} />
+          <DownloadAction format="tsv"  label="Export to Text (Tab)" icon={FileText} uploadId={uploadId} />
         </div>
       </div>
 
@@ -245,7 +245,10 @@ export function DashboardView({ uploadId }) {
 
       {/* Occupancy + Construction side by side */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        {[{ num: '4', title: 'Occupancy Distribution', data: occ, colorClass: 'bg-primary/60' }, { num: '5', title: 'Construction Distribution', data: cst, colorClass: 'bg-violet-500/60' }].map(({ num, title, data: dist, colorClass }) => (
+        {[
+          { num: '4', title: 'Occupancy Distribution', data: occ, colorClass: 'bg-primary/60' },
+          { num: '5', title: 'Construction Distribution', data: cst, colorClass: 'bg-violet-500/60' }
+        ].map(({ num, title, data: dist, colorClass }) => (
           <div key={num}>
             <SectionTitle num={num} title={title} />
             {isLoading ? <TableSkeleton rows={6} cols={3} /> : (
@@ -276,7 +279,10 @@ export function DashboardView({ uploadId }) {
 
       {/* Year Built + Stories side by side */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        {[{ num: '6', title: 'Year Built', data: yb, colorClass: 'bg-emerald-500/60' }, { num: '7', title: 'Number of Stories', data: st, colorClass: 'bg-amber-500/60' }].map(({ num, title, data: dist, colorClass }) => (
+        {[
+          { num: '6', title: 'Year Built', data: yb, colorClass: 'bg-emerald-500/60' },
+          { num: '7', title: 'Number of Stories', data: st, colorClass: 'bg-amber-500/60' }
+        ].map(({ num, title, data: dist, colorClass }) => (
           <div key={num}>
             <SectionTitle num={num} title={title} />
             {isLoading ? <TableSkeleton rows={6} cols={3} /> : (

@@ -81,6 +81,32 @@ function StatRow({ icon: Icon, label, value, color }) {
   );
 }
 
+// ─── Node Simulated Progress ──────────────────────────────────────────────────
+function NodeSimulatedProgress({ isRunning, totalRows, label }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (isRunning && totalRows > 0) {
+      const msPerRow = 25000 / totalRows; // Slower polling (~2.5s)
+      const interval = setInterval(() => {
+        setCount(c => (c < totalRows - 1 ? c + 1 : c));
+      }, Math.max(1200, msPerRow));
+      return () => clearInterval(interval);
+    }
+  }, [isRunning, totalRows]);
+
+  if (!isRunning) return null;
+
+  return (
+    <div className="text-[7.5px] font-extrabold text-orange-500 mb-0.5 px-0.5 pt-0.5 animate-pulse tracking-wide whitespace-normal leading-tight">
+      {label}
+      <div className="mt-0.5 text-[8.5px]">
+        {count} / {totalRows || '?'} properties...
+      </div>
+    </div>
+  );
+}
+
 // ─── Node summary builders ────────────────────────────────────────────────────
 function safe(v) { return v != null && v !== '' ? String(v) : '—'; }
 function pct(n, d) { return d && d > 0 ? `${((n / d) * 100).toFixed(1)}%` : '—'; }
@@ -201,7 +227,7 @@ const NODE_SUMMARY = {
 };
 
 // ─── Unified node card — grows in-place ───────────────────────────────────────
-function PipelineNode({ nodeDef, pos, status, agentState, result, onNavigate, currentPipelineStep, expanded }) {
+function PipelineNode({ nodeDef, pos, status, agentState, result, onNavigate, currentPipelineStep, expanded, totalRows }) {
   const Icon = nodeDef.icon;
   const logsEndRef = useRef(null);
   const logs = agentState?.thinkingLog ?? [];
@@ -220,7 +246,7 @@ function PipelineNode({ nodeDef, pos, status, agentState, result, onNavigate, cu
 
   const COLOR = {
     pending: { bg: '#e2e8fc', border: '0.5px solid #e2e8f0', text: '#64748b', iconC: nodeDef.color + '80', div: '#e2e8f0' },
-    running: { bg: '#ecfdf5', border: '1.5px solid #34d399',  text: '#0f172a', iconC: '#059669',         div: '#a7f3d0' },
+    running: { bg: '#fff7ed', border: '1.5px solid #fb923c',  text: '#0f172a', iconC: '#ea580c',         div: '#fed7aa' },
     done:    { bg: '#ecfdf5', border: '1.5px solid #6ee7b7',  text: '#0f172a', iconC: '#059669',         div: '#d1fae5' },
     error:   { bg: '#fff1f2', border: '1px solid #fca5a5',    text: '#0f172a', iconC: '#e11d48',         div: '#fee2e2' },
     locked:  { bg: '#f8fafc', border: '0.5px solid #e2e8f0',  text: '#94a3b8', iconC: '#94a3b8',         div: '#e2e8f0' },
@@ -239,7 +265,7 @@ function PipelineNode({ nodeDef, pos, status, agentState, result, onNavigate, cu
         background:   c.bg,
         border:       c.border,
         boxShadow:    status === 'running'
-          ? '0 4px 14px rgba(16,185,129,0.22)'
+          ? '0 4px 14px rgba(249,115,22,0.22)'
           : status === 'done'
             ? '0 2px 8px rgba(16,185,129,0.14)'
             : '0 1px 3px rgba(0,0,0,0.05)',
@@ -266,7 +292,7 @@ function PipelineNode({ nodeDef, pos, status, agentState, result, onNavigate, cu
           {nodeDef.label}
         </div>
         {status === 'running' && (
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0 mr-0.5" />
+          <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shrink-0 mr-0.5" />
         )}
       </div>
 
@@ -280,9 +306,21 @@ function PipelineNode({ nodeDef, pos, status, agentState, result, onNavigate, cu
               className="overflow-y-auto px-1.5 py-1 space-y-[1px]"
               style={{ maxHeight: EXP_RUNNING_H - NH - 1 }}
             >
-              {logs.length === 0 ? (
+              {nodeDef.id === 'geocode' && (
+                <NodeSimulatedProgress isRunning={true} totalRows={totalRows} label="Geocoding & Normalizing address for" />
+              )}
+              {nodeDef.id === 'catMap' && (
+                <NodeSimulatedProgress isRunning={true} totalRows={totalRows} label="Mapping CAT codes for" />
+              )}
+              {nodeDef.id === 'catNorm' && (
+                <NodeSimulatedProgress isRunning={true} totalRows={totalRows} label="Normalizing values for" />
+              )}
+              
+              {logs.length === 0 && !['geocode', 'catMap', 'catNorm'].includes(nodeDef.id) && (
                 <div className="text-[8px] text-slate-400 italic animate-pulse px-0.5 pt-0.5">Starting agent…</div>
-              ) : (
+              )}
+              
+              {logs.length > 0 && (
                 <>
                   {logs.slice(-12).map((log, i) => {
                     const msg = typeof log === 'string' ? log : (log.message ?? '');
@@ -335,7 +373,7 @@ function EdgePath({ d, sourceStatus, targetStatus }) {
   const tgtDone   = targetStatus === 'done';
   const running   = srcDone && targetStatus === 'running';
   const fullyDone = srcDone && tgtDone;
-  const stroke    = fullyDone ? '#10b981' : running ? '#34d399' : '#94a3b8';
+  const stroke    = fullyDone ? '#10b981' : running ? '#fb923c' : '#94a3b8';
 
   return (
     <path
@@ -403,21 +441,21 @@ export default function AgentGraph({
     const NX4 = anyStretched ? 950 : 1040;
 
     // CAT Geometry
-    const catH = isCatStretched ? 180 : 65;
-    const catTop = isCatStretched ? 0 : -5;
-    const catNodeTop = isCatStretched ? 20 : 15;
+    const catH = isCatStretched ? 180 : 55;
+    const catTop = isCatStretched ? 0 : -3;
+    const catNodeTop = isCatStretched ? 20 : 12;
 
-    // Underwriting Geometry 
-    const uwTop = catTop + catH + 40; // gap between agent wrappers
+    // Underwriting Geometry
+    const uwTop = catTop + catH + 20; // halved gap between agent wrappers
     // 4 rows: cope / hazards / geospatial / objAnalysis (4th row below parallel trio)
-    const uw_ry_cope    = isUwStretched ? 25  : 10;
-    const uw_ry_hazards = isUwStretched ? 155 : 40;
-    const uw_ry_geo     = isUwStretched ? 285 : 70;
-    const uw_ry_obj     = isUwStretched ? 415 : 100; // 4th row
-    const uwH = isUwStretched ? 580 : 145; // taller to fit 4th row
+    const uw_ry_cope    = isUwStretched ? 25  :  8;
+    const uw_ry_hazards = isUwStretched ? 185 : 50;   // 42px gap (node NH=34 + 8px breathing room)
+    const uw_ry_geo     = isUwStretched ? 345 : 92;   // 42px gap
+    const uw_ry_obj     = isUwStretched ? 505 : 134;  // 42px gap
+    const uwH = isUwStretched ? 660 : 175; // compact: 4 rows × 42px + 8 top/bottom padding
 
-    // Risk/Propensity sit beside the middle rows, vertically centred between rows 1–3
-    const uw_ry_risk    = isUwStretched ? 195 : 40;
+    // Risk/Propensity — vertically centred across all 4 rows
+    const uw_ry_risk    = isUwStretched ? 220 : 62;  // midpoint of rows
 
     // Data Phase Geometry — vertically centre between CAT top and UW bottom
     const lowestY = uwTop + uw_ry_obj;
@@ -487,9 +525,12 @@ export default function AgentGraph({
   return (
     <div className="w-full flex flex-col">
 
-      {/* ── Toggle ── */}
-      <div className="flex items-center justify-end mb-2 px-1">
-        <label className="flex items-center gap-2 cursor-pointer select-none">
+      {/* ── Internal header row: AGENT NETWORK label + Live Mode toggle ── */}
+      <div className="flex items-center gap-2 mb-1.5 px-0.5">
+        <div className={cn('w-1.5 h-1.5 rounded-full shrink-0', isLiveMode ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/40')} />
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Agent Network</span>
+        <div className="flex-1" />
+        <label className="flex items-center gap-1.5 cursor-pointer select-none">
           <div
             onClick={handleToggle}
             className={cn(
@@ -506,7 +547,7 @@ export default function AgentGraph({
             'text-[10px] font-semibold uppercase tracking-wide transition-colors',
             isLiveMode ? 'text-emerald-600' : 'text-slate-400',
           )}>
-            LIVE MODE
+            Live Mode
           </span>
         </label>
       </div>
@@ -591,6 +632,7 @@ export default function AgentGraph({
               result={result}
               onNavigate={onNodeClick}
               currentPipelineStep={currentPipelineStep}
+              totalRows={uploadMeta?.row_count}
             />
           );
         })}

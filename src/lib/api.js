@@ -24,8 +24,10 @@ export const runGeocode = (uploadId) =>
   req(`/geocode/${uploadId}`, { method: 'POST' });
 
 // Column mapping suggestions
-export const suggestColumns = (uploadId) =>
-  req(`/suggest-columns/${uploadId}`);
+export const suggestColumns = (uploadId, targetFormat) => {
+  const url = targetFormat ? `/suggest-columns/${uploadId}?target_format=${targetFormat}` : `/suggest-columns/${uploadId}`;
+  return req(url);
+};
 
 // Confirm column mapping
 export const confirmColumns = (uploadId, columnMap) =>

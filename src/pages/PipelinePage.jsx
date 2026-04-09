@@ -18,7 +18,6 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AgentGraph from '@/components/AgentGraph';
-import LiveProgressView from '@/components/LiveProgressView';
 import { DashboardView } from './DonePage';
 import StepDiffTable from '@/components/StepDiffTable';
 import { cn } from '@/lib/utils';
@@ -208,15 +207,44 @@ function AcquireStep({ onStartPipeline }) {
 }
 
 
+// ── Simulated Progress Polling Component ─────────────────────────────────────
+function SimulatedProgressText({ isRunning, isDone, totalRows, label }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (isRunning && totalRows > 0) {
+      // Slower polling to accurately reflect real-world API call timing per row
+      const msPerRow = 25000 / totalRows; // approx ~2.5 seconds per row
+      const interval = setInterval(() => {
+        setCount(c => (c < totalRows - 1 ? c + 1 : c));
+      }, Math.max(1200, msPerRow));
+      return () => clearInterval(interval);
+    }
+  }, [isRunning, totalRows]);
+
+  useEffect(() => {
+    if (isDone) setCount(totalRows);
+  }, [isDone, totalRows]);
+
+  if (!isRunning && !isDone) return null;
+
+  return (
+    <div className="p-5 font-mono text-sm text-center text-muted-foreground bg-primary/5 border border-primary/20 rounded-2xl animate-pulse">
+      {label} {count} / {totalRows || '?'} properties...
+    </div>
+  );
+}
+
 // ── Step 3: Geocode (auto-runs, shows StepDiffTable) ──────────────────────
 function GeocodeStep({ activeId }) {
-  const { stepStatus, agentStates } = usePipelineStore();
+  const { stepStatus, uploadMeta } = usePipelineStore();
   const isRunning = stepStatus.geocode === 'running';
   const isDone    = stepStatus.geocode === 'done';
+  const total     = uploadMeta?.row_count || 0;
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
-      {isRunning && <LiveProgressView agentStates={agentStates} agents={['geocoder']} />}
+      {isRunning && <SimulatedProgressText isRunning={isRunning} isDone={isDone} totalRows={total} label="Geocoding and normalization of address for" />}
       {isDone && (
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500 h-[450px]">
           <StepDiffTable uploadId={activeId} step="geocode" stepColor="text-rose-500" stepBgColor="bg-rose-500/10" />
@@ -245,54 +273,17 @@ function UnderwritingStep() {
   );
 }
 
-// ── Step 5: Target Format (CatAI only) ───────────────────────────────────
-function TargetFormatStep({ onSelect }) {
-  const { setTargetFormat } = usePipelineStore();
-  const [format, setFormat] = useState('AIR');
+// TargetFormatStep has been merged into MappingStep
 
-  const FORMAT_OPTIONS = [
-    { id: 'AIR', label: 'AIR', sub: 'CEDE · Touchstone · Classis', desc: 'Standard for AIR catastrophe models. Supports CEDE, Touchstone RE, and Classis.' },
-    { id: 'RMS', label: 'RMS', sub: 'EDM · RiskLink',              desc: "Standard for Moody's RMS models. Outputs EDM-compatible exposure data." },
-  ];
-
-  return (
-    <div className="space-y-4 animate-in fade-in duration-500">
-      <p className="text-sm text-muted-foreground">Select the target CAT model schema for column mapping:</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {FORMAT_OPTIONS.map(f => (
-          <button key={f.id} onClick={() => setFormat(f.id)}
-            className={cn(
-              'text-left rounded-xl border p-4 transition-all duration-200',
-              format === f.id ? 'border-primary/60 bg-primary/5 ring-1 ring-primary/30' : 'border-border/40 hover:border-primary/30',
-            )}>
-            <div className="flex items-center gap-2.5 mb-1.5">
-              <div className={cn('w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0', format === f.id ? 'border-primary bg-primary' : 'border-border/60')}>
-                {format === f.id && <div className="w-2 h-2 rounded-full bg-white" />}
-              </div>
-              <span className="font-bold text-sm">{f.label}</span>
-              <span className="text-[10px] text-muted-foreground">{f.sub}</span>
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed pl-7">{f.desc}</p>
-          </button>
-        ))}
-      </div>
-      <Button onClick={() => { setTargetFormat(format); onSelect(format); }}
-        className="w-full gradient-primary glow-primary text-white font-semibold rounded-xl h-11">
-        Open Column Mapping <ArrowRight className="w-4 h-4 ml-2" />
-      </Button>
-    </div>
-  );
-}
-
-// ── Step 6: Column Mapping ─────────────────────────────────────────────────
+// ── Step 5/6: Column Mapping (Merged with Format Selection) ────────────────
 function MappingStep({ uploadId, targetFormat, onDone }) {
   const { setColumnMap, agentStates } = usePipelineStore();
   const [localMap, setLocalMap] = useState({});
   const canonicalOptions = targetFormat === 'RMS' ? RMS_FIELDS : AIR_FIELDS;
 
   const { data, isLoading } = useQuery({
-    queryKey: ['suggest-columns', uploadId],
-    queryFn: () => suggestColumns(uploadId),
+    queryKey: ['suggest-columns', uploadId, targetFormat],
+    queryFn: () => suggestColumns(uploadId, targetFormat),
     enabled: !!uploadId,
     staleTime: Infinity,
     retry: 1,
@@ -424,8 +415,8 @@ function MappingStep({ uploadId, targetFormat, onDone }) {
         className="w-full gradient-primary glow-primary text-white font-semibold rounded-xl h-11 hover:opacity-90 transition-all disabled:opacity-40"
       >
         {confirmMutation.isPending
-          ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Running CAT pipeline…</>
-          : <>Confirm Mapping & Run CAT <ArrowRight className="w-4 h-4 ml-2" /></>}
+          ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Starting CAT pipeline…</>
+          : <>Start Cat Agent <Play className="w-4 h-4 ml-2 fill-current" /></>}
       </Button>
     </div>
   );
@@ -433,9 +424,10 @@ function MappingStep({ uploadId, targetFormat, onDone }) {
 
 // ── Step 7: Map Codes ──────────────────────────────────────────────────────
 function CodeMappingStep({ uploadId, onDone }) {
-  const { stepStatus, setStepStatus, agentStates } = usePipelineStore();
+  const { stepStatus, setStepStatus, uploadMeta } = usePipelineStore();
   const isRunning = stepStatus.mapCodes === 'running';
   const isDone    = stepStatus.mapCodes === 'done';
+  const total     = uploadMeta?.row_count || 0;
 
   const mapCodesMutation = useMutation({
     mutationFn: () => runMapCodes(uploadId),
@@ -451,7 +443,7 @@ function CodeMappingStep({ uploadId, onDone }) {
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
-      {isRunning && <LiveProgressView agentStates={agentStates} agents={['cat_code_mapper']} />}
+      {isRunning && <SimulatedProgressText isRunning={isRunning} isDone={isDone} totalRows={total} label="Mapping CAT codes for" />}
       {isDone && (
         <div className="h-[450px] animate-in fade-in slide-in-from-bottom-2 duration-500">
           <StepDiffTable uploadId={uploadId} step="map-codes" stepColor="text-violet-500" stepBgColor="bg-violet-500/10" />
@@ -464,9 +456,10 @@ function CodeMappingStep({ uploadId, onDone }) {
 
 // ── Step 8: Normalize Values ──────────────────────────────────────────────
 function NormalizeValuesStep({ uploadId, onDone }) {
-  const { stepStatus, setStepStatus, agentStates, setCatResult } = usePipelineStore();
+  const { stepStatus, setStepStatus, setCatResult, uploadMeta } = usePipelineStore();
   const isRunning = stepStatus.normalizeValues === 'running';
   const isDone    = stepStatus.normalizeValues === 'done';
+  const total     = uploadMeta?.row_count || 0;
 
   const normalizeMutation = useMutation({
     mutationFn: () => runNormalizeValues(uploadId),
@@ -482,7 +475,7 @@ function NormalizeValuesStep({ uploadId, onDone }) {
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
-      {isRunning && <LiveProgressView agentStates={agentStates} agents={['cat_normalizer']} />}
+      {isRunning && <SimulatedProgressText isRunning={isRunning} isDone={isDone} totalRows={total} label="Normalizing values for" />}
       {isDone && (
         <div className="h-[450px] animate-in fade-in slide-in-from-bottom-2 duration-500">
           <StepDiffTable uploadId={uploadId} step="normalize" stepColor="text-amber-500" stepBgColor="bg-amber-500/10" />
@@ -498,7 +491,7 @@ export default function PipelinePage() {
   const { id: routeId } = useParams();
   const {
     uploadId, setUploadId, uploadMeta, stepStatus, setStepStatus,
-    targetFormat, agentStates, setNormalizeResult, setGeocodeResult,
+    targetFormat, setTargetFormat, agentStates, setNormalizeResult, setGeocodeResult,
     activeViewStep, setActiveViewStep, agentType, setAgentType,
     executionStep: step, setExecutionStep: setStep,
   } = usePipelineStore();
@@ -555,12 +548,7 @@ export default function PipelinePage() {
     <div className="min-h-[calc(100vh-4rem)] p-6 w-full max-w-[1400px] mx-auto flex flex-col gap-5">
 
       {/* ── Agent Network ─────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-border/30 p-4 shadow-sm">
-        <div className="flex items-center gap-2 mb-3">
-          <div className={cn('w-1.5 h-1.5 rounded-full', step > 1 ? 'bg-primary animate-pulse' : 'bg-muted-foreground/40')} />
-          <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Agent Network</span>
-          {activeId && <span className="ml-auto text-[10px] font-mono text-muted-foreground/50">{activeId.slice(0, 12)}…</span>}
-        </div>
+      <div className="bg-white rounded-2xl border border-border/30 px-3 py-2 shadow-sm">
         <AgentGraph
           activeId={activeId}
           agentStates={agentStates}
@@ -596,11 +584,21 @@ export default function PipelinePage() {
       {/* CatAI path */}
       {agentType === 'catai' && (
         <>
-          <Section {...sectionProps} stepNum={5} title="Target Schema" icon={Tag}>
-            <TargetFormatStep onSelect={() => advance(6)} />
-          </Section>
-
-          <Section {...sectionProps} stepNum={6} title="Column Mapping" icon={Tag} badge={targetFormat}>
+          <Section {...sectionProps} stepNum={5} title="Select the Modeling" icon={Tag}
+            headerAction={
+              <div className="flex bg-muted/50 p-0.5 rounded-lg border border-border/50 shadow-inner">
+                {['AIR', 'RMS'].map(fmt => (
+                  <button
+                    key={fmt}
+                    onClick={() => setTargetFormat(fmt)}
+                    className={cn('px-4 py-1.5 text-[11px] font-bold rounded-md transition-all uppercase tracking-wide', targetFormat === fmt ? 'bg-white text-emerald-600 shadow-sm border border-emerald-500/20' : 'text-slate-400 hover:text-slate-600')}
+                  >
+                    {fmt}
+                  </button>
+                ))}
+              </div>
+            }
+          >
             <MappingStep uploadId={activeId} targetFormat={targetFormat} onDone={() => advance(7)} />
           </Section>
 
