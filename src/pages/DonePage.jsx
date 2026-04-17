@@ -133,7 +133,7 @@ export function DashboardView({ uploadId }) {
           </div>
           <div className="flex flex-wrap gap-2">
             <DownloadAction format="xlsx" label="Export Excel" icon={FileSpreadsheet} uploadId={uploadId} />
-            <DownloadAction format="tsv"  label="Export TSV"   icon={FileText}        uploadId={uploadId} />
+            <DownloadAction format="txt"  label="Export TXT"   icon={FileText}        uploadId={uploadId} />
           </div>
         </div>
 
@@ -147,7 +147,7 @@ export function DashboardView({ uploadId }) {
           </div>
           <div className="flex flex-wrap gap-2">
             <DownloadAction apiPath="download-account" format="xlsx" label="Account Excel" icon={FileSpreadsheet} uploadId={uploadId} />
-            <DownloadAction apiPath="download-account" format="tsv"  label="Account TSV"   icon={FileText}        uploadId={uploadId} />
+            <DownloadAction apiPath="download-account" format="txt"  label="Account TXT"   icon={FileText}        uploadId={uploadId} />
           </div>
         </div>
 
