@@ -20,7 +20,7 @@ const DATA_AGENT = {
 
 const SOV_COPE_AGENT = {
   id: 'sovCope',
-  label: 'SOV COPE CI/CD MODELING',
+  label: '2.SOV COPE CI/CD MODELING',
   desc: 'Produces AIR/RMS-ready output with AI-assisted column mapping, occupancy & construction coding, and value normalization.',
   icon: Tag,
   steps: [

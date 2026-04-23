@@ -396,11 +396,15 @@ const BASE_H = 205;
 export default function AgentGraph({
   activeId, agentStates = {}, stepStatus = {}, onNodeClick,
   currentPipelineStep = 0, isGeocodeDone = false,
-  onStartCat, onStartUnderwriting,
 }) {
   const geocodeResult   = usePipelineStore(s => s.geocodeResult);
   const uploadMeta      = usePipelineStore(s => s.uploadMeta);
   const selectedAgents  = usePipelineStore(s => s.selectedAgents);
+
+  // Compute how many UW modules are selected
+  const uwKeys = ['cope', 'hazards', 'geospatial', 'objAnalysis', 'riskModel', 'propensity'];
+  const uwSelectedCount = uwKeys.filter(k => selectedAgents[k]).length;
+  const uwSelected = uwSelectedCount > 0;
 
   const [isLiveMode, setIsLiveMode] = useState(false);
 
@@ -585,17 +589,25 @@ export default function AgentGraph({
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-auto">
             <div className={cn('text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm ring-4 ring-[#f9fafb]',
               effectiveIsGeocodeDone ? 'text-violet-700 border-violet-200 bg-white' : 'text-slate-500 border-slate-200 bg-slate-50')}>
-              SOV COPE CI/CD MODELING
+              2.SOV COPE CI/CD MODELING
             </div>
           </div>
           <div className="absolute top-0 right-4 -translate-y-1/2 z-20 pointer-events-auto">
-            <button onClick={onStartCat} disabled={!effectiveIsGeocodeDone}
-              className={cn('flex items-center justify-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-full transition-all shadow-md border ring-4 ring-[#f9fafb]',
-                effectiveIsGeocodeDone
-                  ? 'bg-violet-600 text-white hover:bg-violet-500 border-violet-500 cursor-pointer'
-                  : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed')}>
-              <Play size={10} className="fill-current" /><span>Start</span>
-            </button>
+            {selectedAgents.sovCope ? (
+              <div className={cn('flex items-center justify-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-full shadow-sm border ring-4 ring-[#f9fafb] transition-all',
+                currentPipelineStep >= 5
+                  ? 'bg-emerald-50 text-emerald-600 border-emerald-300'
+                  : effectiveIsGeocodeDone
+                    ? 'bg-violet-50 text-violet-600 border-violet-300 animate-pulse'
+                    : 'bg-slate-100 text-slate-500 border-slate-300')}>
+                {currentPipelineStep >= 5 ? <Check size={10} /> : <Loader2 size={10} className={effectiveIsGeocodeDone ? 'animate-spin' : ''} />}
+                <span>{currentPipelineStep >= 9 ? 'Complete' : currentPipelineStep >= 5 ? 'Running' : effectiveIsGeocodeDone ? 'Queued' : 'Selected'}</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-full shadow-sm border bg-slate-100 text-slate-400 border-slate-300 ring-4 ring-[#f9fafb]">
+                <span>Not Selected</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -612,9 +624,16 @@ export default function AgentGraph({
             </div>
           </div>
           <div className="absolute top-0 right-4 -translate-y-1/2 z-20 pointer-events-auto">
-            <button disabled className="flex items-center justify-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-full shadow-sm border bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed ring-4 ring-[#f9fafb]">
-              <Lock size={10} /><span>Coming Soon</span>
-            </button>
+            {uwSelected ? (
+              <div className={cn('flex items-center justify-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-full shadow-sm border ring-4 ring-[#f9fafb]',
+                'bg-blue-50 text-blue-600 border-blue-300')}>
+                <span>{uwSelectedCount} Module{uwSelectedCount !== 1 ? 's' : ''} Queued</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-full shadow-sm border bg-slate-100 text-slate-400 border-slate-300 ring-4 ring-[#f9fafb]">
+                <span>Not Selected</span>
+              </div>
+            )}
           </div>
         </div>
 

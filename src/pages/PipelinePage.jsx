@@ -36,12 +36,12 @@ function Section({ stepNum, activeViewStep, title, icon: Icon, badge, headerActi
   if (activeViewStep !== stepNum) return null;
 
   return (
-    <div className="glass rounded-2xl border border-primary/40 shadow-lg shadow-primary/5 overflow-hidden animate-in fade-in duration-300">
-      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border/20 bg-primary/5">
-        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-primary/15 text-primary">
-          <Icon size={13} />
+    <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden animate-in fade-in duration-300">
+      <div className="flex items-center gap-2.5 px-4 py-2.5 border-b border-border/20 bg-primary/5">
+        <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-primary/15 text-primary">
+          <Icon size={12} />
         </div>
-        <h2 className="font-bold text-sm text-foreground">{title}</h2>
+        <h2 className="font-bold text-xs text-foreground">{title}</h2>
         {badge && (
           <Badge variant="outline" className="ml-auto text-[10px] border-primary/30 text-primary">{badge}</Badge>
         )}
@@ -57,7 +57,7 @@ function Section({ stepNum, activeViewStep, title, icon: Icon, badge, headerActi
           {subHeader}
         </div>
       )}
-      <div className="p-5">{children}</div>
+      <div className="p-0 sm:p-5">{children}</div>
     </div>
   );
 }
@@ -241,7 +241,7 @@ function SimulatedProgressText({ isRunning, isDone, totalRows, label }) {
 }
 
 // ── Step 3: Geocode (auto-runs, shows StepDiffTable) ──────────────────────
-function GeocodeStep({ activeId }) {
+function GeocodeStep({ activeId, viewMode }) {
   const { stepStatus, uploadMeta, geocodeDiff } = usePipelineStore();
   // isRunning from stepStatus (set by geocodeMutation.onMutate/onSuccess in main PipelinePage)
   const isRunning = stepStatus.geocode === 'running';
@@ -253,8 +253,10 @@ function GeocodeStep({ activeId }) {
     <div className="space-y-4 animate-in fade-in duration-500">
       {isRunning && <SimulatedProgressText isRunning={isRunning} isDone={isDone} totalRows={total} label="Processing Data Agent for" />}
       {isDone && (
-        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500 h-[450px]">
-          <StepDiffTable uploadId={activeId} step="geocode" stepColor="text-rose-500" stepBgColor="bg-rose-500/10" preloadedData={geocodeDiff} />
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 -mx-5 -mb-5 sm:mx-0 sm:mb-0 border-t sm:border-t-0 border-border/50">
+          <div className="h-[450px] rounded-b-2xl sm:rounded-xl overflow-hidden border border-border/40">
+            <StepDiffTable uploadId={activeId} step="geocode" stepColor="text-rose-500" stepBgColor="bg-rose-500/10" preloadedData={geocodeDiff} viewMode={viewMode} />
+          </div>
         </div>
       )}
     </div>
@@ -365,7 +367,19 @@ function MappingStep({ uploadId, targetFormat, onDone }) {
                 <code className="text-xs font-mono bg-muted px-2 py-0.5 rounded-md break-all">{col}</code>
               </div>
               <div className="col-span-3">
-                <span className="text-[10px] text-muted-foreground/50 italic">—</span>
+                {(() => {
+                  const samples = data?.sample_values?.[col] ?? [];
+                  if (samples.length === 0) return <span className="text-[10px] text-muted-foreground/50 italic">—</span>;
+                  return (
+                    <div className="flex flex-wrap gap-1">
+                      {samples.slice(0, 3).map((v, i) => (
+                        <span key={i} className="inline-block px-1.5 py-0.5 rounded bg-muted/60 text-[10px] font-mono text-foreground/70 max-w-[120px] truncate">
+                          {String(v)}
+                        </span>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
               <div className="col-span-3">
                 <Select value={currentValue ?? NONE_VALUE} onValueChange={v => setLocalMap(m => ({ ...m, [col]: v === NONE_VALUE ? null : v }))}>
@@ -430,7 +444,7 @@ function MappingStep({ uploadId, targetFormat, onDone }) {
 }
 
 // ── Step 7: Map Codes ──────────────────────────────────────────────────────
-function CodeMappingStep({ uploadId, onDone }) {
+function CodeMappingStep({ uploadId, onDone, viewMode }) {
   const { stepStatus, setStepStatus, uploadMeta, setMapCodesSummaryText, mapCodesDiff, setMapCodesDiff } = usePipelineStore();
   const total = uploadMeta?.row_count || 0;
 
@@ -461,11 +475,10 @@ function CodeMappingStep({ uploadId, onDone }) {
     <div className="space-y-4 animate-in fade-in duration-500">
       {isRunning && <SimulatedProgressText isRunning={isRunning} isDone={isDone} totalRows={total} label="Mapping Occupancy & Construction for" />}
       {isDone && (
-        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-          <div className="h-[450px]">
-            <StepDiffTable uploadId={uploadId} step="map-codes" stepColor="text-violet-500" stepBgColor="bg-violet-500/10" preloadedData={mapCodesDiff} />
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 -mx-5 -mb-5 sm:mx-0 sm:mb-0 border-t sm:border-t-0 border-border/50">
+          <div className="h-[450px] rounded-b-2xl sm:rounded-xl overflow-hidden border border-border/40">
+            <StepDiffTable uploadId={uploadId} step="map-codes" stepColor="text-violet-500" stepBgColor="bg-violet-500/10" preloadedData={mapCodesDiff} viewMode={viewMode} />
           </div>
-          <p className="text-center text-xs text-muted-foreground animate-pulse mt-2">Auto-advancing to normalize values in 2s…</p>
         </div>
       )}
     </div>
@@ -473,7 +486,7 @@ function CodeMappingStep({ uploadId, onDone }) {
 }
 
 // ── Step 8: Normalize Values ──────────────────────────────────────────────
-function NormalizeValuesStep({ uploadId, onDone }) {
+function NormalizeValuesStep({ uploadId, onDone, viewMode }) {
   const { stepStatus, setStepStatus, setCatResult, uploadMeta, setNormalizeSummaryText, normalizeDiff, setNormalizeDiff } = usePipelineStore();
   const total = uploadMeta?.row_count || 0;
 
@@ -505,11 +518,10 @@ function NormalizeValuesStep({ uploadId, onDone }) {
     <div className="space-y-4 animate-in fade-in duration-500">
       {isRunning && <SimulatedProgressText isRunning={isRunning} isDone={isDone} totalRows={total} label="Normalizing values for" />}
       {isDone && (
-        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-          <div className="h-[450px]">
-            <StepDiffTable uploadId={uploadId} step="normalize" stepColor="text-amber-500" stepBgColor="bg-amber-500/10" preloadedData={normalizeDiff} />
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 -mx-5 -mb-5 sm:mx-0 sm:mb-0 border-t sm:border-t-0 border-border/50">
+          <div className="h-[450px] rounded-b-2xl sm:rounded-xl overflow-hidden border border-border/40">
+            <StepDiffTable uploadId={uploadId} step="normalize" stepColor="text-amber-500" stepBgColor="bg-amber-500/10" preloadedData={normalizeDiff} viewMode={viewMode} />
           </div>
-          <p className="text-center text-xs text-muted-foreground animate-pulse mt-2">Entering Dashboard in 2s…</p>
         </div>
       )}
     </div>
@@ -525,11 +537,27 @@ export default function PipelinePage() {
     activeViewStep, setActiveViewStep, agentType, setAgentType,
     executionStep: step, setExecutionStep: setStep,
     mapCodesSummaryText, normalizeSummaryText,
-    setGeocodeDiff,
+    setGeocodeDiff, selectedAgents,
   } = usePipelineStore();
 
   const activeId = routeId || uploadId;
   useAgentStream(activeId);
+
+  const [viewModes, setViewModes] = useState({ geocode: 'cleaned', mapCodes: 'cleaned', normalize: 'cleaned' });
+  const updateViewMode = (stepKey, mode) => setViewModes(prev => ({ ...prev, [stepKey]: mode }));
+
+  const ViewToggle = ({ stepKey }) => (
+    <div className="flex items-center gap-3 bg-white/50 px-2 py-1 rounded-md border border-border/50">
+      <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-medium text-foreground">
+        <input type="radio" checked={viewModes[stepKey] === 'cleaned'} onChange={() => updateViewMode(stepKey, 'cleaned')} className="h-3 w-3 accent-primary cursor-pointer" />
+        Cleaned
+      </label>
+      <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-medium text-muted-foreground">
+        <input type="radio" checked={viewModes[stepKey] === 'combined'} onChange={() => updateViewMode(stepKey, 'combined')} className="h-3 w-3 accent-primary cursor-pointer" />
+        Original & Cleaned
+      </label>
+    </div>
+  );
 
   // Execution cursor: 1=acquire, 2=normalize, 3=geocode, 4=agentSelect, 5=format(CatAI)/underwriting,
   // Handle direct navigation to an existing session
@@ -565,6 +593,20 @@ export default function PipelinePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, activeId]);
 
+  // Auto-advance to SOV COPE after geocode completes (based on Configure screen selection)
+  const hasAutoAdvancedRef = useRef(false);
+  useEffect(() => {
+    if (stepStatus.geocode === 'done' && step === 2 && !agentType && !hasAutoAdvancedRef.current) {
+      hasAutoAdvancedRef.current = true;
+      if (selectedAgents.sovCope) {
+        // SOV COPE was selected on Configure screen → auto-start CatAI path
+        setAgentType('catai');
+        advance(5);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stepStatus.geocode, step, agentType, selectedAgents.sovCope]);
+
   const handleUploaded = useCallback((id) => {
     setUploadId(id);
     advance(2);
@@ -589,8 +631,6 @@ export default function PipelinePage() {
           onNodeClick={handleNodeClick}
           currentPipelineStep={step}
           isGeocodeDone={stepStatus.geocode === 'done'}
-          onStartCat={() => { setAgentType('catai'); advance(5); }}
-          onStartUnderwriting={() => { setAgentType('underwriting'); advance(5); }}
         />
       </div>
 
@@ -610,14 +650,16 @@ export default function PipelinePage() {
         <AcquireStep onStartPipeline={handleUploaded} />
       </Section>
 
-      <Section {...sectionProps} stepNum={2} title="1 - Data Agent" icon={MapPin}>
-        <GeocodeStep activeId={activeId} />
+      <Section {...sectionProps} stepNum={2} title="1 - Data Agent" icon={MapPin}
+        headerAction={stepStatus.geocode === 'done' ? <ViewToggle stepKey="geocode" /> : null}
+      >
+        <GeocodeStep activeId={activeId} viewMode={viewModes.geocode} />
       </Section>
 
       {/* CatAI path */}
       {agentType === 'catai' && (
         <>
-          <Section {...sectionProps} stepNum={5} title="SOV COPE CI/CD MODELING" icon={Tag}
+          <Section {...sectionProps} stepNum={5} title="2.SOV COPE CI/CD MODELING" icon={Tag}
             headerAction={
               <Badge variant="outline" className="text-[11px] font-bold uppercase tracking-wide border-emerald-500/30 text-emerald-600 bg-emerald-50/50 px-3 py-1">
                 {targetFormat}
@@ -629,21 +671,29 @@ export default function PipelinePage() {
 
           {step >= 7 && (
             <Section {...sectionProps} stepNum={7} title="Occupancy & Construction Mapping" icon={Tag}
+              headerAction={stepStatus.mapCodes === 'done' ? <ViewToggle stepKey="mapCodes" /> : null}
               subHeader={mapCodesSummaryText ? (
-                <p className="text-[13px] text-foreground/80 leading-relaxed">{mapCodesSummaryText}</p>
+                <div className="flex items-start gap-2">
+                  <Sparkles className="lucide lucide-sparkles w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p className="text-[13px] text-foreground/80 leading-relaxed">{mapCodesSummaryText}</p>
+                </div>
               ) : null}
             >
-              <CodeMappingStep uploadId={activeId} onDone={() => advance(8)} />
+              <CodeMappingStep uploadId={activeId} onDone={() => advance(8)} viewMode={viewModes.mapCodes} />
             </Section>
           )}
 
           {step >= 8 && (
             <Section {...sectionProps} stepNum={8} title="Value Normalization" icon={BarChart3}
+              headerAction={stepStatus.normalizeValues === 'done' ? <ViewToggle stepKey="normalize" /> : null}
               subHeader={normalizeSummaryText ? (
-                <p className="text-[13px] text-foreground/80 leading-relaxed">{normalizeSummaryText}</p>
+                <div className="flex items-start gap-2">
+                  <Sparkles className="lucide lucide-sparkles w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p className="text-[13px] text-foreground/80 leading-relaxed">{normalizeSummaryText}</p>
+                </div>
               ) : null}
             >
-              <NormalizeValuesStep uploadId={activeId} onDone={() => advance(9)} />
+              <NormalizeValuesStep uploadId={activeId} onDone={() => advance(9)} viewMode={viewModes.normalize} />
             </Section>
           )}
 

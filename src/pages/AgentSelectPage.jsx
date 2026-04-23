@@ -56,7 +56,7 @@ export default function AgentSelectPage() {
                 <Tag className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="font-bold text-base text-foreground">SOV COPE CI/CD MODELING</h2>
+                <h2 className="font-bold text-base text-foreground">2.SOV COPE CI/CD MODELING</h2>
                 <p className="text-xs text-muted-foreground">Catastrophe Modeling Pipeline</p>
               </div>
             </div>
