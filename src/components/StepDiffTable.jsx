@@ -160,14 +160,18 @@ function FullAddressGroupHeader({ group, stepColor, stepBgColor }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, stepBorderColor }) {
+export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, stepBorderColor, preloadedData }) {
   const [viewMode, setViewMode] = useState('cleaned');
 
-  const { data, isLoading, isError, error } = useQuery({
+  const { data: queryData, isLoading: isQueryLoading, isError, error } = useQuery({
     queryKey: ['session-diff', uploadId, step],
     queryFn: () => getSessionDiff(uploadId, step),
     staleTime: Infinity,
+    enabled: !preloadedData, // Skip query if data was preloaded via mutation
   });
+
+  const data = preloadedData || queryData;
+  const isLoading = !preloadedData && isQueryLoading;
 
   const fullAddressMode = data?.full_address_mode ?? false;
   const fullAddressSrc  = data?.full_address_src ?? null;

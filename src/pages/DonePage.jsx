@@ -7,6 +7,7 @@ import { getSlipSummary } from '@/lib/api';
 import { usePipelineStore } from '@/store/usePipelineStore';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
 
 const fmt  = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -97,12 +98,55 @@ function DownloadAction({ format, label, icon: Icon, uploadId, apiPath = 'downlo
   );
 }
 
+function PreviewTable({ preview, isLoading }) {
+  if (isLoading) return <TableSkeleton rows={4} cols={5} />;
+  if (!preview || !preview.headers) return null;
+  
+  return (
+    <div className="rounded-xl overflow-hidden border border-border/30 mt-2 max-w-full overflow-x-auto bg-background/50 custom-scrollbar">
+      <table className="w-full text-left text-[11px] whitespace-nowrap">
+        <thead>
+          <tr className="bg-muted/40 border-b border-border/30">
+            {preview.headers.map((h, i) => (
+              <th key={i} className="px-3 py-2 font-semibold text-muted-foreground">{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {preview.sample.map((row, i) => (
+            <tr key={i} className="border-b border-border/10 hover:bg-muted/20">
+              {preview.headers.map((h, j) => (
+                <td key={j} className="px-3 py-1.5 text-foreground/80">{row[h] ?? ''}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function DashboardView({ uploadId }) {
+  const { targetFormat } = usePipelineStore();
 
 
   const { data, isLoading } = useQuery({
     queryKey: ['slip-summary', uploadId],
     queryFn: () => getSlipSummary(uploadId),
+    enabled: !!uploadId,
+    staleTime: 60_000,
+  });
+
+  const { data: locPreview, isLoading: locLoading } = useQuery({
+    queryKey: ['preview-location', uploadId],
+    queryFn: () => fetch(`/api/preview-location/${uploadId}`).then(res => res.json()),
+    enabled: !!uploadId,
+    staleTime: 60_000,
+  });
+
+  const { data: accPreview, isLoading: accLoading } = useQuery({
+    queryKey: ['preview-account', uploadId],
+    queryFn: () => fetch(`/api/preview-account/${uploadId}`).then(res => res.json()),
     enabled: !!uploadId,
     staleTime: 60_000,
   });
@@ -126,37 +170,67 @@ export function DashboardView({ uploadId }) {
       <div className="glass rounded-2xl p-4 mb-8 flex flex-col gap-4 border border-border/40">
 
         {/* Group 1 — Processed Location Output */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="min-w-0 pr-4">
-            <p className="font-semibold text-sm text-foreground">Export Processed Output</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Download the normalized data with all pipeline enrichments applied.</p>
+        <div>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="min-w-0 pr-4">
+              <p className="font-semibold text-sm text-foreground">Export {targetFormat} ready location file</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Download the normalized data with all pipeline enrichments applied.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <DownloadAction format="xlsx" label="Export Excel" icon={FileSpreadsheet} uploadId={uploadId} />
+              <DownloadAction format="txt"  label="Export TXT"   icon={FileText}        uploadId={uploadId} />
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <DownloadAction format="xlsx" label="Export Excel" icon={FileSpreadsheet} uploadId={uploadId} />
-            <DownloadAction format="txt"  label="Export TXT"   icon={FileText}        uploadId={uploadId} />
-          </div>
+          <Accordion type="single" collapsible className="w-full mt-1">
+            <AccordionItem value="preview" className="border-none">
+              <AccordionTrigger className="py-1.5 text-[11px] text-primary hover:no-underline justify-start gap-2">
+                View Columns and Data Preview
+              </AccordionTrigger>
+              <AccordionContent className="pb-0">
+                <PreviewTable preview={locPreview} isLoading={locLoading} />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
 
         <div className="h-px bg-border/40 w-full" />
 
         {/* Group 2 — Account File */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="min-w-0 pr-4">
-            <p className="font-semibold text-sm text-foreground">Export Account File</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Download structured account-level summary required for AIR / RMS modeling.</p>
+        <div>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="min-w-0 pr-4">
+              <p className="font-semibold text-sm text-foreground">Export {targetFormat} ready account file</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Download structured account-level summary required for {targetFormat} modeling.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <DownloadAction apiPath="download-account" format="xlsx" label="Account Excel" icon={FileSpreadsheet} uploadId={uploadId} />
+              <DownloadAction apiPath="download-account" format="txt"  label="Account TXT"   icon={FileText}        uploadId={uploadId} />
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <DownloadAction apiPath="download-account" format="xlsx" label="Account Excel" icon={FileSpreadsheet} uploadId={uploadId} />
-            <DownloadAction apiPath="download-account" format="txt"  label="Account TXT"   icon={FileText}        uploadId={uploadId} />
-          </div>
+          <Accordion type="single" collapsible className="w-full mt-1">
+            <AccordionItem value="preview" className="border-none">
+              <AccordionTrigger className="py-1.5 text-[11px] text-primary hover:no-underline justify-start gap-2">
+                View Columns and Data Preview
+              </AccordionTrigger>
+              <AccordionContent className="pb-0">
+                <PreviewTable preview={accPreview} isLoading={accLoading} />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
 
       </div>
 
-      <h2 className="text-lg font-bold mb-6 gradient-text tracking-tight">Pipeline Dashboard</h2>
-
-      {/* Location Values */}
-      <div className="mb-8">
+      {/* BI Insights Dashboard - Collapsible */}
+      <Accordion type="single" collapsible className="w-full">
+        <AccordionItem value="bi-insights" className="border-border/30 glass rounded-2xl px-6 py-2 shadow-sm">
+          <AccordionTrigger className="text-lg font-bold hover:no-underline gradient-text tracking-tight pb-4 pt-2">
+            Pipeline Dashboard & BI Insights
+          </AccordionTrigger>
+          <AccordionContent className="pt-4">
+            
+            {/* Location Values */}
+            <div className="mb-8">
         <SectionTitle num="1" title="Location Values" />
         {isLoading ? <TableSkeleton rows={4} cols={3} /> : (
           <div className="glass rounded-2xl overflow-hidden border border-border/30">
@@ -335,6 +409,10 @@ export function DashboardView({ uploadId }) {
           </div>
         ))}
       </div>
+
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
     </div>
   );

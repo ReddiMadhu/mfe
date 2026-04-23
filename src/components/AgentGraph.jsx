@@ -22,16 +22,16 @@ const EXP_RUNNING_H = 116;
 
 const NODE_DEFS = [
   { id: 'upload',      label: 'Upload SOV',            icon: FileSpreadsheet, agentKey: 'upload',          color: '#3b82f6' },
-  { id: 'geocode',     label: 'Data Agent',             icon: MapPin,          agentKey: 'geocoder',        color: '#0ea5e9' },
-  { id: 'catMap',      label: 'Occ & Const Mapping',   icon: Tag,             agentKey: 'cat_code_mapper', color: '#8b5cf6' },
-  { id: 'cope',        label: 'CAT Event Trigger',      icon: ShieldCheck,     agentKey: 'cope_triage',     color: '#f59e0b' },
-  { id: 'hazards',     label: 'Hazard Assessment',      icon: CloudRain,       agentKey: 'hazard_data',     color: '#ef4444' },
-  { id: 'geospatial',  label: 'Geospatial Data',        icon: Layers,          agentKey: 'geospatial_data', color: '#10b981' },
+  { id: 'geocode',     label: '1 - Data Agent',         icon: MapPin,          agentKey: 'geocoder',        color: '#0ea5e9' },
+  { id: 'catMap',      label: 'Occupancy & Construction Mapping',   icon: Tag,             agentKey: 'cat_code_mapper', color: '#8b5cf6' },
+  { id: 'cope',        label: '6 - Real time CAT Event Assessment',      icon: ShieldCheck,     agentKey: 'cope_triage',     color: '#f59e0b' },
+  { id: 'hazards',     label: '3 - Hazard Assessment',      icon: CloudRain,       agentKey: 'hazard_data',     color: '#ef4444' },
+  { id: 'geospatial',  label: '4 - Geospatial Data',        icon: Layers,          agentKey: 'geospatial_data', color: '#10b981' },
   { id: 'catNorm',     label: 'Value Normalization',    icon: BarChart3,       agentKey: 'cat_normalizer',  color: '#f97316' },
-  { id: 'objAnalysis', label: 'Object Detection',       icon: Eye,             agentKey: 'object_detection',color: '#ec4899' },
+  { id: 'objAnalysis', label: '5 - Property Computer Vision',       icon: Eye,             agentKey: 'object_detection',color: '#ec4899' },
   { id: 'catOut',      label: 'Output Formatting',      icon: FileOutput,      agentKey: 'cat_output',      color: '#64748b' },
-  { id: 'riskModel',   label: 'Property Vulnerability Risk', icon: TrendingUp, agentKey: 'risk_model',      color: '#4f46e5' },
-  { id: 'propensity',  label: 'Quote Propensity',       icon: Award,           agentKey: 'quote_propensity',color: '#f43f5e' },
+  { id: 'riskModel',   label: '7 - Property Vulnerability Risk', icon: TrendingUp, agentKey: 'risk_model',      color: '#4f46e5' },
+  { id: 'propensity',  label: '8 - Quote Propensity',       icon: Award,           agentKey: 'quote_propensity',color: '#f43f5e' },
 ];
 
 const NODE_STEP_MAP = { upload: 1, geocode: 2, catMap: 7, catNorm: 8, catOut: 9 };
@@ -398,23 +398,42 @@ export default function AgentGraph({
   currentPipelineStep = 0, isGeocodeDone = false,
   onStartCat, onStartUnderwriting,
 }) {
-  const geocodeResult = usePipelineStore(s => s.geocodeResult);
-  const uploadMeta    = usePipelineStore(s => s.uploadMeta);
+  const geocodeResult   = usePipelineStore(s => s.geocodeResult);
+  const uploadMeta      = usePipelineStore(s => s.uploadMeta);
+  const selectedAgents  = usePipelineStore(s => s.selectedAgents);
 
   const [isLiveMode, setIsLiveMode] = useState(false);
 
+  // Map node IDs to selectedAgents keys
+  const isNodeDeselected = (nodeId) => {
+    // upload + geocode (Data Agent) are always active
+    if (nodeId === 'upload' || nodeId === 'geocode') return false;
+    // SOV COPE group
+    if (['catMap', 'catNorm', 'catOut'].includes(nodeId)) return !selectedAgents.sovCope;
+    // UW agents map directly
+    if (selectedAgents[nodeId] !== undefined) return !selectedAgents[nodeId];
+    return false;
+  };
+
   const getStatus = (nodeDef) => {
+    // 1. Core pipeline steps should prioritize the stepStatus (updated by HTTP response)
+    if (nodeDef.id === 'upload')  return activeId ? 'done' : 'running';
+    if (nodeDef.id === 'geocode') {
+      if (stepStatus.geocode && stepStatus.geocode !== 'idle') return stepStatus.geocode;
+    }
+    if (nodeDef.id === 'catMap') {
+      if (stepStatus.mapCodes && stepStatus.mapCodes !== 'idle') return stepStatus.mapCodes;
+    }
+    if (nodeDef.id === 'catNorm') {
+      if (stepStatus.normalizeValues && stepStatus.normalizeValues !== 'idle') return stepStatus.normalizeValues;
+    }
+    if (nodeDef.id === 'catOut')  return currentPipelineStep >= 9 ? 'done' : 'pending';
+
+    // 2. Fallback to SSE status for asynchronous agents or when stepStatus isn't yet set
     const sse = agentStates[nodeDef.agentKey]?.status;
     if (sse === 'completed') return 'done';
     if (sse)                  return sse;
-    if (nodeDef.id === 'upload')  return activeId ? 'done' : 'running';
-    if (nodeDef.id === 'geocode') {
-      if (stepStatus.geocode === 'idle') return 'pending';
-      return stepStatus.geocode || 'pending';
-    }
-    if (nodeDef.id === 'catMap')  return stepStatus.mapCodes || 'pending';
-    if (nodeDef.id === 'catNorm') return stepStatus.normalizeValues || 'pending';
-    if (nodeDef.id === 'catOut')  return currentPipelineStep >= 9 ? 'done' : 'pending';
+    
     return 'pending';
   };
 
@@ -566,7 +585,7 @@ export default function AgentGraph({
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-auto">
             <div className={cn('text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm ring-4 ring-[#f9fafb]',
               effectiveIsGeocodeDone ? 'text-violet-700 border-violet-200 bg-white' : 'text-slate-500 border-slate-200 bg-slate-50')}>
-              CAT Agent
+              SOV COPE CI/CD MODELING
             </div>
           </div>
           <div className="absolute top-0 right-4 -translate-y-1/2 z-20 pointer-events-auto">
@@ -589,7 +608,7 @@ export default function AgentGraph({
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-auto">
             <div className={cn('text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm ring-4 ring-[#f9fafb]',
               effectiveIsGeocodeDone ? 'text-blue-600 border-blue-200 bg-white' : 'text-slate-500 border-slate-200 bg-slate-50')}>
-              Underwriting Agent
+              UNDERWRITING AGENT
             </div>
           </div>
           <div className="absolute top-0 right-4 -translate-y-1/2 z-20 pointer-events-auto">
@@ -621,6 +640,7 @@ export default function AgentGraph({
             nodeDef.id === 'geocode' ? geocodeResult :
             nodeDef.id === 'upload'  ? uploadMeta :
             agentStates[nodeDef.agentKey]?.result ?? null;
+          const isDeselected = isNodeDeselected(nodeDef.id);
           return (
             <PipelineNode
               key={nodeDef.id}

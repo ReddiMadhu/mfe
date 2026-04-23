@@ -25,7 +25,7 @@ export default function HomePage() {
 
   function handleStart() {
     reset();
-    navigate('/pipeline');
+    navigate('/configure');
   }
 
   return (

@@ -4,7 +4,9 @@ import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import TopBar from '@/components/TopBar';
 import HomePage from '@/pages/HomePage';
+import AgentConfigPage from '@/pages/AgentConfigPage';
 import PipelinePage from '@/pages/PipelinePage';
+import OntologyPage from '@/pages/OntologyPage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -20,6 +22,8 @@ export default function App() {
             <main className="flex-1 pt-14">
               <Routes>
                 <Route path="/"                    element={<HomePage />} />
+                <Route path="/configure"           element={<AgentConfigPage />} />
+                <Route path="/ontology"            element={<OntologyPage />} />
                 <Route path="/pipeline"            element={<PipelinePage />} />
                 <Route path="/pipeline/:id"        element={<PipelinePage />} />
                 <Route path="/session/:id/done"    element={<Navigate to="/pipeline" replace />} />

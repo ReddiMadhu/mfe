@@ -8,18 +8,18 @@ import AgentGraph from '@/components/AgentGraph';
 import { cn } from '@/lib/utils';
 
 const CAT_STEPS = [
-  { icon: Tag,    label: 'Column Mapping',        desc: 'AI-powered source â†’ canonical field matching' },
-  { icon: Tag,    label: 'Map Occupancy & Const',  desc: '4-stage LLM occupancy & construction coding' },
-  { icon: BarChart3, label: 'Normalize Values',   desc: 'Standardize year, area, values, currency' },
+  { icon: Tag,    label: 'Occupancy & Construction Mapping',  desc: '4-stage LLM occupancy & construction coding' },
+  { icon: BarChart3, label: 'Value Normalization',   desc: 'Standardize year, area, values, currency' },
+  { icon: BarChart3, label: 'Output Formatting',   desc: 'Generate AIR/RMS formatted output' },
 ];
 
 const UW_STEPS = [
-  { icon: Shield,    label: 'COPE Analysis',    desc: 'Construction, Occupancy, Protection, Exposure' },
-  { icon: Zap,       label: 'Hazards Analysis', desc: 'Flood, wind, fire, earthquake risk layers' },
-  { icon: Globe,     label: 'Geospatial Agent', desc: 'High-resolution geospatial imagery' },
-  { icon: Eye,       label: 'Object Analysis',  desc: 'Computer vision detection from satellite' },
-  { icon: BarChart3, label: 'Risk Modeling',    desc: 'Aggregate risk scoring from all signals' },
-  { icon: TrendingUp,label: 'Quote Propensity', desc: 'Final underwriting appetite score' },
+  { icon: Shield,    label: '6 - Real time CAT Event Assessment',    desc: 'Real-time monitoring and trigger assessment' },
+  { icon: Zap,       label: '3 - Hazard Assessment', desc: 'Flood, wind, fire, earthquake risk layers' },
+  { icon: Globe,     label: '4 - Geospatial Data', desc: 'High-resolution geospatial imagery' },
+  { icon: Eye,       label: '5 - Property Computer Vision',  desc: 'Computer vision detection from satellite' },
+  { icon: BarChart3, label: '7 - Property Vulnerability Risk',    desc: 'Aggregate risk scoring from all signals' },
+  { icon: TrendingUp,label: '8 - Quote Propensity', desc: 'Final underwriting appetite score' },
 ];
 
 export default function AgentSelectPage() {
@@ -56,7 +56,7 @@ export default function AgentSelectPage() {
                 <Tag className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="font-bold text-base text-foreground">CAT Agent</h2>
+                <h2 className="font-bold text-base text-foreground">SOV COPE CI/CD MODELING</h2>
                 <p className="text-xs text-muted-foreground">Catastrophe Modeling Pipeline</p>
               </div>
             </div>
@@ -94,7 +94,7 @@ export default function AgentSelectPage() {
                 <Shield className="w-5 h-5 text-muted-foreground" />
               </div>
               <div>
-                <h2 className="font-bold text-base text-foreground">Underwriting Agent</h2>
+                <h2 className="font-bold text-base text-foreground">UNDERWRITING AGENT</h2>
                 <p className="text-xs text-muted-foreground">Risk Assessment Pipeline</p>
               </div>
             </div>

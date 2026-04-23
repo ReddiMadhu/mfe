@@ -31,7 +31,7 @@ const CONFIDENCE_COLOR = (s) => s >= 0.8 ? 'text-green-400' : s >= 0.5 ? 'text-a
 const NONE_VALUE = '__none__';
 
 // ── Section wrapper — one visible at a time, Agent Network is the nav ──────
-function Section({ stepNum, activeViewStep, title, icon: Icon, badge, headerAction, children }) {
+function Section({ stepNum, activeViewStep, title, icon: Icon, badge, headerAction, subHeader, children }) {
   // Only render when this is the currently viewed step — invisible otherwise
   if (activeViewStep !== stepNum) return null;
 
@@ -52,6 +52,11 @@ function Section({ stepNum, activeViewStep, title, icon: Icon, badge, headerActi
           </div>
         )}
       </div>
+      {subHeader && (
+        <div className="px-5 py-3 border-b border-border/15 bg-primary/[0.02]">
+          {subHeader}
+        </div>
+      )}
       <div className="p-5">{children}</div>
     </div>
   );
@@ -237,17 +242,19 @@ function SimulatedProgressText({ isRunning, isDone, totalRows, label }) {
 
 // ── Step 3: Geocode (auto-runs, shows StepDiffTable) ──────────────────────
 function GeocodeStep({ activeId }) {
-  const { stepStatus, uploadMeta } = usePipelineStore();
+  const { stepStatus, uploadMeta, geocodeDiff } = usePipelineStore();
+  // isRunning from stepStatus (set by geocodeMutation.onMutate/onSuccess in main PipelinePage)
   const isRunning = stepStatus.geocode === 'running';
-  const isDone    = stepStatus.geocode === 'done';
+  // isDone only when the API response has populated geocodeDiff
+  const isDone    = !!geocodeDiff;
   const total     = uploadMeta?.row_count || 0;
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
-      {isRunning && <SimulatedProgressText isRunning={isRunning} isDone={isDone} totalRows={total} label="Geocoding and normalization of address for" />}
+      {isRunning && <SimulatedProgressText isRunning={isRunning} isDone={isDone} totalRows={total} label="Processing Data Agent for" />}
       {isDone && (
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500 h-[450px]">
-          <StepDiffTable uploadId={activeId} step="geocode" stepColor="text-rose-500" stepBgColor="bg-rose-500/10" />
+          <StepDiffTable uploadId={activeId} step="geocode" stepColor="text-rose-500" stepBgColor="bg-rose-500/10" preloadedData={geocodeDiff} />
         </div>
       )}
     </div>
@@ -263,7 +270,7 @@ function UnderwritingStep() {
         <Building2 className="w-8 h-8 text-blue-400" />
       </div>
       <div>
-        <h3 className="font-bold text-foreground mb-1">Underwriting Agent</h3>
+        <h3 className="font-bold text-foreground mb-1">UNDERWRITING AGENT</h3>
         <p className="text-sm text-muted-foreground max-w-sm">
           The automated underwriting pipeline is under development. Your geocoded data is ready for manual review.
         </p>
@@ -424,17 +431,26 @@ function MappingStep({ uploadId, targetFormat, onDone }) {
 
 // ── Step 7: Map Codes ──────────────────────────────────────────────────────
 function CodeMappingStep({ uploadId, onDone }) {
-  const { stepStatus, setStepStatus, uploadMeta } = usePipelineStore();
-  const isRunning = stepStatus.mapCodes === 'running';
-  const isDone    = stepStatus.mapCodes === 'done';
-  const total     = uploadMeta?.row_count || 0;
+  const { stepStatus, setStepStatus, uploadMeta, setMapCodesSummaryText, mapCodesDiff, setMapCodesDiff } = usePipelineStore();
+  const total = uploadMeta?.row_count || 0;
 
   const mapCodesMutation = useMutation({
     mutationFn: () => runMapCodes(uploadId),
     onMutate:   () => setStepStatus('mapCodes', 'running'),
-    onSuccess:  () => { setStepStatus('mapCodes', 'done'); toast.success('Code mapping complete'); setTimeout(() => onDone(), 2000); },
+    onSuccess:  (data) => {
+      setStepStatus('mapCodes', 'done');
+      if (data?.summary_text) setMapCodesSummaryText(data.summary_text);
+      if (data?.diff_data) setMapCodesDiff(data.diff_data);
+      toast.success('Code mapping complete');
+      setTimeout(() => onDone(), 2000);
+    },
     onError:    (err) => { setStepStatus('mapCodes', 'error'); toast.error(err.message); },
   });
+
+  // isRunning: spinner only when API is actively in-flight
+  const isRunning = mapCodesMutation.isPending;
+  // isDone: table only when API response returned diff data
+  const isDone    = !!mapCodesDiff;
 
   useEffect(() => {
     if (!stepStatus.mapCodes || stepStatus.mapCodes === 'idle') mapCodesMutation.mutate();
@@ -443,10 +459,12 @@ function CodeMappingStep({ uploadId, onDone }) {
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
-      {isRunning && <SimulatedProgressText isRunning={isRunning} isDone={isDone} totalRows={total} label="Mapping CAT codes for" />}
+      {isRunning && <SimulatedProgressText isRunning={isRunning} isDone={isDone} totalRows={total} label="Mapping Occupancy & Construction for" />}
       {isDone && (
-        <div className="h-[450px] animate-in fade-in slide-in-from-bottom-2 duration-500">
-          <StepDiffTable uploadId={uploadId} step="map-codes" stepColor="text-violet-500" stepBgColor="bg-violet-500/10" />
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <div className="h-[450px]">
+            <StepDiffTable uploadId={uploadId} step="map-codes" stepColor="text-violet-500" stepBgColor="bg-violet-500/10" preloadedData={mapCodesDiff} />
+          </div>
           <p className="text-center text-xs text-muted-foreground animate-pulse mt-2">Auto-advancing to normalize values in 2s…</p>
         </div>
       )}
@@ -456,17 +474,27 @@ function CodeMappingStep({ uploadId, onDone }) {
 
 // ── Step 8: Normalize Values ──────────────────────────────────────────────
 function NormalizeValuesStep({ uploadId, onDone }) {
-  const { stepStatus, setStepStatus, setCatResult, uploadMeta } = usePipelineStore();
-  const isRunning = stepStatus.normalizeValues === 'running';
-  const isDone    = stepStatus.normalizeValues === 'done';
-  const total     = uploadMeta?.row_count || 0;
+  const { stepStatus, setStepStatus, setCatResult, uploadMeta, setNormalizeSummaryText, normalizeDiff, setNormalizeDiff } = usePipelineStore();
+  const total = uploadMeta?.row_count || 0;
 
   const normalizeMutation = useMutation({
     mutationFn: () => runNormalizeValues(uploadId),
     onMutate:   () => setStepStatus('normalizeValues', 'running'),
-    onSuccess:  (data) => { setStepStatus('normalizeValues', 'done'); setCatResult(data); toast.success('Value normalization complete'); setTimeout(() => onDone(), 2000); },
+    onSuccess:  (data) => {
+      setStepStatus('normalizeValues', 'done');
+      setCatResult(data);
+      if (data?.summary_text) setNormalizeSummaryText(data.summary_text);
+      if (data?.diff_data) setNormalizeDiff(data.diff_data);
+      toast.success('Value normalization complete');
+      setTimeout(() => onDone(), 2000);
+    },
     onError:    (err) => { setStepStatus('normalizeValues', 'error'); toast.error(err.message); },
   });
+
+  // isRunning: spinner only when API is actively in-flight
+  const isRunning = normalizeMutation.isPending;
+  // isDone: table only when API response returned diff data
+  const isDone    = !!normalizeDiff;
 
   useEffect(() => {
     if (!stepStatus.normalizeValues || stepStatus.normalizeValues === 'idle') normalizeMutation.mutate();
@@ -477,8 +505,10 @@ function NormalizeValuesStep({ uploadId, onDone }) {
     <div className="space-y-4 animate-in fade-in duration-500">
       {isRunning && <SimulatedProgressText isRunning={isRunning} isDone={isDone} totalRows={total} label="Normalizing values for" />}
       {isDone && (
-        <div className="h-[450px] animate-in fade-in slide-in-from-bottom-2 duration-500">
-          <StepDiffTable uploadId={uploadId} step="normalize" stepColor="text-amber-500" stepBgColor="bg-amber-500/10" />
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <div className="h-[450px]">
+            <StepDiffTable uploadId={uploadId} step="normalize" stepColor="text-amber-500" stepBgColor="bg-amber-500/10" preloadedData={normalizeDiff} />
+          </div>
           <p className="text-center text-xs text-muted-foreground animate-pulse mt-2">Entering Dashboard in 2s…</p>
         </div>
       )}
@@ -494,6 +524,8 @@ export default function PipelinePage() {
     targetFormat, setTargetFormat, agentStates, setNormalizeResult, setGeocodeResult,
     activeViewStep, setActiveViewStep, agentType, setAgentType,
     executionStep: step, setExecutionStep: setStep,
+    mapCodesSummaryText, normalizeSummaryText,
+    setGeocodeDiff,
   } = usePipelineStore();
 
   const activeId = routeId || uploadId;
@@ -519,6 +551,7 @@ export default function PipelinePage() {
     onSuccess:  (data) => {
       setStepStatus('geocode', 'done');
       setGeocodeResult(data);
+      if (data?.diff_data) setGeocodeDiff(data.diff_data);
       toast.success(`Geocoding complete — ${data.geocoded} geocoded`);
     },
     onError: (err) => { setStepStatus('geocode', 'error'); toast.error(`Geocoding failed: ${err.message}`); },
@@ -563,7 +596,7 @@ export default function PipelinePage() {
 
       {/* ── Wizard sections ───────────────────────────────── */}
 
-      <Section {...sectionProps} stepNum={1} title="Acquire Data" icon={Upload}
+      <Section {...sectionProps} stepNum={1} title="Upload SOV" icon={Upload}
         headerAction={uploadMeta ? (
           <Button
             onClick={() => handleUploaded(uploadId)}
@@ -577,39 +610,39 @@ export default function PipelinePage() {
         <AcquireStep onStartPipeline={handleUploaded} />
       </Section>
 
-      <Section {...sectionProps} stepNum={2} title="Address Normalization and Geocoding" icon={MapPin}>
+      <Section {...sectionProps} stepNum={2} title="1 - Data Agent" icon={MapPin}>
         <GeocodeStep activeId={activeId} />
       </Section>
 
       {/* CatAI path */}
       {agentType === 'catai' && (
         <>
-          <Section {...sectionProps} stepNum={5} title="Select the Modeling" icon={Tag}
+          <Section {...sectionProps} stepNum={5} title="SOV COPE CI/CD MODELING" icon={Tag}
             headerAction={
-              <div className="flex bg-muted/50 p-0.5 rounded-lg border border-border/50 shadow-inner">
-                {['AIR', 'RMS'].map(fmt => (
-                  <button
-                    key={fmt}
-                    onClick={() => setTargetFormat(fmt)}
-                    className={cn('px-4 py-1.5 text-[11px] font-bold rounded-md transition-all uppercase tracking-wide', targetFormat === fmt ? 'bg-white text-emerald-600 shadow-sm border border-emerald-500/20' : 'text-slate-400 hover:text-slate-600')}
-                  >
-                    {fmt}
-                  </button>
-                ))}
-              </div>
+              <Badge variant="outline" className="text-[11px] font-bold uppercase tracking-wide border-emerald-500/30 text-emerald-600 bg-emerald-50/50 px-3 py-1">
+                {targetFormat}
+              </Badge>
             }
           >
             <MappingStep uploadId={activeId} targetFormat={targetFormat} onDone={() => advance(7)} />
           </Section>
 
           {step >= 7 && (
-            <Section {...sectionProps} stepNum={7} title="Map Occ & Const Codes" icon={Tag}>
+            <Section {...sectionProps} stepNum={7} title="Occupancy & Construction Mapping" icon={Tag}
+              subHeader={mapCodesSummaryText ? (
+                <p className="text-[13px] text-foreground/80 leading-relaxed">{mapCodesSummaryText}</p>
+              ) : null}
+            >
               <CodeMappingStep uploadId={activeId} onDone={() => advance(8)} />
             </Section>
           )}
 
           {step >= 8 && (
-            <Section {...sectionProps} stepNum={8} title="Normalize Values" icon={BarChart3}>
+            <Section {...sectionProps} stepNum={8} title="Value Normalization" icon={BarChart3}
+              subHeader={normalizeSummaryText ? (
+                <p className="text-[13px] text-foreground/80 leading-relaxed">{normalizeSummaryText}</p>
+              ) : null}
+            >
               <NormalizeValuesStep uploadId={activeId} onDone={() => advance(9)} />
             </Section>
           )}
@@ -620,7 +653,7 @@ export default function PipelinePage() {
 
       {/* Underwriting stub path */}
       {agentType === 'underwriting' && (
-        <Section {...sectionProps} stepNum={5} title="Underwriting Agent" icon={Building2}>
+        <Section {...sectionProps} stepNum={5} title="UNDERWRITING AGENT" icon={Building2}>
           <UnderwritingStep />
         </Section>
       )}
