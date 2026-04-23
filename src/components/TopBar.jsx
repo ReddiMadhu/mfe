@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { usePipelineStore } from '@/store/usePipelineStore';
+import { Button } from '@/components/ui/button';
 
 export default function TopBar() {
   const navigate = useNavigate();
@@ -35,6 +36,16 @@ export default function TopBar() {
       <span className="text-xs text-muted-foreground hidden sm:block">
         CAT &amp; Underwriting Pipeline
       </span>
+
+      <div className="ml-auto">
+        <Button
+          variant="outline"
+          onClick={() => navigate('/ontology')}
+          className="border-2 border-primary text-primary hover:bg-primary/5 shadow-sm font-bold h-8 px-4"
+        >
+          Ontology
+        </Button>
+      </div>
     </header>
   );
 }

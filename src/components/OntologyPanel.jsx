@@ -145,10 +145,10 @@ function CopeSection({ tab, format }) {
   const Icon = tab.icon;
 
   return (
-    <div className="rounded-2xl border border-border/50 overflow-hidden transition-all">
+    <div className="rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-300 overflow-hidden">
       <button
         onClick={() => { setExpanded(!expanded); if (!expanded) fetchVersions(); }}
-        className="w-full flex items-center gap-3 p-4 hover:bg-muted/30 transition-colors text-left"
+        className="w-full flex items-center gap-4 p-5 hover:bg-slate-50/50 transition-colors text-left"
       >
         <div
           className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -161,14 +161,14 @@ function CopeSection({ tab, format }) {
             <span className="font-bold text-sm">{tab.label}</span>
             <Badge variant="outline" className="text-[9px]">{tab.short}</Badge>
             {data && (
-              <Badge variant="secondary" className="text-[9px]">
+              <Badge variant="secondary" className="text-[9px] bg-primary/5 text-primary border border-primary/10 hover:bg-primary/10">
                 {tab.key === 'exposure' ? `${Object.keys(data.data || {}).length} sections` : `${data.code_count || rows.length} codes`}
               </Badge>
             )}
           </div>
           <p className="text-[11px] text-muted-foreground">{tab.desc}</p>
         </div>
-        {expanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+        {expanded ? <ChevronDown className="w-5 h-5 text-slate-400 stroke-[2.5px]" /> : <ChevronRight className="w-5 h-5 text-slate-400 stroke-[2.5px]" />}
       </button>
 
       {expanded && (
@@ -286,15 +286,7 @@ export default function OntologyPanel() {
   const targetFormat = usePipelineStore((s) => s.targetFormat);
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 mb-1">
-        <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wide border-primary/30 text-primary">
-          {targetFormat}
-        </Badge>
-        <span className="text-[11px] text-muted-foreground">
-          Showing codes for {targetFormat === 'AIR' ? 'AIR Touchstone' : 'RMS RiskLink'}
-        </span>
-      </div>
+    <div className="space-y-5">
       {COPE_TABS.map((tab) => (
         <CopeSection key={tab.key} tab={tab} format={targetFormat} />
       ))}

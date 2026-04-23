@@ -107,7 +107,7 @@ function TextField({ label, value, onChange }) {
 
 function RuleGroup({ title, icon: Icon, color, children }) {
   return (
-    <div className="rounded-xl border border-border/50 p-4 space-y-3">
+    <div className="rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-300 p-5 space-y-4">
       <div className="flex items-center gap-2">
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center"
@@ -126,8 +126,6 @@ function RuleGroup({ title, icon: Icon, color, children }) {
 
 export default function NormalizationRulesPanel() {
   const [config, setConfig] = useState(null);
-  const [presets, setPresets] = useState([]);
-  const [activePreset, setActivePreset] = useState(null);
   const [saving, setSaving] = useState(false);
   const setRulesConfig = usePipelineStore((s) => s.setRulesConfig);
 
@@ -136,22 +134,10 @@ export default function NormalizationRulesPanel() {
       .then(r => r.json())
       .then(setConfig)
       .catch(console.error);
-
-    fetch(`${API}/api/rules/presets`)
-      .then(r => r.json())
-      .then(d => setPresets(d.presets || []))
-      .catch(console.error);
   }, []);
 
   const updateField = (field, value) => {
     setConfig(prev => ({ ...prev, [field]: value }));
-    setActivePreset(null);
-  };
-
-  const applyPreset = (preset) => {
-    setConfig(prev => ({ ...prev, ...preset.config }));
-    setActivePreset(preset.name);
-    toast.info(`Applied "${preset.name}" preset`);
   };
 
   const handleSave = async () => {
@@ -186,7 +172,6 @@ export default function NormalizationRulesPanel() {
       const json = await res.json();
       if (res.ok) {
         setConfig(json.config);
-        setActivePreset(null);
         setRulesConfig({});
         toast.success('Reset to defaults');
       }
@@ -204,32 +189,7 @@ export default function NormalizationRulesPanel() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Presets */}
-      <div className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Quick Presets</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          {presets.map((preset) => (
-            <button
-              key={preset.name}
-              onClick={() => applyPreset(preset)}
-              className={cn(
-                'rounded-xl border-2 p-3 text-left transition-all duration-200',
-                activePreset === preset.name
-                  ? 'border-primary bg-primary/5 shadow-sm'
-                  : 'border-border/50 bg-background hover:border-primary/30'
-              )}
-            >
-              <div className="flex items-center gap-1.5 mb-1">
-                <Zap className="w-3 h-3 text-primary" />
-                <span className="text-xs font-bold">{preset.name}</span>
-              </div>
-              <p className="text-[10px] text-muted-foreground leading-relaxed">{preset.description}</p>
-            </button>
-          ))}
-        </div>
-      </div>
-
+    <div className="space-y-5">
       {/* Rule Groups */}
       <RuleGroup title="Year Validation" icon={Calendar} color="#8b5cf6">
         <NumberField label="Minimum Year" value={config.year_min} onChange={(v) => updateField('year_min', v)} min={1600} max={2100} />
@@ -252,14 +212,7 @@ export default function NormalizationRulesPanel() {
         <SelectField label="Value Exceeded Action" value={config.invalid_value_action} onChange={(v) => updateField('invalid_value_action', v)} options={ACTION_OPTIONS} />
       </RuleGroup>
 
-      <RuleGroup title="Code Confidence" icon={Target} color="#4f46e5">
-        <SliderField label="Occupancy Confidence" value={config.occ_confidence_threshold} onChange={(v) => updateField('occ_confidence_threshold', v)} />
-        <SliderField label="Construction Confidence" value={config.const_confidence_threshold} onChange={(v) => updateField('const_confidence_threshold', v)} />
-        <SliderField label="Deterministic Score Threshold" value={config.deterministic_score_threshold} onChange={(v) => updateField('deterministic_score_threshold', v)} />
-        <SliderField label="LLM Confidence" value={config.llm_confidence_threshold} onChange={(v) => updateField('llm_confidence_threshold', v)} />
-        <SliderField label="TF-IDF Confidence" value={config.tfidf_confidence_threshold} onChange={(v) => updateField('tfidf_confidence_threshold', v)} />
-        <div /> {/* spacer for grid */}
-      </RuleGroup>
+
 
       <RuleGroup title="Default Codes" icon={ShieldCheck} color="#ef4444">
         <TextField label="Default Occupancy (AIR)" value={config.default_occ_code_air} onChange={(v) => updateField('default_occ_code_air', v)} />
