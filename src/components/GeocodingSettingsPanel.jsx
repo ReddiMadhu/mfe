@@ -1,9 +1,46 @@
+import { useState } from 'react';
 import {
   MapPin, ArrowRight, CheckCircle2, Globe2,
-  ShieldCheck, AlertTriangle, Navigation,
+  ShieldCheck, AlertTriangle, Navigation, Map, Wifi,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
+/* ── API Provider definitions ──────────────────────────────────────── */
+const API_PROVIDERS = [
+  {
+    id: 'geoapify',
+    name: 'Geoapify',
+    desc: 'Free-tier geocoding with generous limits. Ideal for batch processing.',
+    icon: Globe2,
+    gradient: 'from-blue-500 to-blue-600',
+    ring: 'ring-blue-400/50',
+    badge: 'bg-blue-100 text-blue-700 border-blue-200',
+    dot: 'bg-blue-500',
+  },
+  {
+    id: 'google',
+    name: 'Google Maps',
+    desc: 'Industry-standard precision. Best for production-grade accuracy.',
+    icon: Map,
+    gradient: 'from-red-500 to-orange-500',
+    ring: 'ring-orange-400/50',
+    badge: 'bg-orange-100 text-orange-700 border-orange-200',
+    dot: 'bg-orange-500',
+  },
+  {
+    id: 'ipxo',
+    name: 'IPXO',
+    desc: 'IP-based geolocation. Lightweight fallback for approximate positioning.',
+    icon: Wifi,
+    gradient: 'from-violet-500 to-purple-600',
+    ring: 'ring-violet-400/50',
+    badge: 'bg-violet-100 text-violet-700 border-violet-200',
+    dot: 'bg-violet-500',
+  },
+];
+
+/* ── Decision-tree steps ───────────────────────────────────────────── */
 const DECISION_STEPS = [
   {
     icon: Navigation,
@@ -21,8 +58,8 @@ const DECISION_STEPS = [
   },
   {
     icon: Globe2,
-    title: 'Geocode via Geoapify',
-    desc: 'Send normalized address to the Geoapify API (3 retries, 8s timeout). Extract lat/lon, street, city, state, postcode.',
+    title: 'Geocode via Provider',
+    desc: 'Send normalized address to the selected geocoding API (3 retries, 8 s timeout). Extract lat/lon, street, city, state, postcode.',
     result: 'Geosource → "Geocoded"',
     color: '#8b5cf6',
   },
@@ -43,28 +80,77 @@ const DECISION_STEPS = [
 ];
 
 export default function GeocodingSettingsPanel() {
+  const [selectedApi, setSelectedApi] = useState('geoapify');
+
   return (
     <div className="space-y-4">
-      {/* Provider Badge */}
-      <div className="rounded-xl border border-border/50 p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-            <Globe2 className="w-5 h-5 text-white" />
+
+      {/* ── API Provider Selector ──────────────────────────────────── */}
+      <div className="rounded-xl border border-border/50 p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Geocoding API Provider
+            </span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-sm">Geocoding Provider</span>
-              <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-[9px]">Geoapify</Badge>
-              <Badge variant="outline" className="text-[9px] border-green-300 text-green-600">Active</Badge>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              Server-side configuration. API key and provider settings are managed in the backend environment.
-            </p>
-          </div>
+          <Badge variant="outline" className="text-[9px] border-green-300 text-green-600">
+            {API_PROVIDERS.find((p) => p.id === selectedApi)?.name} Active
+          </Badge>
         </div>
+
+        <div className="grid grid-cols-3 gap-2.5">
+          {API_PROVIDERS.map((api) => {
+            const Icon = api.icon;
+            const active = selectedApi === api.id;
+            return (
+              <button
+                key={api.id}
+                onClick={() => setSelectedApi(api.id)}
+                className={cn(
+                  'relative group flex flex-col items-center gap-2 rounded-xl border p-4 transition-all duration-200 text-center',
+                  active
+                    ? `border-transparent ring-2 ${api.ring} bg-white shadow-md scale-[1.02]`
+                    : 'border-border/50 bg-muted/10 hover:bg-white/70 hover:shadow-sm hover:border-border',
+                )}
+              >
+                {/* Active indicator dot */}
+                {active && (
+                  <span className={cn('absolute top-2 right-2 w-2 h-2 rounded-full animate-pulse', api.dot)} />
+                )}
+
+                <div
+                  className={cn(
+                    'w-9 h-9 rounded-lg flex items-center justify-center bg-gradient-to-br transition-transform',
+                    api.gradient,
+                    active ? 'scale-110' : 'opacity-60 group-hover:opacity-90',
+                  )}
+                >
+                  <Icon className="w-4 h-4 text-white" />
+                </div>
+
+                <span className={cn('text-xs font-bold', active ? 'text-foreground' : 'text-muted-foreground')}>
+                  {api.name}
+                </span>
+
+                <span className="text-[10px] text-muted-foreground leading-tight">
+                  {api.desc}
+                </span>
+
+                {active && (
+                  <Badge className={cn('mt-1 text-[8px] border', api.badge)}>Selected</Badge>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="text-[10px] text-muted-foreground text-center pt-1">
+          API key and provider settings are managed in the backend environment.
+          Switching providers here will take effect on the next pipeline run.
+        </p>
       </div>
 
-      {/* Decision Tree */}
+      {/* ── Decision Tree ──────────────────────────────────────────── */}
       <div className="space-y-2">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           Address Resolution Decision Tree
@@ -103,7 +189,7 @@ export default function GeocodingSettingsPanel() {
         </div>
       </div>
 
-      {/* LRU Cache Info */}
+      {/* ── LRU Cache Info ─────────────────────────────────────────── */}
       <div className="rounded-xl border border-border/50 p-4 bg-muted/10">
         <div className="flex items-center gap-2 mb-2">
           <CheckCircle2 className="w-4 h-4 text-green-500" />

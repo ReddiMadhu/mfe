@@ -2,13 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Search, Download, Upload, ChevronDown, ChevronRight,
   Hammer, Building2, ShieldCheck, Layers, Trash2, FileUp,
-  CheckCircle2, AlertCircle,
+  CheckCircle2, AlertCircle, Plus, FileSpreadsheet,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { usePipelineStore } from '@/store/usePipelineStore';
+import AddRowForm from './AddRowForm';
+import ExcelUploadModal from './ExcelUploadModal';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -26,6 +28,8 @@ function CopeSection({ tab, format }) {
   const [loading, setLoading] = useState(false);
   const [versions, setVersions] = useState([]);
   const [showVersions, setShowVersions] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [showExcelModal, setShowExcelModal] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -107,6 +111,26 @@ function CopeSection({ tab, format }) {
     }
   };
 
+  const handleDeleteEntry = async (entryCode) => {
+    if (!window.confirm(`Delete code "${entryCode}" from ${tab.label}?`)) return;
+    try {
+      const fmtParam = tab.key === 'protection' ? 'AIR' : format;
+      const res = await fetch(
+        `${API}/api/ontology/entry/${tab.key}/${encodeURIComponent(entryCode)}?format=${fmtParam}`,
+        { method: 'DELETE' }
+      );
+      if (res.ok) {
+        toast.success(`Code "${entryCode}" deleted.`);
+        fetchData();
+      } else {
+        const json = await res.json();
+        toast.error(json.detail || 'Delete failed.');
+      }
+    } catch (err) {
+      toast.error('Delete failed: ' + err.message);
+    }
+  };
+
   // Build flat rows from data
   const rows = [];
   if (data) {
@@ -185,6 +209,13 @@ function CopeSection({ tab, format }) {
                 className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-border/50 bg-background focus:outline-none focus:ring-1 focus:ring-primary/30"
               />
             </div>
+            <Button
+              size="sm"
+              className="text-xs gap-1.5 h-8"
+              onClick={() => setShowAddForm(!showAddForm)}
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Entry
+            </Button>
             <Button variant="outline" size="sm" className="text-xs gap-1.5 h-8" onClick={handleDownload}>
               <Download className="w-3.5 h-3.5" /> Template
             </Button>
@@ -194,6 +225,13 @@ function CopeSection({ tab, format }) {
               </Button>
               <input type="file" accept=".csv,.json" className="hidden" onChange={handleUpload} />
             </label>
+            <Button
+              variant="outline" size="sm"
+              className="text-xs gap-1.5 h-8"
+              onClick={() => setShowExcelModal(true)}
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" /> Excel Upload
+            </Button>
             <Button
               variant="ghost" size="sm"
               className="text-xs gap-1 h-8 text-muted-foreground"
@@ -240,6 +278,7 @@ function CopeSection({ tab, format }) {
                     <th className="text-left px-3 py-2 font-semibold text-muted-foreground w-[70px]">Code</th>
                     <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Description</th>
                     <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Keywords / Aliases</th>
+                    <th className="text-center px-2 py-2 font-semibold text-muted-foreground w-[40px]"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -260,11 +299,20 @@ function CopeSection({ tab, format }) {
                           )}
                         </div>
                       </td>
+                      <td className="px-2 py-2 text-center">
+                        <button
+                          onClick={() => handleDeleteEntry(row.code)}
+                          className="p-1 rounded-md text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          title={`Delete ${row.code}`}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                   {filtered.length === 0 && (
                     <tr>
-                      <td colSpan={tab.key === 'exposure' ? 4 : 3} className="px-3 py-8 text-center text-muted-foreground">
+                      <td colSpan={tab.key === 'exposure' ? 5 : 4} className="px-3 py-8 text-center text-muted-foreground">
                         {search ? 'No matches found.' : 'No data loaded.'}
                       </td>
                     </tr>
@@ -273,11 +321,31 @@ function CopeSection({ tab, format }) {
               </table>
             </div>
           )}
+
+          {/* Add Row Form */}
+          {showAddForm && (
+            <AddRowForm
+              tab={tab}
+              format={format}
+              onSave={() => { fetchData(); fetchVersions(); setShowAddForm(false); }}
+              onCancel={() => setShowAddForm(false)}
+            />
+          )}
+
           <p className="text-[10px] text-muted-foreground text-right">
             Showing {filtered.length} of {rows.length} entries
           </p>
         </div>
       )}
+
+      {/* Excel Upload Modal */}
+      <ExcelUploadModal
+        open={showExcelModal}
+        onClose={() => setShowExcelModal(false)}
+        tab={tab}
+        format={format}
+        onComplete={() => { fetchData(); fetchVersions(); }}
+      />
     </div>
   );
 }
