@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import {
   Upload, Link2, FileSpreadsheet, Tag, BarChart3, Globe, MapPin,
   CheckCircle2, Loader2, AlertCircle, Play, Brain, X,
-  ArrowRight, Sparkles, Building2, Lock,
+  ArrowRight, Sparkles, Building2, Lock, ChevronUp, ChevronDown,
 } from 'lucide-react';
 import {
   uploadFile, runGeocode,
@@ -29,6 +29,67 @@ const RMS_FIELDS = ['ACCNTNUM','LOCNUM','LOCNAME','STREETNAME','CITY','STATECODE
 const CONFIDENCE_BG    = (s) => s >= 0.8 ? 'bg-green-500' : s >= 0.5 ? 'bg-amber-500' : 'bg-rose-500';
 const CONFIDENCE_COLOR = (s) => s >= 0.8 ? 'text-green-400' : s >= 0.5 ? 'text-amber-400' : 'text-rose-400';
 const NONE_VALUE = '__none__';
+
+// ── Collapsible GenAI Summary (bullet points) ──────────────────────────────
+function CollapsibleSummary({ summaryText }) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  if (!summaryText) return null;
+
+  // Parse: new format is JSON with { points: [...] }, legacy is plain text
+  let points = [];
+  try {
+    const parsed = JSON.parse(summaryText);
+    if (Array.isArray(parsed?.points)) {
+      points = parsed.points;
+    }
+  } catch {
+    // Legacy plain text — split by sentences
+    points = summaryText
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  if (points.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="flex items-center gap-2 text-left group w-full"
+      >
+        <Sparkles className="w-4 h-4 text-primary shrink-0" />
+        <span className="text-[11px] font-bold uppercase tracking-wide text-primary/80">
+          GenAI Summary
+        </span>
+        <Badge variant="outline" className="text-[9px] border-primary/20 text-primary/60 ml-1">
+          {points.length} insights
+        </Badge>
+        <div className="flex-1" />
+        {collapsed ? (
+          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+        ) : (
+          <ChevronUp className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+        )}
+      </button>
+
+      {!collapsed && (
+        <ul className="space-y-1.5 pl-6 animate-in fade-in slide-in-from-top-1 duration-200">
+          {points.map((pt, i) => (
+            <li key={i} className="flex items-start gap-2 text-[12px] text-foreground/80 leading-relaxed">
+              <span
+                className="mt-[5px] w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0"
+              />
+              <span>{pt}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 
 // ── Section wrapper — one visible at a time, Agent Network is the nav ──────
 function Section({ stepNum, activeViewStep, title, icon: Icon, badge, headerAction, subHeader, children }) {
@@ -673,10 +734,7 @@ export default function PipelinePage() {
             <Section {...sectionProps} stepNum={7} title="Occupancy & Construction Mapping" icon={Tag}
               headerAction={stepStatus.mapCodes === 'done' ? <ViewToggle stepKey="mapCodes" /> : null}
               subHeader={mapCodesSummaryText ? (
-                <div className="flex items-start gap-2">
-                  <Sparkles className="lucide lucide-sparkles w-4 h-4 text-primary mt-0.5 shrink-0" />
-                  <p className="text-[13px] text-foreground/80 leading-relaxed">{mapCodesSummaryText}</p>
-                </div>
+                <CollapsibleSummary summaryText={mapCodesSummaryText} />
               ) : null}
             >
               <CodeMappingStep uploadId={activeId} onDone={() => advance(8)} viewMode={viewModes.mapCodes} />
@@ -687,10 +745,7 @@ export default function PipelinePage() {
             <Section {...sectionProps} stepNum={8} title="Value Normalization" icon={BarChart3}
               headerAction={stepStatus.normalizeValues === 'done' ? <ViewToggle stepKey="normalize" /> : null}
               subHeader={normalizeSummaryText ? (
-                <div className="flex items-start gap-2">
-                  <Sparkles className="lucide lucide-sparkles w-4 h-4 text-primary mt-0.5 shrink-0" />
-                  <p className="text-[13px] text-foreground/80 leading-relaxed">{normalizeSummaryText}</p>
-                </div>
+                <CollapsibleSummary summaryText={normalizeSummaryText} />
               ) : null}
             >
               <NormalizeValuesStep uploadId={activeId} onDone={() => advance(9)} viewMode={viewModes.normalize} />
