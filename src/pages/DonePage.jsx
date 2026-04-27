@@ -15,17 +15,20 @@ const fmtN = new Intl.NumberFormat('en-US');
 const pct    = (val, total) => (!total || !val) ? '0%' : `${Math.round((val / total) * 100)}%`;
 const pctNum = (val, total) => (!total || !val) ? 0 : Math.round((val / total) * 100);
 
-const HEADER_CLASS = 'px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 bg-muted/40 border-b border-border/30 whitespace-nowrap select-none';
-const CELL_CLASS   = 'px-4 py-[9px] border-b border-border/15 text-[12px] text-foreground/80 align-middle';
+const HEADER_CLASS = 'px-5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-foreground/60 bg-muted/20 border-b-2 border-border/40 whitespace-nowrap select-none';
+const CELL_CLASS   = 'px-5 py-3.5 border-b border-border/10 text-[13px] text-foreground/80 align-middle group-hover:text-foreground transition-colors';
+const ROW_CLASS    = 'group hover:bg-card hover:shadow-sm transition-all duration-200 cursor-default';
+const BADGE_CLASS  = 'inline-block px-2.5 py-1 rounded-md font-semibold tabular-nums text-foreground bg-muted/30 border border-border/50 group-hover:border-primary/30 group-hover:bg-primary/[0.05] group-hover:text-primary transition-colors';
 
 function PctBar({ value, total, colorClass = 'bg-primary/60' }) {
   const w = pctNum(value, total);
+  const solidColor = colorClass.replace('/60', '').replace('/50', '');
   return (
-    <div className="flex items-center gap-2 min-w-[80px]">
-      <div className="flex-1 h-1.5 bg-muted/60 rounded-full overflow-hidden">
-        <div className={cn('h-full rounded-full', colorClass)} style={{ width: `${w}%` }} />
+    <div className="flex items-center gap-3 min-w-[100px] group-hover:opacity-100 opacity-90 transition-opacity">
+      <div className="flex-1 h-2 bg-muted/80 rounded-full overflow-hidden shadow-inner">
+        <div className={cn('h-full rounded-full transition-all duration-1000 ease-out shadow-sm', solidColor)} style={{ width: `${w}%` }} />
       </div>
-      <span className="text-[11px] tabular-nums text-muted-foreground w-8 text-right">{w}%</span>
+      <span className="text-[12px] font-medium tabular-nums text-foreground/70 w-9 text-right group-hover:text-foreground transition-colors">{w}%</span>
     </div>
   );
 }
@@ -56,9 +59,9 @@ function SectionTitle({ num, title }) {
 
 function TotalRow({ cells }) {
   return (
-    <tr className="bg-primary/[0.04] border-t-2 border-primary/15">
+    <tr className="bg-primary/[0.03] border-t-2 border-primary/20">
       {cells.map(({ content, align = 'left', colSpan = 1, isLabel = false }, i) => (
-        <td key={i} colSpan={colSpan} className={cn('px-4 py-3 text-[12px] font-bold border-t border-primary/10', isLabel ? 'text-primary' : 'text-foreground', align === 'right' && 'text-right tabular-nums')}>
+        <td key={i} colSpan={colSpan} className={cn('px-5 py-4 text-[13px] font-bold border-t border-primary/10', isLabel ? 'text-primary uppercase tracking-wider text-[11px]' : 'text-foreground', align === 'right' && 'text-right tabular-nums')}>
           {content}
         </td>
       ))}
@@ -233,7 +236,7 @@ export function DashboardView({ uploadId }) {
             <div className="mb-8">
         <SectionTitle num="1" title="Location Values" />
         {isLoading ? <TableSkeleton rows={4} cols={3} /> : (
-          <div className="glass rounded-2xl overflow-hidden border border-border/30">
+          <div className="bg-card rounded-2xl overflow-hidden border border-border shadow-sm">
             <table className="w-full text-[12px] border-collapse table-fixed">
               <colgroup><col /><col style={{ width: 160 }} /><col style={{ width: 90 }} /></colgroup>
               <thead><tr>
@@ -243,10 +246,10 @@ export function DashboardView({ uploadId }) {
               </tr></thead>
               <tbody>
                 {[{ label: 'Building', val: lv.building }, { label: 'Contents', val: lv.contents }, { label: 'Business Interruption', val: lv.bi }].map((r, i) => (
-                  <tr key={r.label} className={cn('hover:bg-muted/25 transition-colors', i % 2 === 1 && 'bg-muted/10')}>
-                    <td className={CELL_CLASS}>{r.label}</td>
-                    <td className={cn(CELL_CLASS, 'text-right tabular-nums font-medium')}>{fmt.format(r.val ?? 0)}</td>
-                    <td className={cn(CELL_CLASS, 'text-right tabular-nums text-muted-foreground')}>{pct(r.val, grand)}</td>
+                  <tr key={r.label} className={ROW_CLASS}>
+                    <td className={cn(CELL_CLASS, 'font-medium')}>{r.label}</td>
+                    <td className={cn(CELL_CLASS, 'text-right')}><span className={BADGE_CLASS}>{fmt.format(r.val ?? 0)}</span></td>
+                    <td className={cn(CELL_CLASS, 'text-right tabular-nums text-muted-foreground/80 font-medium')}>{pct(r.val, grand)}</td>
                   </tr>
                 ))}
                 <TotalRow cells={[{ content: 'Total', isLabel: true }, { content: fmt.format(grand), align: 'right' }, { content: '100%', align: 'right' }]} />
@@ -260,7 +263,7 @@ export function DashboardView({ uploadId }) {
       <div className="mb-8">
         <SectionTitle num="2" title="Country / State Breakdown" />
         {isLoading ? <TableSkeleton rows={6} cols={5} /> : (
-          <div className="glass rounded-2xl overflow-hidden border border-border/30">
+          <div className="bg-card rounded-2xl overflow-hidden border border-border shadow-sm">
             <table className="w-full text-[12px] border-collapse table-fixed">
               <colgroup><col style={{ width: 100 }} /><col style={{ width: 80 }} /><col style={{ width: 90 }} /><col /><col style={{ width: 90 }} /></colgroup>
               <thead><tr>
@@ -272,12 +275,12 @@ export function DashboardView({ uploadId }) {
               </tr></thead>
               <tbody>
                 {cs.map((r, i) => (
-                  <tr key={i} className={cn('hover:bg-muted/25 transition-colors', i % 2 === 1 && 'bg-muted/10')}>
-                    <td className={cn(CELL_CLASS, 'font-medium')}>{r.country}</td>
+                  <tr key={i} className={ROW_CLASS}>
+                    <td className={cn(CELL_CLASS, 'font-semibold')}>{r.country}</td>
                     <td className={cn(CELL_CLASS, 'text-muted-foreground')}>{r.state}</td>
-                    <td className={cn(CELL_CLASS, 'text-right tabular-nums')}>{fmtN.format(r.count)}</td>
-                    <td className={cn(CELL_CLASS, 'text-right tabular-nums font-medium')}>{fmt.format(r.tiv)}</td>
-                    <td className={cn(CELL_CLASS, 'text-right tabular-nums text-muted-foreground')}>{pct(r.tiv, csTiv)}</td>
+                    <td className={cn(CELL_CLASS, 'text-right tabular-nums font-medium')}>{fmtN.format(r.count)}</td>
+                    <td className={cn(CELL_CLASS, 'text-right')}><span className={BADGE_CLASS}>{fmt.format(r.tiv)}</span></td>
+                    <td className={cn(CELL_CLASS, 'text-right tabular-nums text-muted-foreground/80 font-medium')}>{pct(r.tiv, csTiv)}</td>
                   </tr>
                 ))}
                 <TotalRow cells={[{ content: 'Total', isLabel: true }, { content: '' }, { content: fmtN.format(csTotal), align: 'right' }, { content: fmt.format(csTiv), align: 'right' }, { content: '100%', align: 'right' }]} />
@@ -291,7 +294,7 @@ export function DashboardView({ uploadId }) {
       <div className="mb-8">
         <SectionTitle num="3" title="Top Locations by TIV" />
         {isLoading ? <TableSkeleton rows={10} cols={7} /> : (
-          <div className="glass rounded-2xl overflow-hidden border border-border/30">
+          <div className="bg-card rounded-2xl overflow-hidden border border-border shadow-sm">
             <table className="w-full text-[12px] border-collapse table-fixed">
               <colgroup>
                 <col style={{ width: 70  }} />
@@ -315,24 +318,26 @@ export function DashboardView({ uploadId }) {
               </thead>
               <tbody>
                 {topLocs.map((r, i) => (
-                  <tr key={i} className={cn('hover:bg-muted/25 transition-colors', i % 2 === 1 && 'bg-muted/10')}>
-                    <td className={cn(CELL_CLASS, 'text-muted-foreground/60 font-mono text-[11px]')}>{r.loc_id || '—'}</td>
-                    <td className={cn(CELL_CLASS, 'truncate max-w-0')} title={r.address}>{r.address || '—'}</td>
+                  <tr key={i} className={ROW_CLASS}>
+                    <td className={cn(CELL_CLASS, 'text-muted-foreground/70 font-mono text-[11px]')}>
+                      <span className="bg-muted px-1.5 py-0.5 rounded border border-border/50">{r.loc_id || '—'}</span>
+                    </td>
+                    <td className={cn(CELL_CLASS, 'truncate max-w-0 font-medium group-hover:text-primary transition-colors')} title={r.address}>{r.address || '—'}</td>
                     <td className={cn(CELL_CLASS)}>{r.city || '—'}</td>
-                    <td className={cn(CELL_CLASS, 'font-medium')}>{r.state || '—'}</td>
-                    <td className={cn(CELL_CLASS, 'font-mono text-[11px] text-muted-foreground')}>{r.zip || '—'}</td>
-                    <td className={cn(CELL_CLASS, 'text-right tabular-nums font-semibold')}>{fmt.format(r.tiv)}</td>
-                    <td className={cn(CELL_CLASS, 'text-right tabular-nums text-muted-foreground')}>{pct(r.tiv, grand)}</td>
+                    <td className={cn(CELL_CLASS)}>{r.state || '—'}</td>
+                    <td className={cn(CELL_CLASS, 'font-mono text-[12px] text-muted-foreground')}>{r.zip || '—'}</td>
+                    <td className={cn(CELL_CLASS, 'text-right')}><span className={BADGE_CLASS}>{fmt.format(r.tiv)}</span></td>
+                    <td className={cn(CELL_CLASS, 'text-right tabular-nums text-muted-foreground/80 font-medium')}>{pct(r.tiv, grand)}</td>
                   </tr>
                 ))}
-                <tr className="bg-primary/[0.04] border-t-2 border-primary/15">
-                  <td colSpan={5} className="px-4 py-3 text-right text-[11px] font-semibold text-muted-foreground border-t border-primary/10">
+                <tr className="bg-primary/[0.03] border-t-2 border-primary/20">
+                  <td colSpan={5} className="px-5 py-4 text-right text-[11px] font-bold uppercase tracking-wider text-primary border-t border-primary/10">
                     Top {topLocs.length} Total
                   </td>
-                  <td className="px-4 py-3 text-right text-[12px] font-bold tabular-nums text-primary border-t border-primary/10">
+                  <td className="px-5 py-4 text-right text-[13px] font-bold tabular-nums text-primary border-t border-primary/10">
                     {fmt.format(topTiv)}
                   </td>
-                  <td className="px-4 py-3 text-right text-[12px] font-bold tabular-nums border-t border-primary/10">
+                  <td className="px-5 py-4 text-right text-[13px] font-bold tabular-nums text-foreground border-t border-primary/10">
                     {pct(topTiv, grand)}
                   </td>
                 </tr>
@@ -351,7 +356,7 @@ export function DashboardView({ uploadId }) {
           <div key={num}>
             <SectionTitle num={num} title={title} />
             {isLoading ? <TableSkeleton rows={6} cols={3} /> : (
-              <div className="glass rounded-2xl overflow-hidden border border-border/30">
+              <div className="bg-card rounded-2xl overflow-hidden border border-border shadow-sm">
                 <table className="w-full text-[12px] border-collapse table-fixed">
                   <colgroup><col /><col style={{ width: 110 }} /><col style={{ width: 120 }} /></colgroup>
                   <thead><tr>
@@ -361,10 +366,10 @@ export function DashboardView({ uploadId }) {
                   </tr></thead>
                   <tbody>
                     {dist.map((r, i) => (
-                      <tr key={i} className={cn('hover:bg-muted/25 transition-colors', i % 2 === 1 && 'bg-muted/10')}>
-                        <td className={CELL_CLASS}>{r.label}</td>
+                      <tr key={i} className={ROW_CLASS}>
+                        <td className={cn(CELL_CLASS, 'font-medium')}>{r.label}</td>
                         <td className={CELL_CLASS}><PctBar value={r.tiv} total={grand} colorClass={colorClass} /></td>
-                        <td className={cn(CELL_CLASS, 'text-right tabular-nums font-medium')}>{fmt.format(r.tiv)}</td>
+                        <td className={cn(CELL_CLASS, 'text-right')}><span className={BADGE_CLASS}>{fmt.format(r.tiv)}</span></td>
                       </tr>
                     ))}
                     <TotalRow cells={[{ content: 'Total', isLabel: true }, { content: '' }, { content: fmt.format(grand), align: 'right' }]} />
@@ -385,7 +390,7 @@ export function DashboardView({ uploadId }) {
           <div key={num}>
             <SectionTitle num={num} title={title} />
             {isLoading ? <TableSkeleton rows={6} cols={3} /> : (
-              <div className="glass rounded-2xl overflow-hidden border border-border/30">
+              <div className="bg-card rounded-2xl overflow-hidden border border-border shadow-sm">
                 <table className="w-full text-[12px] border-collapse table-fixed">
                   <colgroup><col /><col style={{ width: 110 }} /><col style={{ width: 120 }} /></colgroup>
                   <thead><tr>
@@ -395,10 +400,10 @@ export function DashboardView({ uploadId }) {
                   </tr></thead>
                   <tbody>
                     {dist.map((r, i) => (
-                      <tr key={i} className={cn('hover:bg-muted/25 transition-colors', i % 2 === 1 && 'bg-muted/10')}>
-                        <td className={CELL_CLASS}>{r.label}</td>
+                      <tr key={i} className={ROW_CLASS}>
+                        <td className={cn(CELL_CLASS, 'font-medium')}>{r.label}</td>
                         <td className={CELL_CLASS}><PctBar value={r.tiv} total={grand} colorClass={colorClass} /></td>
-                        <td className={cn(CELL_CLASS, 'text-right tabular-nums font-medium')}>{fmt.format(r.tiv)}</td>
+                        <td className={cn(CELL_CLASS, 'text-right')}><span className={BADGE_CLASS}>{fmt.format(r.tiv)}</span></td>
                       </tr>
                     ))}
                     <TotalRow cells={[{ content: 'Total', isLabel: true }, { content: '' }, { content: fmt.format(grand), align: 'right' }]} />
