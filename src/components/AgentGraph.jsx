@@ -479,6 +479,7 @@ const BASE_H = 205;
 export default function AgentGraph({
   activeId, agentStates = {}, stepStatus = {}, onNodeClick,
   currentPipelineStep = 0, isGeocodeDone = false,
+  onEpNodeClick,
 }) {
   const geocodeResult     = usePipelineStore(s => s.geocodeResult);
   const uploadMeta        = usePipelineStore(s => s.uploadMeta);
@@ -821,7 +822,7 @@ export default function AgentGraph({
               expanded={isExpanded}
               agentState={agentStates[nodeDef.agentKey]}
               result={result}
-              onNavigate={onNodeClick}
+              onNavigate={isEpNode ? () => onEpNodeClick?.(nodeDef.id) : onNodeClick}
               currentPipelineStep={currentPipelineStep}
               totalRows={uploadMeta?.row_count}
               compact={isEpNode}

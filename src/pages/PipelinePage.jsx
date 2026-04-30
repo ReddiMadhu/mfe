@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AgentGraph from '@/components/AgentGraph';
+import EpNodeInfoPanel from '@/components/EpNodeInfoPanel';
 import { DashboardView } from './DonePage';
 import StepDiffTable from '@/components/StepDiffTable';
 
@@ -809,6 +810,31 @@ export default function PipelinePage() {
   const [viewModes, setViewModes] = useState({ geocode: 'cleaned', mapCodes: 'cleaned', normalize: 'cleaned' });
   const updateViewMode = (stepKey, mode) => setViewModes(prev => ({ ...prev, [stepKey]: mode }));
 
+  // EP node info panel state
+  const [activeEpNode, setActiveEpNode] = useState(null);
+  const {
+    epPolicyFile, epFrequencyConfig, epPerilConfig,
+    setEpFrequencyConfig, uploadMeta: epUploadMeta,
+  } = usePipelineStore();
+  const [epFreqForm, setEpFreqForm] = useState({ num_simulations: 10000, time_horizon_years: 1, frequency_model: 'poisson' });
+  const epPolicyInputRef = useRef(null);
+
+  const epFreqMutation = useMutation({
+    mutationFn: () => configureFrequency(activeId, epFreqForm),
+    onSuccess: (data) => { setEpFrequencyConfig(data.config); toast.success('Frequency configuration saved'); },
+    onError: (err) => toast.error(`Config failed: ${err.message}`),
+  });
+
+  const { setEpPolicyFile } = usePipelineStore();
+  const epPolicyMutation = useMutation({
+    mutationFn: (file) => uploadPolicyFile(activeId, file),
+    onSuccess: (data) => {
+      setEpPolicyFile({ row_count: data.row_count, headers: data.headers, sample: data.sample, fileName: data.file_name });
+      toast.success(`Policy file uploaded — ${data.row_count} rows`);
+    },
+    onError: (err) => toast.error(`Policy upload failed: ${err.message}`),
+  });
+
   const ViewToggle = ({ stepKey }) => (
     <div className="flex items-center gap-3 bg-white/50 px-2 py-1 rounded-md border border-border/50">
       <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-medium text-foreground">
@@ -894,6 +920,31 @@ export default function PipelinePage() {
           onNodeClick={handleNodeClick}
           currentPipelineStep={step}
           isGeocodeDone={stepStatus.geocode === 'done'}
+          onEpNodeClick={(id) => setActiveEpNode(prev => prev === id ? null : id)}
+        />
+        {/* EP node info panel — slides in below graph when an EP node is clicked */}
+        <EpNodeInfoPanel
+          nodeId={activeEpNode}
+          onClose={() => setActiveEpNode(null)}
+          uploadMeta={epUploadMeta}
+          epPolicyFile={epPolicyFile}
+          epFrequencyConfig={epFrequencyConfig}
+          epPerilConfig={epPerilConfig}
+          stepStatus={stepStatus}
+          freqForm={epFreqForm}
+          setFreqForm={setEpFreqForm}
+          onPolicyUploadClick={() => epPolicyInputRef.current?.click()}
+          onFreqSave={() => epFreqMutation.mutate()}
+          isPolicyUploading={epPolicyMutation.isPending}
+          isFreqSaving={epFreqMutation.isPending}
+        />
+        {/* Hidden policy upload input for the info panel */}
+        <input
+          ref={epPolicyInputRef}
+          type="file"
+          accept=".csv,.xlsx,.xls"
+          className="hidden"
+          onChange={e => { const f = e.target.files?.[0]; if (f) epPolicyMutation.mutate(f); }}
         />
       </div>
 
