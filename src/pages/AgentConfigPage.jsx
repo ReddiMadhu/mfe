@@ -289,6 +289,68 @@ export default function AgentConfigPage() {
                 </div>
               </div>
             </PipelineStage>
+
+            {/* EP Curve Generation — auto-enabled with SOV COPE */}
+            <div className={cn("flex gap-4 relative group")}>
+              <div className="flex flex-col items-center mt-5">
+                <div className={cn(
+                  'w-6 h-6 rounded-[4px] flex items-center justify-center border-2 shrink-0 transition-all duration-200 shadow-sm',
+                  selectedAgents.sovCope
+                    ? 'border-purple-500 bg-gradient-to-br from-purple-500 to-purple-400 text-white'
+                    : 'border-slate-200 bg-slate-50 text-slate-300 cursor-not-allowed'
+                )}>
+                  {selectedAgents.sovCope && <Check size={14} strokeWidth={4} />}
+                </div>
+              </div>
+              <div className="flex-1 pb-6">
+                <div className={cn(
+                  "rounded-2xl border p-5 transition-all duration-300",
+                  selectedAgents.sovCope ? 'glass-strong border-purple-200 shadow-sm' : 'glass border-border/40 opacity-50'
+                )}>
+                  <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
+                    <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
+                      <TrendingUp size={16} className="text-purple-500" />
+                      3. EP Curve Generation
+                    </h3>
+                    <Badge variant="outline" className={cn("text-[10px]",
+                      selectedAgents.sovCope
+                        ? "border-purple-300 text-purple-600 bg-purple-50"
+                        : "border-slate-300 text-slate-400")}>
+                      {selectedAgents.sovCope ? 'Auto-enabled' : 'Requires SOV COPE'}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                    Generates Exceedance Probability curves (OEP/AEP) from SOV exposure data, policy terms, and hazard assessment results.
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 pt-3 border-t border-border/40">
+                    {[
+                      { label: 'Location File', badge: 'Auto-filled from SOV', color: 'emerald' },
+                      { label: 'Policy File', badge: 'Upload required', color: 'orange' },
+                      { label: 'Account File', badge: 'Auto-filled from SOV', color: 'emerald' },
+                      { label: 'Peril + Region', badge: 'From Hazard Assessment', color: 'emerald' },
+                      { label: 'Frequency Config', badge: 'Configure in pipeline', color: 'orange' },
+                    ].map((item) => (
+                      <span key={item.label}
+                        className={cn(
+                          'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-semibold border transition-colors',
+                          selectedAgents.sovCope
+                            ? item.color === 'emerald'
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                              : 'bg-orange-50 border-orange-200 text-orange-700'
+                            : 'bg-muted/50 border-border/30 text-muted-foreground'
+                        )}
+                      >
+                        <span className={cn('w-1.5 h-1.5 rounded-full',
+                          item.color === 'emerald' ? 'bg-emerald-500' : 'bg-orange-500'
+                        )} />
+                        {item.label}
+                        <span className="text-[8px] font-normal opacity-70 ml-0.5">— {item.badge}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
         </div>

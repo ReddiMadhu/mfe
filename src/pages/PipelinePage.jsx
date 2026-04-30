@@ -6,21 +6,23 @@ import {
   Upload, Link2, FileSpreadsheet, Tag, BarChart3, Globe, MapPin,
   CheckCircle2, Loader2, AlertCircle, Play, Brain, X,
   ArrowRight, Sparkles, Building2, Lock, ChevronUp, ChevronDown,
+  TrendingUp, FileText, Activity, Check,
 } from 'lucide-react';
 import {
   uploadFile, runGeocode,
   suggestColumns, confirmColumns, runMapCodes, runNormalizeValues, forgetMapping,
+  uploadPolicyFile, configureFrequency, getEpCurveStatus, generateEpCurve, runEpHazardAssessment,
 } from '@/lib/api';
 import { usePipelineStore } from '@/store/usePipelineStore';
 import { useAgentStream } from '@/hooks/useAgentStream';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AgentGraph from '@/components/AgentGraph';
 import { DashboardView } from './DonePage';
 import StepDiffTable from '@/components/StepDiffTable';
-import { cn } from '@/lib/utils';
 
 // ── Canonical field lists ──────────────────────────────────────────────────
 const AIR_FIELDS = ['PolicyID','InsuredName','LocationID','LocationName','FullAddress','Street','City','Area','PostalCode','CountryISO','Latitude','Longitude','OccupancyCodeType','OccupancyCode','ConstructionCodeType','ConstructionCode','RiskCount','NumberOfStories','GrossArea','YearBuilt','YearRetrofitted','TIV','BuildingValue','ContentsValue','TimeElementValue','Currency','LineOfBusiness','SprinklerSystem','RoofGeometry','FoundationType','WallSiding','SoftStory','WallType'];
@@ -589,6 +591,206 @@ function NormalizeValuesStep({ uploadId, onDone, viewMode }) {
   );
 }
 
+// ── Step 10: EP Curve Generation ──────────────────────────────────────────
+function EpCurveStep({ uploadId, onDone }) {
+  const {
+    epPolicyFile, setEpPolicyFile,
+    epFrequencyConfig, setEpFrequencyConfig,
+    epPerilConfig, setEpPerilConfig,
+    epCurveResult, setEpCurveResult,
+    setStepStatus, stepStatus, uploadMeta,
+  } = usePipelineStore();
+
+  const [freqForm, setFreqForm] = useState({
+    num_simulations: 10000,
+    time_horizon_years: 1,
+    frequency_model: 'poisson',
+  });
+
+  const inputRef = useRef();
+  const sovDone = stepStatus.normalizeValues === 'done' || stepStatus.mapCodes === 'done';
+
+  // Policy file upload
+  const policyMutation = useMutation({
+    mutationFn: (file) => uploadPolicyFile(uploadId, file),
+    onSuccess: (data) => {
+      setEpPolicyFile({ row_count: data.row_count, headers: data.headers, sample: data.sample, fileName: data.file_name });
+      toast.success(`Policy file uploaded — ${data.row_count} rows`);
+      if (data.validation_warnings?.length) data.validation_warnings.forEach(w => toast.warning(w));
+    },
+    onError: (err) => toast.error(`Policy upload failed: ${err.message}`),
+  });
+
+  // Frequency config save
+  const freqMutation = useMutation({
+    mutationFn: () => configureFrequency(uploadId, freqForm),
+    onSuccess: (data) => {
+      setEpFrequencyConfig(data.config);
+      toast.success('Frequency configuration saved');
+    },
+    onError: (err) => toast.error(`Config failed: ${err.message}`),
+  });
+
+  // Hazard Assessment auto-run
+  const hazardMutation = useMutation({
+    mutationFn: () => runEpHazardAssessment(uploadId),
+    onMutate: () => setStepStatus('epHazard', 'running'),
+    onSuccess: (data) => {
+      setStepStatus('epHazard', 'done');
+      setEpPerilConfig(data.peril_config);
+      toast.success('EP Hazard assessment completed');
+    },
+    onError: (err) => {
+      setStepStatus('epHazard', 'error');
+      toast.error(`Hazard assessment failed: ${err.message}`);
+    },
+  });
+
+  useEffect(() => {
+    if (sovDone && !epPerilConfig && stepStatus.epHazard !== 'running' && stepStatus.epHazard !== 'done' && stepStatus.epHazard !== 'error') {
+      hazardMutation.mutate();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sovDone, epPerilConfig, stepStatus.epHazard]);
+
+  // Generate EP Curve
+  const generateMutation = useMutation({
+    mutationFn: () => generateEpCurve(uploadId),
+    onMutate: () => setStepStatus('epCurve', 'running'),
+    onSuccess: (data) => {
+      setStepStatus('epCurve', 'done');
+      setEpCurveResult(data);
+      toast.success('EP Curve generated');
+      onDone?.();
+    },
+    onError: (err) => { setStepStatus('epCurve', 'error'); toast.error(err.message); },
+  });
+
+  const policyReady = !!epPolicyFile?.row_count;
+  const freqReady = !!epFrequencyConfig?.num_simulations;
+  const perilReady = !!epPerilConfig;
+  const readyCount = (sovDone ? 2 : 0) + (policyReady ? 1 : 0) + (perilReady ? 1 : 0) + (freqReady ? 1 : 0);
+  const allReady = sovDone && policyReady && freqReady && perilReady;
+
+  const SubCard = ({ title, desc, ready, color, children }) => (
+    <div className={cn(
+      'rounded-xl border p-4 transition-all',
+      ready
+        ? 'border-emerald-200 bg-emerald-50/50'
+        : color === 'orange'
+          ? 'border-orange-200 bg-orange-50/30'
+          : 'border-slate-200 bg-slate-50/30'
+    )}>
+      <div className="flex items-center gap-2 mb-1">
+        {ready
+          ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+          : color === 'orange'
+            ? <AlertCircle className="w-4 h-4 text-orange-500 shrink-0" />
+            : <Loader2 className="w-4 h-4 text-slate-400 shrink-0" />
+        }
+        <span className="text-xs font-bold text-foreground">{title}</span>
+        {ready && <Badge variant="outline" className="ml-auto text-[9px] border-emerald-300 text-emerald-600">Ready</Badge>}
+        {!ready && color === 'orange' && <Badge variant="outline" className="ml-auto text-[9px] border-orange-300 text-orange-600">Required</Badge>}
+      </div>
+      <p className="text-[10px] text-muted-foreground mb-2">{desc}</p>
+      {children}
+    </div>
+  );
+
+  return (
+    <div className="space-y-4 animate-in fade-in duration-500">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* Location File — green */}
+        <SubCard title="Exposure & Geography (Location File)" desc="Auto-populated from SOV COPE output." ready={sovDone} color="green">
+          {sovDone && <p className="text-[10px] text-emerald-600 font-medium">{uploadMeta?.row_count || '—'} rows from SOV Agent</p>}
+        </SubCard>
+
+        {/* Peril + Region — green (from hazard assessment) */}
+        <SubCard title="Model Setup (Peril + Region)" desc="Auto-populated by EP Hazard Assessment." ready={perilReady} color="green">
+          {perilReady ? (
+            <p className="text-[10px] text-emerald-600 font-medium">Mapped to {epPerilConfig.earthquake_regions?.length + epPerilConfig.wind_regions?.length} regions</p>
+          ) : stepStatus.epHazard === 'running' ? (
+            <div className="flex items-center text-[10px] text-slate-500"><Loader2 className="w-3 h-3 mr-1 animate-spin" />Running assessment...</div>
+          ) : stepStatus.epHazard === 'error' ? (
+            <p className="text-[10px] text-red-500 font-medium">Failed to run assessment</p>
+          ) : (
+            <p className="text-[10px] text-slate-400 italic">Waiting for SOV completion...</p>
+          )}
+        </SubCard>
+
+        {/* Account File — green */}
+        <SubCard title="Portfolio Roll-up (Account File)" desc="Auto-populated from SOV COPE output." ready={sovDone} color="green">
+          {sovDone && <p className="text-[10px] text-emerald-600 font-medium">Account data from SOV Agent</p>}
+        </SubCard>
+
+        {/* Policy File — orange */}
+        <SubCard title="Insurance Terms (Policy File)" desc="Upload: Policy_ID, Account_ID, Limit, Deductible, Coverage_Type, Policy_Type" ready={policyReady} color="orange">
+          {policyReady ? (
+            <p className="text-[10px] text-emerald-600 font-medium">{epPolicyFile.row_count} rows uploaded</p>
+          ) : (
+            <div>
+              <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) policyMutation.mutate(f); }} />
+              <Button size="sm" variant="outline" onClick={() => inputRef.current?.click()}
+                disabled={policyMutation.isPending}
+                className="h-7 text-[10px] font-semibold border-orange-300 text-orange-600 hover:bg-orange-50">
+                {policyMutation.isPending ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Uploading…</> : <><Upload className="w-3 h-3 mr-1" />Upload Policy File</>}
+              </Button>
+            </div>
+          )}
+        </SubCard>
+
+        {/* Frequency Config — orange */}
+        <SubCard title="Annual Simulation (Frequency Config)" desc="Configure simulation parameters." ready={freqReady} color="orange">
+          {freqReady ? (
+            <p className="text-[10px] text-emerald-600 font-medium">{epFrequencyConfig.num_simulations} sims · {epFrequencyConfig.time_horizon_years}yr · {epFrequencyConfig.frequency_model}</p>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-[9px] text-muted-foreground font-medium">Simulations</label>
+                  <input type="number" value={freqForm.num_simulations} onChange={e => setFreqForm(f => ({ ...f, num_simulations: +e.target.value }))}
+                    className="w-full h-7 px-2 text-[11px] rounded-md border border-border bg-background" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[9px] text-muted-foreground font-medium">Years</label>
+                  <input type="number" value={freqForm.time_horizon_years} onChange={e => setFreqForm(f => ({ ...f, time_horizon_years: +e.target.value }))}
+                    className="w-full h-7 px-2 text-[11px] rounded-md border border-border bg-background" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[9px] text-muted-foreground font-medium">Model</label>
+                  <select value={freqForm.frequency_model} onChange={e => setFreqForm(f => ({ ...f, frequency_model: e.target.value }))}
+                    className="w-full h-7 px-2 text-[11px] rounded-md border border-border bg-background">
+                    <option value="poisson">Poisson</option>
+                    <option value="negative_binomial">Neg. Binomial</option>
+                  </select>
+                </div>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => freqMutation.mutate()}
+                disabled={freqMutation.isPending || freqForm.num_simulations <= 0}
+                className="h-7 text-[10px] font-semibold border-orange-300 text-orange-600 hover:bg-orange-50">
+                {freqMutation.isPending ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Saving…</> : 'Save Configuration'}
+              </Button>
+            </div>
+          )}
+        </SubCard>
+      </div>
+
+      {/* Readiness + Generate */}
+      <div className="flex items-center justify-between pt-2">
+        <span className="text-xs text-muted-foreground font-medium">{readyCount}/5 inputs ready</span>
+        <Button onClick={() => generateMutation.mutate()}
+          disabled={!allReady || generateMutation.isPending}
+          className="gradient-primary glow-primary text-white font-semibold rounded-xl h-10 px-6 hover:opacity-90 transition-all disabled:opacity-40">
+          {generateMutation.isPending
+            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating…</>
+            : <><TrendingUp className="w-4 h-4 mr-2" />Generate EP Curve</>}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ── Main PipelinePage ──────────────────────────────────────────────────────
 export default function PipelinePage() {
   const { id: routeId } = useParams();
@@ -753,6 +955,12 @@ export default function PipelinePage() {
           )}
 
           {step >= 9 && activeViewStep === 9 && <DashboardView uploadId={activeId} />}
+
+          {step >= 9 && (
+            <Section {...sectionProps} stepNum={10} title="3. EP Curve Generation" icon={TrendingUp}>
+              <EpCurveStep uploadId={activeId} onDone={() => advance(11)} />
+            </Section>
+          )}
         </>
       )}
 

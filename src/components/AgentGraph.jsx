@@ -4,7 +4,7 @@ import {
   ShieldCheck, CloudRain, Layers, Eye, TrendingUp, Award,
   Loader2, Check, Lock, AlertCircle, Play,
   ChevronRight, CheckCircle, XCircle, Percent, Hash,
-  Cpu, Zap, Database,
+  Cpu, Zap, Database, FileText, Building2, Activity,
 } from 'lucide-react';
 import { usePipelineStore } from '@/store/usePipelineStore';
 import { cn } from '@/lib/utils';
@@ -32,9 +32,19 @@ const NODE_DEFS = [
   { id: 'catOut',      label: 'Output Formatting',      icon: FileOutput,      agentKey: 'cat_output',      color: '#64748b' },
   { id: 'riskModel',   label: '7 - Property Vulnerability Risk', icon: TrendingUp, agentKey: 'risk_model',      color: '#4f46e5' },
   { id: 'propensity',  label: '8 - Quote Propensity',       icon: Award,           agentKey: 'quote_propensity',color: '#f43f5e' },
+  // ── EP Curve Generation sub-agents ──
+  { id: 'epLocation',  label: 'Exposure & Geography',   icon: MapPin,    agentKey: 'ep_location',  color: '#10b981', epSource: 'sov'    },
+  { id: 'epPolicy',    label: 'Insurance Terms',        icon: FileText,  agentKey: 'ep_policy',    color: '#f97316', epSource: 'input'  },
+  { id: 'epAccount',   label: 'Portfolio Roll-up',      icon: Building2, agentKey: 'ep_account',   color: '#10b981', epSource: 'sov'    },
+  { id: 'epPeril',     label: 'Model Setup (Peril)',     icon: CloudRain, agentKey: 'ep_peril',     color: '#10b981', epSource: 'hazard' },
+  { id: 'epFrequency', label: 'Annual Simulation',       icon: Activity,  agentKey: 'ep_frequency', color: '#f97316', epSource: 'input'  },
+  { id: 'epCurve',     label: 'EP Curve Output',         icon: TrendingUp,agentKey: 'ep_curve_out', color: '#7c3aed' },
 ];
 
-const NODE_STEP_MAP = { upload: 1, geocode: 2, catMap: 7, catNorm: 8, catOut: 9 };
+const NODE_STEP_MAP = { upload: 1, geocode: 2, catMap: 7, catNorm: 8, catOut: 9, epCurve: 10 };
+
+// EP node IDs for filtering
+const EP_NODE_IDS = new Set(['epLocation','epPolicy','epAccount','epPeril','epFrequency','epCurve']);
 
 const EDGES = [
   { from: 'upload',     to: 'geocode'     },
@@ -50,15 +60,31 @@ const EDGES = [
   { from: 'geospatial', to: 'riskModel'   }, // was: geospatial → objAnalysis
   { from: 'objAnalysis',to: 'riskModel'   },
   { from: 'riskModel',  to: 'propensity'  },
+  // EP Curve edges
+  { from: 'catOut',     to: 'epLocation'  },
+  { from: 'catOut',     to: 'epAccount'   },
+  { from: 'catOut',     to: 'epPeril'     },
+  { from: 'epLocation', to: 'epCurve'     },
+  { from: 'epPolicy',   to: 'epCurve'     },
+  { from: 'epAccount',  to: 'epCurve'     },
+  { from: 'epPeril',    to: 'epCurve'     },
+  { from: 'epFrequency',to: 'epCurve'     },
 ];
 
-function makePath(fromNode, toNode) {
-  const x1 = fromNode.left + NW;
-  const y1 = fromNode.top  + NCY;
-  const x2 = toNode.left;
-  const y2 = toNode.top  + NCY;
+function makePath(fromDef, toDef, fromPos, toPos) {
+  const isFromEp = EP_NODE_IDS.has(fromDef.id);
+  const isToEp   = EP_NODE_IDS.has(toDef.id);
+
+  const fw = isFromEp ? 120 : NW;
+  const fh = isFromEp ? 28  : NH;
+  const th = isToEp   ? 28  : NH;
+
+  const x1 = fromPos.left + fw;
+  const y1 = fromPos.top  + (fh / 2);
+  const x2 = toPos.left;
+  const y2 = toPos.top  + (th / 2);
+
   const dx = x2 - x1;
-  // A smaller multiplier and clamp ensures the lines fan out quickly rather than forming a single fused "trunk".
   const cxOffset = Math.max(16, Math.min(60, dx * 0.25));
   return `M ${x1} ${y1} C ${x1 + cxOffset} ${y1}, ${x2 - cxOffset} ${y2}, ${x2} ${y2}`;
 }
@@ -224,10 +250,67 @@ const NODE_SUMMARY = {
       { icon: Percent, label: 'Avg Score', value: safe(r?.avg),       color: 'text-amber-500' },
     ],
   }),
+
+  // ── EP Curve sub-agent summaries ──
+  epLocation: (r) => ({
+    headline: 'Location file from SOV.',
+    stats: [
+      { icon: MapPin,      label: 'Rows',   value: safe(r?.row_count), color: 'text-emerald-500' },
+      { icon: CheckCircle, label: 'Source',  value: 'SOV Agent',        color: 'text-emerald-500' },
+    ],
+  }),
+  epPolicy: (r) => ({
+    headline: r?.row_count ? `${r.row_count} policy rows uploaded.` : 'Policy file required.',
+    stats: [
+      { icon: FileText,    label: 'Rows',   value: safe(r?.row_count), color: 'text-orange-500' },
+      { icon: AlertCircle, label: 'Status',  value: r?.row_count ? 'Uploaded' : 'Required', color: r?.row_count ? 'text-emerald-500' : 'text-orange-500' },
+    ],
+  }),
+  epAccount: (r) => ({
+    headline: 'Account file from SOV.',
+    stats: [
+      { icon: Building2,   label: 'Accounts', value: safe(r?.count), color: 'text-emerald-500' },
+      { icon: CheckCircle, label: 'Source',    value: 'SOV Agent',    color: 'text-emerald-500' },
+    ],
+  }),
+  epPeril: (r) => ({
+    headline: 'Peril config from Hazard Assessment.',
+    stats: [
+      { icon: CloudRain,   label: 'Perils',  value: safe(r?.peril_count), color: 'text-emerald-500' },
+      { icon: CheckCircle, label: 'Source',   value: 'Hazard Agent',      color: 'text-emerald-500' },
+    ],
+  }),
+  epFrequency: (r) => ({
+    headline: r?.num_simulations ? `${r.num_simulations} sims configured.` : 'Configuration required.',
+    stats: [
+      { icon: Activity,    label: 'Sims',    value: safe(r?.num_simulations), color: 'text-orange-500' },
+      { icon: AlertCircle, label: 'Status',   value: r?.num_simulations ? 'Set' : 'Required', color: r?.num_simulations ? 'text-emerald-500' : 'text-orange-500' },
+    ],
+  }),
+  epCurve: (r) => ({
+    headline: r?.status === 'complete' ? 'EP Curve generated.' : 'Waiting for all inputs.',
+    stats: [
+      { icon: TrendingUp,  label: 'OEP',  value: safe(r?.oep_count), color: 'text-violet-500' },
+      { icon: TrendingUp,  label: 'AEP',  value: safe(r?.aep_count), color: 'text-purple-500' },
+    ],
+  }),
 };
 
 // ─── Unified node card — grows in-place ───────────────────────────────────────
-function PipelineNode({ nodeDef, pos, status, agentState, result, onNavigate, currentPipelineStep, expanded, totalRows }) {
+function PipelineNode({ 
+  nodeDef, 
+  pos, 
+  status, 
+  agentState, 
+  result, 
+  onNavigate, 
+  currentPipelineStep, 
+  expanded, 
+  totalRows,
+  compact = false 
+}) {
+  const nodeWidth = compact ? 120 : NW;
+  const nodeHeight = compact ? 28 : NH;
   const Icon = nodeDef.icon;
   const logsEndRef = useRef(null);
   const logs = agentState?.thinkingLog ?? [];
@@ -260,7 +343,7 @@ function PipelineNode({ nodeDef, pos, status, agentState, result, onNavigate, cu
       style={{
         left:         pos.left,
         top:          pos.top,
-        width:        NW,
+        width:        nodeWidth,
         borderRadius: expanded ? 10 : 9999,
         background:   c.bg,
         border:       c.border,
@@ -274,19 +357,19 @@ function PipelineNode({ nodeDef, pos, status, agentState, result, onNavigate, cu
       }}
     >
       {/* ── pill header row ── */}
-      <div className="flex items-center gap-1.5 px-2 shrink-0" style={{ height: NH, minHeight: NH }}>
+      <div className={cn("flex items-center shrink-0", compact ? "gap-1 px-1.5" : "gap-1.5 px-2")} style={{ height: nodeHeight, minHeight: nodeHeight }}>
         <div
-          className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-white/60"
+          className={cn("rounded-full flex items-center justify-center shrink-0 bg-white/60", compact ? "w-4 h-4" : "w-5 h-5")}
           style={{ color: c.iconC }}
         >
-          {status === 'running' ? <Loader2 size={10} className="animate-spin" /> :
-           status === 'done'    ? <Check    size={10} /> :
-           status === 'error'   ? <AlertCircle size={10} /> :
-           status === 'locked'  ? <Lock     size={10} /> :
-           <Icon size={10} />}
+          {status === 'running' ? <Loader2 size={compact ? 8 : 10} className="animate-spin" /> :
+           status === 'done'    ? <Check    size={compact ? 8 : 10} /> :
+           status === 'error'   ? <AlertCircle size={compact ? 8 : 10} /> :
+           status === 'locked'  ? <Lock     size={compact ? 8 : 10} /> :
+           <Icon size={compact ? 8 : 10} />}
         </div>
         <div
-          className="text-[8px] whitespace-normal leading-tight font-semibold flex-1 line-clamp-2 pr-1"
+          className={cn("whitespace-normal leading-tight font-semibold flex-1 line-clamp-2 pr-1", compact ? "text-[7.5px]" : "text-[8px]")}
           style={{ color: c.text }}
         >
           {nodeDef.label}
@@ -390,16 +473,18 @@ function EdgePath({ d, sourceStatus, targetStatus }) {
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
-const BASE_W = 1245;
+const BASE_W = 1300;
 const BASE_H = 205;
 
 export default function AgentGraph({
   activeId, agentStates = {}, stepStatus = {}, onNodeClick,
   currentPipelineStep = 0, isGeocodeDone = false,
 }) {
-  const geocodeResult   = usePipelineStore(s => s.geocodeResult);
-  const uploadMeta      = usePipelineStore(s => s.uploadMeta);
-  const selectedAgents  = usePipelineStore(s => s.selectedAgents);
+  const geocodeResult     = usePipelineStore(s => s.geocodeResult);
+  const uploadMeta        = usePipelineStore(s => s.uploadMeta);
+  const selectedAgents    = usePipelineStore(s => s.selectedAgents);
+  const epPolicyFile      = usePipelineStore(s => s.epPolicyFile);
+  const epFrequencyConfig = usePipelineStore(s => s.epFrequencyConfig);
 
   // Compute how many UW modules are selected
   const uwKeys = ['cope', 'hazards', 'geospatial', 'objAnalysis', 'riskModel', 'propensity'];
@@ -414,6 +499,8 @@ export default function AgentGraph({
     if (nodeId === 'upload' || nodeId === 'geocode') return false;
     // SOV COPE group
     if (['catMap', 'catNorm', 'catOut'].includes(nodeId)) return !selectedAgents.sovCope;
+    // EP Curve nodes — always visible when sovCope is selected
+    if (EP_NODE_IDS.has(nodeId)) return !selectedAgents.sovCope;
     // UW agents map directly
     if (selectedAgents[nodeId] !== undefined) return !selectedAgents[nodeId];
     return false;
@@ -432,6 +519,25 @@ export default function AgentGraph({
       if (stepStatus.normalizeValues && stepStatus.normalizeValues !== 'idle') return stepStatus.normalizeValues;
     }
     if (nodeDef.id === 'catOut')  return currentPipelineStep >= 9 ? 'done' : 'pending';
+
+    // EP Curve sub-agent statuses
+    if (nodeDef.id === 'epLocation' || nodeDef.id === 'epAccount') {
+      return currentPipelineStep >= 9 ? 'done' : 'pending';
+    }
+    if (nodeDef.id === 'epPeril') {
+      if (stepStatus.epHazard && stepStatus.epHazard !== 'idle') return stepStatus.epHazard;
+      return 'pending';
+    }
+    if (nodeDef.id === 'epPolicy') {
+      return epPolicyFile?.row_count ? 'done' : 'pending';
+    }
+    if (nodeDef.id === 'epFrequency') {
+      return epFrequencyConfig?.num_simulations ? 'done' : 'pending';
+    }
+    if (nodeDef.id === 'epCurve') {
+      if (stepStatus.epCurve && stepStatus.epCurve !== 'idle') return stepStatus.epCurve;
+      return 'pending';
+    }
 
     // 2. Fallback to SSE status for asynchronous agents or when stepStatus isn't yet set
     const sse = agentStates[nodeDef.agentKey]?.status;
@@ -457,10 +563,10 @@ export default function AgentGraph({
     const anyStretched = isCatStretched || isUwStretched;
     
     // Horizontal Geometry
-    const WX = anyStretched ? 370 : 540; // shifted left to give 40px padding to nodes
-    const NX = anyStretched ? 410 : 560;
-    const NX2 = anyStretched ? 590 : 720; // 180px spacing instead of 160px
-    const NX3 = anyStretched ? 770 : 880; 
+    const WX = 320; // shifted left by 50px to reduce gap to data agent
+    const NX = 360;
+    const NX2 = 540; // 180px spacing instead of 160px
+    const NX3 = 720; 
     const NX4 = anyStretched ? 950 : 1040;
 
     // CAT Geometry
@@ -484,8 +590,18 @@ export default function AgentGraph({
     const lowestY = uwTop + uw_ry_obj;
     const dataY = Math.round((catNodeTop + lowestY) / 2);
 
+    // EP Curve Geometry — new column to the right
+    const epNW = 120;
+    const epNH = 28;
+    const epWX  = NX3 + 250;   // wrapper left (pushed right to double gap to UW)
+    const epNX  = epWX + 10;   // sub-agent nodes left
+    const epNX2 = epNX + 144;  // convergence node left (reduced horizontal margin)
+    const epTop = catTop + 20; // push down below header row
+    const epRowGap = 32;       // tighter vertical gap for shorter nodes
+    const epH   = epRowGap * 4 + epNH + 20; // 10px top/bottom padding
+
     return {
-      BASE_H: uwTop + uwH + 25,
+      BASE_H: Math.max(uwTop + uwH + 25, epTop + epH + 25),
       nodes: {
         upload:      { left: 0,    top: dataY },
         geocode:     { left: 170,  top: dataY },
@@ -503,10 +619,19 @@ export default function AgentGraph({
 
         riskModel:   { left: NX2,  top: uwTop + uw_ry_risk },
         propensity:  { left: NX3,  top: uwTop + uw_ry_risk },
+
+        // EP Curve sub-agents (vertical stack)
+        epLocation:  { left: epNX, top: epTop + 10 },
+        epPeril:     { left: epNX, top: epTop + 10 + epRowGap },
+        epAccount:   { left: epNX, top: epTop + 10 + epRowGap * 2 },
+        epPolicy:    { left: epNX, top: epTop + 10 + epRowGap * 3 },
+        epFrequency: { left: epNX, top: epTop + 10 + epRowGap * 4 },
+        epCurve:     { left: epNX2, top: epTop + 10 + epRowGap * 2 }, // vertically centred
       },
       wrappers: {
-        cat:          { left: WX, width: anyStretched ? 576 : 496, top: catTop, height: catH },
-        underwriting: { left: WX, width: anyStretched ? 576 : 576, top: uwTop, height: uwH },
+        cat:          { left: WX, width: 576, top: catTop, height: catH },
+        underwriting: { left: WX, width: 576, top: uwTop, height: uwH },
+        epCurve:      { left: epWX, width: 274, top: epTop, height: epH },
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -534,14 +659,18 @@ export default function AgentGraph({
   const handleToggle = () => setIsLiveMode(v => !v);
 
   const edgeData = useMemo(() =>
-    EDGES.map(e => ({
-      ...e,
-      path:         makePath(layout.nodes[e.from], layout.nodes[e.to]),
-      sourceStatus: getStatus(NODE_DEFS.find(n => n.id === e.from)),
-      targetStatus: getStatus(NODE_DEFS.find(n => n.id === e.to)),
-    })),
+    EDGES.map(e => {
+      const fromDef = NODE_DEFS.find(n => n.id === e.from);
+      const toDef   = NODE_DEFS.find(n => n.id === e.to);
+      return {
+        ...e,
+        path:         makePath(fromDef, toDef, layout.nodes[e.from], layout.nodes[e.to]),
+        sourceStatus: getStatus(fromDef),
+        targetStatus: getStatus(toDef),
+      };
+    }),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  [agentStates, stepStatus, isLiveMode, activeId]);
+  [agentStates, stepStatus, isLiveMode, activeId, layout]);
 
   const effectiveIsGeocodeDone = isGeocodeDone;
 
@@ -637,6 +766,28 @@ export default function AgentGraph({
           </div>
         </div>
 
+        {/* EP Curve Generation wrapper */}
+        {selectedAgents.sovCope && (
+          <div
+            className={cn('absolute border border-dashed rounded-2xl transition-all duration-500 ease-in-out',
+              currentPipelineStep >= 9 ? 'border-purple-400/50 bg-purple-50/15' : 'border-slate-300 bg-slate-50/20 grayscale opacity-70')}
+            style={{ left: layout.wrappers.epCurve.left, top: layout.wrappers.epCurve.top, width: layout.wrappers.epCurve.width, height: layout.wrappers.epCurve.height, zIndex: 0 }}
+          >
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-auto">
+              <div className={cn('text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm ring-4 ring-[#f9fafb]',
+                currentPipelineStep >= 9 ? 'text-purple-700 border-purple-200 bg-white' : 'text-slate-500 border-slate-200 bg-slate-50')}>
+                3. EP CURVE
+              </div>
+            </div>
+            <div className="absolute top-0 right-4 -translate-y-1/2 z-20 pointer-events-auto">
+              <div className={cn('flex items-center justify-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-full shadow-sm border ring-4 ring-[#f9fafb]',
+                currentPipelineStep >= 9 ? 'bg-purple-50 text-purple-600 border-purple-300' : 'bg-slate-100 text-slate-400 border-slate-300')}>
+                <span>{currentPipelineStep >= 9 ? 'Ready' : 'Waiting'}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* SVG edges */}
         <svg width={BASE_W} height={containerH} className="absolute inset-0 pointer-events-none transition-all duration-500" style={{ zIndex: 1 }}>
           <defs>
@@ -653,7 +804,8 @@ export default function AgentGraph({
         {/* Node cards — automatically transition positions spacing based on layout */}
         {NODE_DEFS.map(nodeDef => {
           const st = getStatus(nodeDef);
-          const isExpanded = isLiveMode && (st === 'done' || st === 'running');
+          const isEpNode = ['epLocation', 'epPeril', 'epAccount', 'epPolicy', 'epFrequency', 'epCurve'].includes(nodeDef.id);
+          const isExpanded = isLiveMode && !isEpNode && (st === 'done' || st === 'running');
           const pos = layout.nodes[nodeDef.id];
           const result =
             nodeDef.id === 'geocode' ? geocodeResult :
@@ -672,6 +824,7 @@ export default function AgentGraph({
               onNavigate={onNodeClick}
               currentPipelineStep={currentPipelineStep}
               totalRows={uploadMeta?.row_count}
+              compact={isEpNode}
             />
           );
         })}

@@ -65,3 +65,32 @@ export const getSessionStatus = (uploadId) =>
 export const getSessionDiff = (uploadId, step) =>
   req(`/session-diff/${uploadId}?step=${step}`);
 
+// ── EP Curve Generation ──────────────────────────────────────────────────────
+
+// Upload policy file for EP curve
+export const uploadPolicyFile = (uploadId, file) => {
+  const fd = new FormData();
+  fd.append('file', file);
+  return req(`/ep-curve/upload-policy/${uploadId}`, { method: 'POST', body: fd });
+};
+
+// Save frequency configuration
+export const configureFrequency = (uploadId, config) =>
+  req(`/ep-curve/configure-frequency/${uploadId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(config),
+  });
+
+// Check EP curve sub-agent readiness
+export const getEpCurveStatus = (uploadId) =>
+  req(`/ep-curve/status/${uploadId}`);
+
+// Generate EP curve (placeholder)
+export const generateEpCurve = (uploadId) =>
+  req(`/ep-curve/generate/${uploadId}`, { method: 'POST' });
+
+// Run EP Hazard Assessment
+export const runEpHazardAssessment = (uploadId) =>
+  req(`/ep-curve/run-hazard/${uploadId}`, { method: 'POST' });
+

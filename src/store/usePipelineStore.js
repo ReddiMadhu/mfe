@@ -34,6 +34,7 @@ export const usePipelineStore = create(persist((set) => ({
     mapping: 'idle',
     mapCodes: 'idle',
     normalizeValues: 'idle',
+    epCurve: 'idle',
   },
 
   // Live agent states (from SSE)
@@ -52,6 +53,13 @@ export const usePipelineStore = create(persist((set) => ({
   normalizeSummaryText: null,
   geocodeDiff: null,
   mapCodesDiff: null,
+
+  // EP Curve Generation
+  epPolicyFile: null,         // { row_count, headers, sample, fileName }
+  epFrequencyConfig: null,    // { num_simulations, time_horizon_years, frequency_model }
+  epPerilConfig: null,        // { earthquake_regions, wind_regions, ... }
+  epCurveResult: null,        // { oep_curve, aep_curve }
+  epCurveStatus: null,        // { location_ready, policy_ready, ... }
   normalizeDiff: null,
 
   // --- Actions ---
@@ -110,6 +118,13 @@ export const usePipelineStore = create(persist((set) => ({
   setMapCodesDiff: (d) => set({ mapCodesDiff: d }),
   setNormalizeDiff: (d) => set({ normalizeDiff: d }),
 
+  // EP Curve actions
+  setEpPolicyFile: (f) => set({ epPolicyFile: f }),
+  setEpFrequencyConfig: (c) => set({ epFrequencyConfig: c }),
+  setEpPerilConfig: (c) => set({ epPerilConfig: c }),
+  setEpCurveResult: (r) => set({ epCurveResult: r }),
+  setEpCurveStatus: (s) => set({ epCurveStatus: s }),
+
   reset: () => set({
     uploadId: null,
     uploadMeta: null,
@@ -117,7 +132,7 @@ export const usePipelineStore = create(persist((set) => ({
     agentType: null,
     activeViewStep: 1,
     executionStep: 1,
-    stepStatus: { upload: 'idle', preview: 'idle', normalize: 'idle', geocode: 'idle', mapping: 'idle', mapCodes: 'idle', normalizeValues: 'idle' },
+    stepStatus: { upload: 'idle', preview: 'idle', normalize: 'idle', geocode: 'idle', mapping: 'idle', mapCodes: 'idle', normalizeValues: 'idle', epHazard: 'idle', epCurve: 'idle' },
     agentStates: {},
     normalizeResult: null,
     geocodeResult: null,
@@ -130,6 +145,19 @@ export const usePipelineStore = create(persist((set) => ({
     geocodeDiff: null,
     mapCodesDiff: null,
     normalizeDiff: null,
+    epPolicyFile: null,
+    epFrequencyConfig: null,
+    epPerilConfig: null,
+    epCurveResult: null,
+    epCurveStatus: {
+      location_ready: false,
+      policy_ready: false,
+      account_ready: false,
+      peril_ready: false,
+      frequency_ready: false,
+      all_ready: false,
+      ready_count: 0
+    },
     selectedAgents: {
       dataAgent: true, sovCope: true,
       cope: false, hazards: false, geospatial: false,
