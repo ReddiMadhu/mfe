@@ -3,6 +3,7 @@ import {
   Search, Download, Upload, ChevronDown, ChevronRight,
   Hammer, Building2, ShieldCheck, Layers, Trash2, FileUp,
   CheckCircle2, AlertCircle, Plus, FileSpreadsheet,
+  Pencil, Check, X, Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +21,61 @@ const COPE_TABS = [
   { key: 'protection',   label: 'Protection',   short: 'P', icon: ShieldCheck, color: '#f59e0b', desc: 'ISO Fire Class mapping' },
   { key: 'exposure',     label: 'Exposure',     short: 'E', icon: Layers, color: '#10b981', desc: 'Secondary modifiers (roof, wall, foundation)' },
 ];
+
+/** Inline editable table row — used when a row's pencil icon is clicked */
+function EditableRow({ row, tab, saving, onSave, onCancel }) {
+  const [desc, setDesc] = useState(row.description);
+  const [kw, setKw] = useState(row.keywords.join(', '));
+
+  return (
+    <tr className="border-t border-primary/20 bg-primary/[0.03]">
+      {tab.key === 'exposure' && (
+        <td className="px-3 py-1.5 font-medium text-muted-foreground whitespace-nowrap">{row.section}</td>
+      )}
+      <td className="px-3 py-1.5 font-mono font-bold" style={{ color: tab.color }}>{row.code}</td>
+      <td className="px-3 py-1.5">
+        <input
+          autoFocus
+          type="text"
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+          className="w-full h-7 px-2 text-xs rounded-md border border-primary/30 bg-background focus:outline-none focus:ring-1 focus:ring-primary/40"
+        />
+      </td>
+      <td className="px-3 py-1.5">
+        <input
+          type="text"
+          value={kw}
+          onChange={(e) => setKw(e.target.value)}
+          placeholder="comma-separated keywords"
+          className="w-full h-7 px-2 text-xs rounded-md border border-primary/30 bg-background focus:outline-none focus:ring-1 focus:ring-primary/40"
+        />
+      </td>
+      <td className="px-2 py-1.5">
+        <div className="flex items-center gap-0.5">
+          <button
+            onClick={() => {
+              const keywords = kw.split(',').map((k) => k.trim()).filter(Boolean);
+              onSave(desc.trim(), keywords);
+            }}
+            disabled={saving || !desc.trim()}
+            className="p-1 rounded-md text-emerald-600 hover:bg-emerald-100 transition-colors disabled:opacity-40"
+            title="Save"
+          >
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+          </button>
+          <button
+            onClick={onCancel}
+            className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            title="Cancel"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
 
 function CopeSection({ tab, format }) {
   const [expanded, setExpanded] = useState(false);
@@ -128,6 +184,39 @@ function CopeSection({ tab, format }) {
       }
     } catch (err) {
       toast.error('Delete failed: ' + err.message);
+    }
+  };
+
+  const [editingCode, setEditingCode] = useState(null);
+  const [editSaving, setEditSaving] = useState(false);
+
+  const handleEditEntry = async (entryCode, newDesc, newKeywords) => {
+    setEditSaving(true);
+    try {
+      const fmtParam = tab.key === 'protection' ? 'AIR' : format;
+      const res = await fetch(
+        `${API}/api/ontology/entry/${tab.key}/${encodeURIComponent(entryCode)}?format=${fmtParam}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            description: newDesc,
+            keywords: newKeywords,
+          }),
+        }
+      );
+      if (res.ok) {
+        toast.success(`Code "${entryCode}" updated.`);
+        setEditingCode(null);
+        fetchData();
+      } else {
+        const json = await res.json();
+        toast.error(json.detail || 'Update failed.');
+      }
+    } catch (err) {
+      toast.error('Update failed: ' + err.message);
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -278,38 +367,64 @@ function CopeSection({ tab, format }) {
                     <th className="text-left px-3 py-2 font-semibold text-muted-foreground w-[70px]">Code</th>
                     <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Description</th>
                     <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Keywords / Aliases</th>
-                    <th className="text-center px-2 py-2 font-semibold text-muted-foreground w-[40px]"></th>
+                    <th className="text-center px-2 py-2 font-semibold text-muted-foreground w-[60px]"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((row, i) => (
-                    <tr key={`${row.section || ''}-${row.code}-${i}`} className={cn('border-t border-border/20', i % 2 === 0 ? 'bg-background' : 'bg-muted/20')}>
-                      {tab.key === 'exposure' && (
-                        <td className="px-3 py-2 font-medium text-muted-foreground whitespace-nowrap">{row.section}</td>
-                      )}
-                      <td className="px-3 py-2 font-mono font-bold" style={{ color: tab.color }}>{row.code}</td>
-                      <td className="px-3 py-2 font-medium">{row.description}</td>
-                      <td className="px-3 py-2 text-muted-foreground">
-                        <div className="flex flex-wrap gap-1">
-                          {row.keywords.slice(0, 8).map((kw, j) => (
-                            <span key={j} className="inline-block px-1.5 py-0.5 rounded bg-muted/50 text-[10px]">{kw}</span>
-                          ))}
-                          {row.keywords.length > 8 && (
-                            <span className="text-[10px] text-muted-foreground">+{row.keywords.length - 8} more</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-2 py-2 text-center">
-                        <button
-                          onClick={() => handleDeleteEntry(row.code)}
-                          className="p-1 rounded-md text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
-                          title={`Delete ${row.code}`}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {filtered.map((row, i) => {
+                    const isEditing = editingCode === row.code;
+
+                    if (isEditing) {
+                      return (
+                        <EditableRow
+                          key={`${row.section || ''}-${row.code}-${i}`}
+                          row={row}
+                          tab={tab}
+                          saving={editSaving}
+                          onSave={(desc, kw) => handleEditEntry(row.code, desc, kw)}
+                          onCancel={() => setEditingCode(null)}
+                        />
+                      );
+                    }
+
+                    return (
+                      <tr key={`${row.section || ''}-${row.code}-${i}`} className={cn('border-t border-border/20 group', i % 2 === 0 ? 'bg-background' : 'bg-muted/20')}>
+                        {tab.key === 'exposure' && (
+                          <td className="px-3 py-2 font-medium text-muted-foreground whitespace-nowrap">{row.section}</td>
+                        )}
+                        <td className="px-3 py-2 font-mono font-bold" style={{ color: tab.color }}>{row.code}</td>
+                        <td className="px-3 py-2 font-medium">{row.description}</td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          <div className="flex flex-wrap gap-1">
+                            {row.keywords.slice(0, 8).map((kw, j) => (
+                              <span key={j} className="inline-block px-1.5 py-0.5 rounded bg-muted/50 text-[10px]">{kw}</span>
+                            ))}
+                            {row.keywords.length > 8 && (
+                              <span className="text-[10px] text-muted-foreground">+{row.keywords.length - 8} more</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-2 py-2">
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => setEditingCode(row.code)}
+                              className="p-1 rounded-md text-muted-foreground/50 hover:text-primary hover:bg-primary/10 transition-colors"
+                              title={`Edit ${row.code}`}
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteEntry(row.code)}
+                              className="p-1 rounded-md text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                              title={`Delete ${row.code}`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {filtered.length === 0 && (
                     <tr>
                       <td colSpan={tab.key === 'exposure' ? 5 : 4} className="px-3 py-8 text-center text-muted-foreground">

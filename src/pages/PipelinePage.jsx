@@ -517,7 +517,7 @@ function CodeMappingStep({ uploadId, onDone, viewMode }) {
       if (data?.summary_text) setMapCodesSummaryText(data.summary_text);
       if (data?.diff_data) setMapCodesDiff(data.diff_data);
       toast.success('Code mapping complete');
-      setTimeout(() => onDone(), 2000);
+      onDone();
     },
     onError:    (err) => { setStepStatus('mapCodes', 'error'); toast.error(err.message); },
   });
@@ -560,7 +560,7 @@ function NormalizeValuesStep({ uploadId, onDone, viewMode }) {
       if (data?.summary_text) setNormalizeSummaryText(data.summary_text);
       if (data?.diff_data) setNormalizeDiff(data.diff_data);
       toast.success('Value normalization complete');
-      setTimeout(() => onDone(), 2000);
+      onDone();
     },
     onError:    (err) => { setStepStatus('normalizeValues', 'error'); toast.error(err.message); },
   });
