@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import DuplicateResolverModal from './DuplicateResolverModal';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API = import.meta.env.VITE_API_URL || '';
 
 /**
  * ExcelUploadModal — Multi-step wizard for uploading Excel/CSV files

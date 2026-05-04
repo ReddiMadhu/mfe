@@ -98,56 +98,81 @@ export default function GeocodingSettingsPanel() {
           </Badge>
         </div>
 
-        <div className="grid grid-cols-3 gap-2.5">
-          {API_PROVIDERS.map((api) => {
-            const Icon = api.icon;
-            const active = selectedApi === api.id;
-            return (
-              <button
-                key={api.id}
-                onClick={() => setSelectedApi(api.id)}
-                className={cn(
-                  'relative group flex flex-col items-center gap-2 rounded-xl border p-4 transition-all duration-200 text-center',
-                  active
-                    ? `border-transparent ring-2 ${api.ring} bg-white shadow-md scale-[1.02]`
-                    : 'border-border/50 bg-muted/10 hover:bg-white/70 hover:shadow-sm hover:border-border',
-                )}
-              >
-                {/* Active indicator dot */}
-                {active && (
-                  <span className={cn('absolute top-2 right-2 w-2 h-2 rounded-full animate-pulse', api.dot)} />
-                )}
-
-                <div
+      {/* ── US & Global subsection ─────────────────────────────── */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-0.5">
+            🌎 US &amp; Global
+          </p>
+          <div className="grid grid-cols-2 gap-2.5">
+            {API_PROVIDERS.filter(p => p.id !== 'ipxo').map((api) => {
+              const Icon = api.icon;
+              const active = selectedApi === api.id;
+              return (
+                <button
+                  key={api.id}
+                  onClick={() => setSelectedApi(api.id)}
                   className={cn(
-                    'w-9 h-9 rounded-lg flex items-center justify-center bg-gradient-to-br transition-transform',
-                    api.gradient,
-                    active ? 'scale-110' : 'opacity-60 group-hover:opacity-90',
+                    'relative group flex flex-col items-center gap-2 rounded-xl border p-4 transition-all duration-200 text-center',
+                    active
+                      ? `border-transparent ring-2 ${api.ring} bg-white shadow-md scale-[1.02]`
+                      : 'border-border/50 bg-muted/10 hover:bg-white/70 hover:shadow-sm hover:border-border',
                   )}
                 >
-                  <Icon className="w-4 h-4 text-white" />
-                </div>
+                  {active && (
+                    <span className={cn('absolute top-2 right-2 w-2 h-2 rounded-full animate-pulse', api.dot)} />
+                  )}
+                  <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center bg-gradient-to-br transition-transform', api.gradient, active ? 'scale-110' : 'opacity-60 group-hover:opacity-90')}>
+                    <Icon className="w-4 h-4 text-white" />
+                  </div>
+                  <span className={cn('text-xs font-bold', active ? 'text-foreground' : 'text-muted-foreground')}>{api.name}</span>
+                  <span className="text-[10px] text-muted-foreground leading-tight">{api.desc}</span>
+                  {active && <Badge className={cn('mt-1 text-[8px] border', api.badge)}>Selected</Badge>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-                <span className={cn('text-xs font-bold', active ? 'text-foreground' : 'text-muted-foreground')}>
-                  {api.name}
-                </span>
-
-                <span className="text-[10px] text-muted-foreground leading-tight">
-                  {api.desc}
-                </span>
-
-                {active && (
-                  <Badge className={cn('mt-1 text-[8px] border', api.badge)}>Selected</Badge>
-                )}
-              </button>
-            );
-          })}
+        {/* ── APAC subsection ────────────────────────────────────── */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-0.5">
+            🌏 APAC
+          </p>
+          <div className="max-w-xs">
+            {API_PROVIDERS.filter(p => p.id === 'ipxo').map((api) => {
+              const Icon = api.icon;
+              const active = selectedApi === api.id;
+              return (
+                <button
+                  key={api.id}
+                  onClick={() => setSelectedApi(api.id)}
+                  className={cn(
+                    'relative group w-full flex flex-col items-center gap-2 rounded-xl border p-4 transition-all duration-200 text-center',
+                    active
+                      ? `border-transparent ring-2 ${api.ring} bg-white shadow-md scale-[1.02]`
+                      : 'border-border/50 bg-muted/10 hover:bg-white/70 hover:shadow-sm hover:border-border',
+                  )}
+                >
+                  {active && (
+                    <span className={cn('absolute top-2 right-2 w-2 h-2 rounded-full animate-pulse', api.dot)} />
+                  )}
+                  <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center bg-gradient-to-br transition-transform', api.gradient, active ? 'scale-110' : 'opacity-60 group-hover:opacity-90')}>
+                    <Icon className="w-4 h-4 text-white" />
+                  </div>
+                  <span className={cn('text-xs font-bold', active ? 'text-foreground' : 'text-muted-foreground')}>{api.name}</span>
+                  <span className="text-[10px] text-muted-foreground leading-tight">{api.desc}</span>
+                  {active && <Badge className={cn('mt-1 text-[8px] border', api.badge)}>Selected</Badge>}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <p className="text-[10px] text-muted-foreground text-center pt-1">
           API key and provider settings are managed in the backend environment.
           Switching providers here will take effect on the next pipeline run.
         </p>
+
       </div>
 
       {/* ── Decision Tree ──────────────────────────────────────────── */}

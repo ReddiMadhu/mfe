@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import DuplicateResolverModal from './DuplicateResolverModal';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API = import.meta.env.VITE_API_URL || '';
 
 /**
  * AddRowForm — Inline form to add a single entry to a COPE dictionary.

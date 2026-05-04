@@ -10,6 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 const fmt  = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const fmtN = new Intl.NumberFormat('en-US');
 const pct    = (val, total) => (!total || !val) ? '0%' : `${Math.round((val / total) * 100)}%`;
@@ -85,8 +87,12 @@ function TableSkeleton({ rows = 5, cols = 3 }) {
 }
 
 function DownloadAction({ format, label, icon: Icon, uploadId, apiPath = 'download' }) {
-  const href = `/api/${apiPath}/${uploadId}?format=${format}`;
-  const filename = `${apiPath === 'download' ? 'cat_output' : 'account_output'}_${uploadId?.slice(0, 8)}.${format}`;
+  const { targetFormat } = usePipelineStore();
+  const href = `${API_BASE}/api/${apiPath}/${uploadId}?format=${format}`;
+  // For RMS account downloads, the server returns contract_output_* filename
+  const isAccount = apiPath === 'download-account';
+  const filePrefix = isAccount && targetFormat === 'RMS' ? 'contract_output' : isAccount ? 'account_output' : 'cat_output';
+  const filename = `${filePrefix}_${uploadId?.slice(0, 8)}.${format}`;
   return (
     <a
       id={`btn-${apiPath}-${format}`}
@@ -142,14 +148,14 @@ export function DashboardView({ uploadId }) {
 
   const { data: locPreview, isLoading: locLoading } = useQuery({
     queryKey: ['preview-location', uploadId],
-    queryFn: () => fetch(`/api/preview-location/${uploadId}`).then(res => res.json()),
+    queryFn: () => fetch(`${API_BASE}/api/preview-location/${uploadId}`).then(res => res.json()),
     enabled: !!uploadId,
     staleTime: 60_000,
   });
 
   const { data: accPreview, isLoading: accLoading } = useQuery({
     queryKey: ['preview-account', uploadId],
-    queryFn: () => fetch(`/api/preview-account/${uploadId}`).then(res => res.json()),
+    queryFn: () => fetch(`${API_BASE}/api/preview-account/${uploadId}`).then(res => res.json()),
     enabled: !!uploadId,
     staleTime: 60_000,
   });
@@ -198,16 +204,20 @@ export function DashboardView({ uploadId }) {
 
         <div className="h-px bg-border/40 w-full" />
 
-        {/* Group 2 — Account File */}
+        {/* Group 2 — Account / Contract File */}
         <div>
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="min-w-0 pr-4">
-              <p className="font-semibold text-sm text-foreground">Export {targetFormat} ready account file</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Download structured account-level summary required for {targetFormat} modeling.</p>
+              <p className="font-semibold text-sm text-foreground">
+                Export {targetFormat} ready {targetFormat === 'RMS' ? 'contract' : 'account'} file
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Download structured {targetFormat === 'RMS' ? 'contract' : 'account'}-level summary required for {targetFormat} modeling.
+              </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <DownloadAction apiPath="download-account" format="xlsx" label="Account Excel" icon={FileSpreadsheet} uploadId={uploadId} />
-              <DownloadAction apiPath="download-account" format="txt"  label="Account TXT"   icon={FileText}        uploadId={uploadId} />
+              <DownloadAction apiPath="download-account" format="xlsx" label={targetFormat === 'RMS' ? 'Contract Excel' : 'Account Excel'} icon={FileSpreadsheet} uploadId={uploadId} />
+              <DownloadAction apiPath="download-account" format="txt"  label={targetFormat === 'RMS' ? 'Contract TXT'   : 'Account TXT'}   icon={FileText}        uploadId={uploadId} />
             </div>
           </div>
           <Accordion type="single" collapsible className="w-full mt-1">

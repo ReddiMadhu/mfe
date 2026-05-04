@@ -36,7 +36,6 @@ const NODE_DEFS = [
   { id: 'epLocation',  label: 'Exposure & Geography',   icon: MapPin,    agentKey: 'ep_location',  color: '#10b981', epSource: 'sov'    },
   { id: 'epPolicy',    label: 'Insurance Terms',        icon: FileText,  agentKey: 'ep_policy',    color: '#f97316', epSource: 'input'  },
   { id: 'epAccount',   label: 'Portfolio Roll-up',      icon: Building2, agentKey: 'ep_account',   color: '#10b981', epSource: 'sov'    },
-  { id: 'epPeril',     label: 'Model Setup (Peril)',     icon: CloudRain, agentKey: 'ep_peril',     color: '#10b981', epSource: 'hazard' },
   { id: 'epFrequency', label: 'Annual Simulation',       icon: Activity,  agentKey: 'ep_frequency', color: '#f97316', epSource: 'input'  },
   { id: 'epCurve',     label: 'EP Curve Output',         icon: TrendingUp,agentKey: 'ep_curve_out', color: '#7c3aed' },
 ];
@@ -44,7 +43,7 @@ const NODE_DEFS = [
 const NODE_STEP_MAP = { upload: 1, geocode: 2, catMap: 7, catNorm: 8, catOut: 9, epCurve: 10 };
 
 // EP node IDs for filtering
-const EP_NODE_IDS = new Set(['epLocation','epPolicy','epAccount','epPeril','epFrequency','epCurve']);
+const EP_NODE_IDS = new Set(['epLocation','epPolicy','epAccount','epFrequency','epCurve']);
 
 const EDGES = [
   { from: 'upload',     to: 'geocode'     },
@@ -60,14 +59,12 @@ const EDGES = [
   { from: 'geospatial', to: 'riskModel'   }, // was: geospatial → objAnalysis
   { from: 'objAnalysis',to: 'riskModel'   },
   { from: 'riskModel',  to: 'propensity'  },
-  // EP Curve edges
+  // EP Curve edges — Annual Simulation is the convergence node; EP Curve is final output
   { from: 'catOut',     to: 'epLocation'  },
   { from: 'catOut',     to: 'epAccount'   },
-  { from: 'catOut',     to: 'epPeril'     },
-  { from: 'epLocation', to: 'epCurve'     },
-  { from: 'epPolicy',   to: 'epCurve'     },
-  { from: 'epAccount',  to: 'epCurve'     },
-  { from: 'epPeril',    to: 'epCurve'     },
+  { from: 'epLocation', to: 'epFrequency' },
+  { from: 'epAccount',  to: 'epFrequency' },
+  { from: 'epPolicy',   to: 'epFrequency' },
   { from: 'epFrequency',to: 'epCurve'     },
 ];
 
@@ -388,7 +385,7 @@ function PipelineNode({
            <Icon size={compact ? 8 : 10} />}
         </div>
         <div
-          className={cn("whitespace-normal leading-tight font-semibold flex-1 line-clamp-2 pr-1", compact ? "text-[7.5px]" : "text-[8px]")}
+          className={cn("whitespace-normal leading-tight font-semibold flex-1 line-clamp-2 pr-1", compact ? "text-[9px]" : "text-[10px]")}
           style={{ color: c.text }}
         >
           {nodeDef.label}
@@ -559,15 +556,11 @@ export default function AgentGraph({
     if (nodeDef.id === 'epLocation' || nodeDef.id === 'epAccount') {
       return currentPipelineStep >= 9 ? 'done' : 'pending';
     }
-    if (nodeDef.id === 'epPeril') {
-      if (stepStatus.epHazard && stepStatus.epHazard !== 'idle') return stepStatus.epHazard;
-      return 'pending';
+    if (nodeDef.id === 'epFrequency') {
+      return epFrequencyConfig?.num_simulations ? 'done' : 'pending';
     }
     if (nodeDef.id === 'epPolicy') {
       return epPolicyFile?.row_count ? 'done' : 'pending';
-    }
-    if (nodeDef.id === 'epFrequency') {
-      return epFrequencyConfig?.num_simulations ? 'done' : 'pending';
     }
     if (nodeDef.id === 'epCurve') {
       if (stepStatus.epCurve && stepStatus.epCurve !== 'idle') return stepStatus.epCurve;
@@ -655,18 +648,17 @@ export default function AgentGraph({
         riskModel:   { left: NX2,  top: uwTop + uw_ry_risk },
         propensity:  { left: NX3,  top: uwTop + uw_ry_risk },
 
-        // EP Curve sub-agents (vertical stack)
+        // EP Curve sub-agents — left stack (input nodes) + convergence (Annual Simulation) + final output (EP Curve)
         epLocation:  { left: epNX, top: epTop + 10 },
-        epPeril:     { left: epNX, top: epTop + 10 + epRowGap },
-        epAccount:   { left: epNX, top: epTop + 10 + epRowGap * 2 },
-        epPolicy:    { left: epNX, top: epTop + 10 + epRowGap * 3 },
-        epFrequency: { left: epNX, top: epTop + 10 + epRowGap * 4 },
-        epCurve:     { left: epNX2, top: epTop + 10 + epRowGap * 2 }, // vertically centred
+        epAccount:   { left: epNX, top: epTop + 10 + epRowGap },
+        epPolicy:    { left: epNX, top: epTop + 10 + epRowGap * 2 },
+        epFrequency: { left: epNX2, top: epTop + 10 + epRowGap },     // convergence node: centred vertically
+        epCurve:     { left: epNX2 + 144, top: epTop + 10 + epRowGap }, // final output, one column right
       },
       wrappers: {
         cat:          { left: WX, width: 576, top: catTop, height: catH },
         underwriting: { left: WX, width: 576, top: uwTop, height: uwH },
-        epCurve:      { left: epWX, width: 274, top: epTop, height: epH },
+        epCurve:      { left: epWX, width: 320, top: epTop, height: epH },
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -753,7 +745,7 @@ export default function AgentGraph({
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-auto">
             <div className={cn('text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm ring-4 ring-[#f9fafb]',
               effectiveIsGeocodeDone ? 'text-violet-700 border-violet-200 bg-white' : 'text-slate-500 border-slate-200 bg-slate-50')}>
-              2.SOV COPE CI/CD MODELING
+              2.SOV COPE CI/CD MULTI AGENT
             </div>
           </div>
           <div className="absolute top-0 right-4 -translate-y-1/2 z-20 pointer-events-auto">
@@ -839,7 +831,7 @@ export default function AgentGraph({
         {/* Node cards — automatically transition positions spacing based on layout */}
         {NODE_DEFS.map(nodeDef => {
           const st = getStatus(nodeDef);
-          const isEpNode = ['epLocation', 'epPeril', 'epAccount', 'epPolicy', 'epFrequency', 'epCurve'].includes(nodeDef.id);
+          const isEpNode = ['epLocation', 'epAccount', 'epPolicy', 'epFrequency', 'epCurve'].includes(nodeDef.id);
           const isExpanded = isLiveMode && !isEpNode && (st === 'done' || st === 'running');
           const pos = layout.nodes[nodeDef.id];
           const result =

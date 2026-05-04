@@ -13,7 +13,7 @@ import { usePipelineStore } from '@/store/usePipelineStore';
 import AddRowForm from './AddRowForm';
 import ExcelUploadModal from './ExcelUploadModal';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API = import.meta.env.VITE_API_URL || '';
 
 const COPE_TABS = [
   { key: 'construction', label: 'Construction', short: 'C', icon: Hammer, color: '#8b5cf6', desc: 'Structural materials & methods' },
@@ -22,9 +22,8 @@ const COPE_TABS = [
   { key: 'exposure',     label: 'Exposure',     short: 'E', icon: Layers, color: '#10b981', desc: 'Secondary modifiers (roof, wall, foundation)' },
 ];
 
-/** Inline editable table row — used when a row's pencil icon is clicked */
+/** Inline editable table row — only Keywords/Aliases are editable; Description is read-only */
 function EditableRow({ row, tab, saving, onSave, onCancel }) {
-  const [desc, setDesc] = useState(row.description);
   const [kw, setKw] = useState(row.keywords.join(', '));
 
   return (
@@ -33,17 +32,11 @@ function EditableRow({ row, tab, saving, onSave, onCancel }) {
         <td className="px-3 py-1.5 font-medium text-muted-foreground whitespace-nowrap">{row.section}</td>
       )}
       <td className="px-3 py-1.5 font-mono font-bold" style={{ color: tab.color }}>{row.code}</td>
+      {/* Description is read-only — only Keywords can be edited */}
+      <td className="px-3 py-1.5 text-xs text-muted-foreground italic select-none">{row.description}</td>
       <td className="px-3 py-1.5">
         <input
           autoFocus
-          type="text"
-          value={desc}
-          onChange={(e) => setDesc(e.target.value)}
-          className="w-full h-7 px-2 text-xs rounded-md border border-primary/30 bg-background focus:outline-none focus:ring-1 focus:ring-primary/40"
-        />
-      </td>
-      <td className="px-3 py-1.5">
-        <input
           type="text"
           value={kw}
           onChange={(e) => setKw(e.target.value)}
@@ -56,9 +49,9 @@ function EditableRow({ row, tab, saving, onSave, onCancel }) {
           <button
             onClick={() => {
               const keywords = kw.split(',').map((k) => k.trim()).filter(Boolean);
-              onSave(desc.trim(), keywords);
+              onSave(row.description, keywords);
             }}
-            disabled={saving || !desc.trim()}
+            disabled={saving}
             className="p-1 rounded-md text-emerald-600 hover:bg-emerald-100 transition-colors disabled:opacity-40"
             title="Save"
           >

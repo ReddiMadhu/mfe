@@ -56,7 +56,8 @@ export function useAgentStream(uploadId) {
     }
 
     statusRef.current = 'connecting';
-    const es = new EventSource(`/api/stream/${uploadId}`);
+    const apiBase = import.meta.env.VITE_API_URL || '';
+    const es = new EventSource(`${apiBase}/api/stream/${uploadId}`);
     esRef.current = es;
 
     es.onopen = () => {
