@@ -107,28 +107,47 @@ function StatRow({ icon: Icon, label, value, color }) {
   );
 }
 
-// ─── Node Simulated Progress ──────────────────────────────────────────────────
-function NodeSimulatedProgress({ isRunning, totalRows, label }) {
-  const [count, setCount] = useState(0);
+// ─── Real row progress from SSE logs ────────────────────────────────────────
+function extractRowProgress(logs = []) {
+  // Scan from newest → oldest to find the most recent [current/total] entry
+  const re = /^\[(\d+)\/(\d+)\]/;
+  for (let i = logs.length - 1; i >= 0; i--) {
+    const msg = typeof logs[i] === 'string' ? logs[i] : (logs[i]?.message ?? '');
+    const m   = msg.match(re);
+    if (m) return { current: parseInt(m[1], 10), total: parseInt(m[2], 10) };
+  }
+  return null;
+}
 
-  useEffect(() => {
-    if (isRunning && totalRows > 0) {
-      const msPerRow = 25000 / totalRows; // Slower polling (~2.5s)
-      const interval = setInterval(() => {
-        setCount(c => (c < totalRows - 1 ? c + 1 : c));
-      }, Math.max(1200, msPerRow));
-      return () => clearInterval(interval);
-    }
-  }, [isRunning, totalRows]);
+function NodeLiveProgress({ isRunning, logs = [], totalRows, label }) {
+  const progress = extractRowProgress(logs);
+  const current  = progress?.current ?? 0;
+  const total    = progress?.total   ?? totalRows ?? 0;
+  const pct      = total > 0 ? Math.min((current / total) * 100, 100) : 0;
 
   if (!isRunning) return null;
 
   return (
-    <div className="text-[7.5px] font-extrabold text-orange-500 mb-0.5 px-0.5 pt-0.5 animate-pulse tracking-wide whitespace-normal leading-tight">
-      {label}
-      <div className="mt-0.5 text-[8.5px]">
-        {count} / {totalRows || '?'} properties...
+    <div className="px-0.5 pt-1 pb-0.5 space-y-0.5">
+      <div className="text-[7.5px] font-bold text-orange-500 tracking-wide leading-tight">
+        {label}
       </div>
+      {total > 0 ? (
+        <>
+          <div className="flex justify-between items-center text-[7px] text-slate-400 mb-0.5">
+            <span>{current.toLocaleString()} rows</span>
+            <span className="font-mono">{Math.round(pct)}%</span>
+          </div>
+          <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-orange-400 transition-all duration-500"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </>
+      ) : (
+        <div className="text-[7.5px] text-slate-400 animate-pulse">Starting…</div>
+      )}
     </div>
   );
 }
@@ -338,8 +357,8 @@ function PipelineNode({
 
   return (
     <div
-      onClick={() => { if (canNav) onNavigate(nodeStep); }}
-      className={cn("absolute overflow-hidden flex flex-col group", canNav ? "cursor-pointer" : "cursor-default")}
+      onClick={() => { if (compact) { onNavigate?.(nodeDef.id); } else if (canNav) { onNavigate(nodeStep); } }}
+      className={cn("absolute overflow-hidden flex flex-col group", (canNav || compact) ? "cursor-pointer" : "cursor-default")}
       style={{
         left:         pos.left,
         top:          pos.top,
@@ -390,13 +409,28 @@ function PipelineNode({
               style={{ maxHeight: EXP_RUNNING_H - NH - 1 }}
             >
               {nodeDef.id === 'geocode' && (
-                <NodeSimulatedProgress isRunning={true} totalRows={totalRows} label="Geocoding & Normalizing address for" />
+                <NodeLiveProgress
+                  isRunning={true}
+                  logs={logs}
+                  totalRows={totalRows}
+                  label="Geocoding & Normalizing addresses"
+                />
               )}
               {nodeDef.id === 'catMap' && (
-                <NodeSimulatedProgress isRunning={true} totalRows={totalRows} label="Mapping CAT codes for" />
+                <NodeLiveProgress
+                  isRunning={true}
+                  logs={logs}
+                  totalRows={totalRows}
+                  label="Mapping CAT codes"
+                />
               )}
               {nodeDef.id === 'catNorm' && (
-                <NodeSimulatedProgress isRunning={true} totalRows={totalRows} label="Normalizing values for" />
+                <NodeLiveProgress
+                  isRunning={true}
+                  logs={logs}
+                  totalRows={totalRows}
+                  label="Normalizing values"
+                />
               )}
               
               {logs.length === 0 && !['geocode', 'catMap', 'catNorm'].includes(nodeDef.id) && (

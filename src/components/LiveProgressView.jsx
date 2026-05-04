@@ -4,41 +4,51 @@ import { cn } from '@/lib/utils';
 
 const AGENT_LABELS = {
   address_normalizer: 'Address Normalizer',
-  geocoder:          'Geocoder',
-  cat_code_mapper:   'Code Mapper',
-  cat_normalizer:    'Normalizer',
-  upload:            'Upload',
-  preview:           'Preview',
-  cope_triage:       'COPE',
-  hazard_data:       'Hazards',
-  geospatial_data:   'Geospatial',
-  object_detection:  'Object Detection',
-  risk_model:        'Risk Model',
-  quote_propensity:  'Quote Propensity',
+  geocoder:           'Geocoder',
+  code_mapper:        'Code Mapper',
+  cat_code_mapper:    'Code Mapper',
+  normalizer:         'Normalizer',
+  cat_normalizer:     'Normalizer',
+  upload:             'Upload',
+  preview:            'Preview',
+  cope_triage:        'COPE',
+  hazard_data:        'Hazards',
+  geospatial_data:    'Geospatial',
+  object_detection:   'Object Detection',
+  risk_model:         'Risk Model',
+  quote_propensity:   'Quote Propensity',
 };
 
 export default function LiveProgressView({ agentStates = {}, agents = [] }) {
   const logRef = useRef(null);
 
-  // Collect all logs across watched agents
+  // Collect all logs across watched agents + extract row-level progress
   const logs = [];
-  let activeAgent = null;
+  let activeAgent    = null;
   let completedCount = 0;
+  let rowCurrent     = 0;
+  let rowTotal       = 0;
+
+  // Regex to detect [current/total] progress prefix injected by the hook
+  const rowProgressRe = /^\[(\d+)\/(\d+)\]/;
 
   agents.forEach(id => {
     const state = agentStates[id] || {};
     if (state.status === 'completed' || state.status === 'done') completedCount++;
     if (state.status === 'running') activeAgent = id;
     (state.thinkingLog || []).forEach(t => {
-      logs.push({
-        agent: id,
-        message: typeof t === 'string' ? t : (t.message || ''),
-        ts: t.timestamp || 0,
-      });
+      const msg = typeof t === 'string' ? t : (t.message || '');
+      // Extract the most recent row progress from running agent logs
+      if (state.status === 'running') {
+        const m = msg.match(rowProgressRe);
+        if (m) { rowCurrent = parseInt(m[1], 10); rowTotal = parseInt(m[2], 10); }
+      }
+      logs.push({ agent: id, message: msg, ts: t.timestamp || 0 });
     });
   });
 
   const latest = logs[logs.length - 1]?.message || 'Initialising pipeline…';
+  const rowPct  = rowTotal > 0 ? Math.min((rowCurrent / rowTotal) * 100, 100) : 0;
 
   // Auto-scroll log
   useEffect(() => {
@@ -93,6 +103,22 @@ export default function LiveProgressView({ agentStates = {}, agents = [] }) {
           );
         })}
       </div>
+
+      {/* ── Row-level progress bar (visible when row data is streaming) ── */}
+      {rowTotal > 0 && (
+        <div>
+          <div className="flex justify-between items-center text-[10px] text-muted-foreground mb-1">
+            <span>Row progress</span>
+            <span className="font-mono">{rowCurrent.toLocaleString()} / {rowTotal.toLocaleString()}</span>
+          </div>
+          <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-violet-500 transition-all duration-300"
+              style={{ width: `${rowPct}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ── Current operation pill ─────────────────────────── */}
       <div className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-xl px-4 py-2.5">
