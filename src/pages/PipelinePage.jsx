@@ -902,12 +902,21 @@ export default function PipelinePage() {
   }, [step]);
 
   useEffect(() => {
+    console.log('[PIPELINE DEBUG] geocode effect fired:', {
+      geocodeStatus: stepStatus.geocode,
+      step,
+      hasAutoAdvanced: hasAutoAdvancedRef.current,
+      sovCope: selectedAgents.sovCope,
+      agentType,
+    });
     if (stepStatus.geocode === 'done' && step === 2 && !hasAutoAdvancedRef.current) {
       hasAutoAdvancedRef.current = true;
+      console.log('[PIPELINE DEBUG] Auto-advancing → SOV COPE (catai)');
       if (selectedAgents.sovCope) {
-        // SOV COPE was selected on Configure screen → auto-start CatAI path
         setAgentType('catai');
         advance(5);
+      } else {
+        console.warn('[PIPELINE DEBUG] sovCope is FALSE — not advancing! Go to Configure page and enable SOV COPE.');
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
