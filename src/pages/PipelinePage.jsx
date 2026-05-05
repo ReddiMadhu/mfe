@@ -949,7 +949,18 @@ export default function PipelinePage() {
           isGeocodeDone={stepStatus.geocode === 'done'}
           onEpNodeClick={(id) => setActiveEpNode(prev => prev === id ? null : id)}
         />
-        {/* EP node info panel — slides in below graph when an EP node is clicked */}
+        {/* Hidden policy upload input */}
+        <input
+          ref={epPolicyInputRef}
+          type="file"
+          accept=".csv,.xlsx,.xls"
+          className="hidden"
+          onChange={e => { const f = e.target.files?.[0]; if (f) epPolicyMutation.mutate(f); }}
+        />
+      </div>
+
+      {/* ── EP Node Detail Panel — below Agent Network, all 5 nodes ── */}
+      {activeEpNode && (
         <EpNodeInfoPanel
           nodeId={activeEpNode}
           onClose={() => setActiveEpNode(null)}
@@ -966,15 +977,7 @@ export default function PipelinePage() {
           isPolicyUploading={epPolicyMutation.isPending}
           isFreqSaving={epFreqMutation.isPending}
         />
-        {/* Hidden policy upload input for the info panel */}
-        <input
-          ref={epPolicyInputRef}
-          type="file"
-          accept=".csv,.xlsx,.xls"
-          className="hidden"
-          onChange={e => { const f = e.target.files?.[0]; if (f) epPolicyMutation.mutate(f); }}
-        />
-      </div>
+      )}
 
       {/* ── Wizard sections ───────────────────────────────── */}
 

@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   MapPin, Building2, FileText, Activity, CloudRain,
   CheckCircle2, AlertCircle, Loader2, X, Database,
@@ -9,6 +10,65 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import SlipCodingPanel from '@/components/SlipCodingPanel';
 import { usePipelineStore } from '@/store/usePipelineStore';
+
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
+// ── Shared table styles (matching DonePage) ─────────────────────────────────
+const HEADER_CLASS = 'px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-foreground/60 bg-muted/30 border-b border-border/40 whitespace-nowrap select-none text-left sticky top-0 z-10';
+const CELL_CLASS   = 'px-3 py-2.5 border-b border-border/10 text-[11px] text-foreground/80 font-mono whitespace-nowrap';
+const ROW_CLASS    = 'hover:bg-primary/5 transition-colors';
+
+// ── Live preview table (reused for location + account) ──────────────────────
+function LivePreviewTable({ uploadId, apiPath, color }) {
+  const { data, isLoading } = useQuery({
+    queryKey: [apiPath, uploadId],
+    queryFn: () => fetch(`${API_BASE}/api/${apiPath}/${uploadId}`).then(r => r.json()),
+    enabled: !!uploadId,
+    staleTime: 60_000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="animate-pulse space-y-1.5">
+        <div className="h-8 bg-muted/50 rounded-lg" />
+        {[...Array(5)].map((_, i) => <div key={i} className="h-7 bg-muted/30 rounded" />)}
+      </div>
+    );
+  }
+
+  if (!data?.headers?.length) {
+    return (
+      <p className={cn('text-[11px] italic py-4 text-center', color ?? 'text-muted-foreground')}>
+        No data available yet. Complete the pipeline first.
+      </p>
+    );
+  }
+
+  return (
+    <div className="rounded-xl overflow-hidden border border-border/30 max-h-[420px] overflow-y-auto custom-scrollbar">
+      <table className="w-full text-left border-collapse min-w-max">
+        <thead>
+          <tr>
+            {data.headers.map(h => (
+              <th key={h} className={HEADER_CLASS}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {(data.sample ?? []).map((row, i) => (
+            <tr key={i} className={ROW_CLASS}>
+              {data.headers.map(h => (
+                <td key={h} className={cn(CELL_CLASS, i % 2 === 1 && 'bg-muted/20')}>
+                  {row[h] != null ? String(row[h]) : <span className="text-muted-foreground/40">—</span>}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 // ── Stat row inside panel ───────────────────────────────────────────────────
 function PanelStat({ icon: Icon, label, value, color = 'text-slate-500' }) {
@@ -23,11 +83,11 @@ function PanelStat({ icon: Icon, label, value, color = 'text-slate-500' }) {
   );
 }
 
-// ── Individual sub-panels ───────────────────────────────────────────────────
-function LocationPanel({ uploadMeta }) {
+// ── Location panel — live table ─────────────────────────────────────────────
+function LocationPanel({ uploadId, uploadMeta }) {
   return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-2 mb-3">
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
         <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center">
           <MapPin size={14} className="text-emerald-600" />
         </div>
@@ -35,22 +95,25 @@ function LocationPanel({ uploadMeta }) {
           <p className="text-xs font-bold text-slate-800">Exposure &amp; Geography</p>
           <p className="text-[10px] text-slate-400">Location file — auto-populated from SOV Agent output</p>
         </div>
-        <Badge className="ml-auto bg-emerald-100 text-emerald-700 border-emerald-200 text-[9px]">
-          ✓ Ready
-        </Badge>
+        <Badge className="ml-auto bg-emerald-100 text-emerald-700 border-emerald-200 text-[9px]">✓ Ready</Badge>
       </div>
-      <PanelStat icon={Database}  label="Total Rows"    value={uploadMeta?.row_count}                                color="text-emerald-500" />
-      <PanelStat icon={Hash}      label="Columns"       value={uploadMeta?.total_cols ?? uploadMeta?.headers?.length} color="text-sky-500"     />
-      <PanelStat icon={Globe}     label="Source"        value="SOV COPE Agent"                                        color="text-violet-500"  />
-      <PanelStat icon={CheckCircle2} label="Status"     value="Geocoded &amp; Validated"                             color="text-emerald-500" />
+      <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+        <span className="font-medium">{uploadMeta?.row_count ?? '—'} rows</span>
+        <span>·</span>
+        <span>{uploadMeta?.headers?.length ?? '—'} columns</span>
+        <span>·</span>
+        <span className="text-emerald-600 font-medium">Geocoded &amp; Validated</span>
+      </div>
+      <LivePreviewTable uploadId={uploadId} apiPath="preview-location" color="text-emerald-600" />
     </div>
   );
 }
 
-function AccountPanel({ uploadMeta }) {
+// ── Account panel — live table ──────────────────────────────────────────────
+function AccountPanel({ uploadId, uploadMeta }) {
   return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-2 mb-3">
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
         <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center">
           <Building2 size={14} className="text-emerald-600" />
         </div>
@@ -58,19 +121,19 @@ function AccountPanel({ uploadMeta }) {
           <p className="text-xs font-bold text-slate-800">Portfolio Roll-up</p>
           <p className="text-[10px] text-slate-400">Account file — auto-aggregated from SOV Agent output</p>
         </div>
-        <Badge className="ml-auto bg-emerald-100 text-emerald-700 border-emerald-200 text-[9px]">
-          ✓ Ready
-        </Badge>
+        <Badge className="ml-auto bg-emerald-100 text-emerald-700 border-emerald-200 text-[9px]">✓ Ready</Badge>
       </div>
-      <PanelStat icon={Database}  label="Locations"     value={uploadMeta?.row_count}  color="text-emerald-500" />
-      <PanelStat icon={Building2} label="Accounts"      value="Auto-aggregated"         color="text-sky-500"    />
-      <PanelStat icon={Globe}     label="Source"        value="SOV COPE Agent"           color="text-violet-500" />
-      <PanelStat icon={CheckCircle2} label="Status"     value="Roll-up Ready"           color="text-emerald-500"/>
+      <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+        <span className="font-medium">{uploadMeta?.row_count ?? '—'} locations</span>
+        <span>·</span>
+        <span className="text-emerald-600 font-medium">Roll-up Ready</span>
+      </div>
+      <LivePreviewTable uploadId={uploadId} apiPath="preview-account" color="text-emerald-600" />
     </div>
   );
 }
 
-function PolicyPanel({ epPolicyFile, onUploadClick, isUploading }) {
+function PolicyPanel({ uploadId, epPolicyFile, onUploadClick, isUploading }) {
   const ready = !!epPolicyFile?.row_count;
   return (
     <div className="space-y-1">
@@ -114,6 +177,15 @@ function PolicyPanel({ epPolicyFile, onUploadClick, isUploading }) {
           </Button>
         </div>
       )}
+      {/* Full slip PDF panel below the basic stats */}
+      <div className="mt-4 pt-3 border-t border-slate-100">
+        <SlipCodingPanel
+          uploadId={uploadId}
+          epPolicyFile={epPolicyFile}
+          onCsvUploadClick={onUploadClick}
+          isCsvUploading={isUploading}
+        />
+      </div>
     </div>
   );
 }
@@ -253,7 +325,6 @@ function PerilPanel({ epPerilConfig, stepStatus }) {
         }
       </div>
 
-      {/* Stage 1 — Hazard running/pending */}
       {!ready && hazardStatus !== 'error' && (
         <div className="py-3">
           <div className="flex items-center gap-2 text-[11px] text-slate-500">
@@ -265,20 +336,18 @@ function PerilPanel({ epPerilConfig, stepStatus }) {
         </div>
       )}
 
-      {/* Stage 1 — Error */}
       {!ready && hazardStatus === 'error' && (
         <p className="text-[11px] text-red-500 font-medium py-2 flex items-center gap-1.5">
           <AlertCircle size={12} /> Hazard assessment failed. Please retry.
         </p>
       )}
 
-      {/* Stage 2 — Done */}
       {ready && (
         <>
-          <PanelStat icon={Cpu}          label="Perils"           value={epPerilConfig.peril_count ?? '—'}                                                        color="text-emerald-500" />
-          <PanelStat icon={Globe}        label="Earthquake Regions" value={epPerilConfig.earthquake_regions?.length ?? 0}                                         color="text-sky-500"    />
-          <PanelStat icon={CloudRain}    label="Wind Regions"     value={epPerilConfig.wind_regions?.length ?? 0}                                                  color="text-violet-500" />
-          <PanelStat icon={CheckCircle2} label="Source"           value="EP Hazard Assessment"                                                                     color="text-emerald-500"/>
+          <PanelStat icon={Cpu}          label="Perils"             value={epPerilConfig.peril_count ?? '—'}                    color="text-emerald-500" />
+          <PanelStat icon={Globe}        label="Earthquake Regions" value={epPerilConfig.earthquake_regions?.length ?? 0}         color="text-sky-500"    />
+          <PanelStat icon={CloudRain}    label="Wind Regions"       value={epPerilConfig.wind_regions?.length ?? 0}               color="text-violet-500" />
+          <PanelStat icon={CheckCircle2} label="Source"             value="EP Hazard Assessment"                                  color="text-emerald-500"/>
           {epPerilConfig.earthquake_regions?.length > 0 && (
             <div className="mt-2 pt-2 border-t border-slate-100">
               <p className="text-[10px] font-semibold text-slate-500 mb-1">Earthquake Regions</p>
@@ -336,7 +405,7 @@ export default function EpNodeInfoPanel({
   const meta = PANEL_META[nodeId];
 
   return (
-    <div className="animate-in slide-in-from-bottom-3 fade-in duration-300 mt-3 rounded-2xl border border-slate-200 bg-white shadow-md overflow-hidden">
+    <div className="animate-in slide-in-from-top-3 fade-in duration-300 rounded-2xl border border-slate-200 bg-white shadow-md overflow-hidden">
       {/* Header bar */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-100 bg-slate-50/60">
         {meta && (
@@ -354,19 +423,19 @@ export default function EpNodeInfoPanel({
       </div>
 
       {/* Content */}
-      <div className="px-4 py-3">
+      <div className="px-4 py-4">
         {nodeId === 'epLocation' && (
-          <LocationPanel uploadMeta={uploadMeta} />
+          <LocationPanel uploadId={uploadId} uploadMeta={uploadMeta} />
         )}
         {nodeId === 'epAccount' && (
-          <AccountPanel uploadMeta={uploadMeta} />
+          <AccountPanel uploadId={uploadId} uploadMeta={uploadMeta} />
         )}
         {nodeId === 'epPolicy' && (
-          <SlipCodingPanel
+          <PolicyPanel
             uploadId={uploadId}
             epPolicyFile={epPolicyFile}
-            onCsvUploadClick={onPolicyUploadClick}
-            isCsvUploading={isPolicyUploading}
+            onUploadClick={onPolicyUploadClick}
+            isUploading={isPolicyUploading}
           />
         )}
         {nodeId === 'epFrequency' && (
