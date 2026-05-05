@@ -658,9 +658,12 @@ function EpCurveStep({ uploadId, onDone }) {
   const { slipCodingResult } = usePipelineStore();
   useEffect(() => {
     if (uploadId && slipCodingResult) {
-      applySlipToSession(uploadId, slipCodingResult).catch(() => {
-        // Silent fail — Zustand is source of truth for display; session sync is a convenience
-      });
+      console.log('[SlipApply] Attempting to apply slip to session:', uploadId, 'slip keys:', Object.keys(slipCodingResult));
+      applySlipToSession(uploadId, slipCodingResult)
+        .then(() => console.log('[SlipApply] ✅ Slip successfully applied to session', uploadId))
+        .catch((err) => console.error('[SlipApply] ❌ Failed to apply slip to session:', err?.message || err));
+    } else {
+      console.log('[SlipApply] Skipped — uploadId:', uploadId, 'slipResult:', !!slipCodingResult);
     }
   }, [uploadId, slipCodingResult]);
 
