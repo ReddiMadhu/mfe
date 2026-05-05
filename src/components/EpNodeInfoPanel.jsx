@@ -44,30 +44,49 @@ function LivePreviewTable({ uploadId, apiPath, color }) {
     );
   }
 
-  return (
-    <div className="rounded-xl border border-border/30 max-h-[420px] overflow-auto custom-scrollbar">
-      <table className="w-full text-left border-collapse min-w-max">
-        <thead>
-          <tr>
-            {data.headers.map(h => (
-              <th key={h} className={HEADER_CLASS}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {(data.sample ?? []).map((row, i) => (
-            <tr key={i} className={ROW_CLASS}>
-              {data.headers.map(h => (
-                <td key={h} className={cn(CELL_CLASS, i % 2 === 1 && 'bg-muted/20')}>
-                  {row[h] != null ? String(row[h]) : <span className="text-muted-foreground/40">—</span>}
-                </td>
+  const renderTable = (headers, rows, title, titleColor) => (
+    <div className="mb-4 last:mb-0">
+      {title && (
+        <h4 className={cn("text-[10px] font-bold uppercase tracking-wider mb-1.5", titleColor)}>
+          {title}
+        </h4>
+      )}
+      <div className="rounded-xl border border-border/30 max-h-[420px] overflow-auto custom-scrollbar bg-white">
+        <table className="w-full text-left border-collapse min-w-max">
+          <thead>
+            <tr>
+              {headers.map(h => (
+                <th key={h} className={HEADER_CLASS}>{h}</th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {(rows ?? []).map((row, i) => (
+              <tr key={i} className={ROW_CLASS}>
+                {headers.map(h => (
+                  <td key={h} className={cn(CELL_CLASS, i % 2 === 1 && 'bg-muted/20')}>
+                    {row[h] != null ? String(row[h]) : <span className="text-muted-foreground/40">—</span>}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
+
+  if (data.old_sample && data.new_sample) {
+    const oldHeaders = data.old_headers || data.headers;
+    return (
+      <div className="flex flex-col gap-2">
+        {renderTable(data.headers, data.new_sample, "New File (With Slip Coding)", color)}
+        {renderTable(oldHeaders, data.old_sample, "Old File (Auto-generated)", "text-slate-500")}
+      </div>
+    );
+  }
+
+  return renderTable(data.headers, data.sample);
 }
 
 // ── Stat row inside panel ───────────────────────────────────────────────────
