@@ -94,3 +94,31 @@ export const generateEpCurve = (uploadId) =>
 export const runEpHazardAssessment = (uploadId) =>
   req(`/ep-curve/run-hazard/${uploadId}`, { method: 'POST' });
 
+// ── Slip Coding ──────────────────────────────────────────────────────────────
+
+// Sessionless extraction — used on Configure page (no uploadId yet)
+export const extractSlipStandalone = (file) => {
+  const fd = new FormData();
+  fd.append('file', file);
+  return req('/slip-coding/extract-standalone', { method: 'POST', body: fd });
+};
+
+// Apply stored slip result to a live session (auto-called after SOV upload)
+export const applySlipToSession = (uploadId, slipResult) =>
+  req(`/slip-coding/apply/${uploadId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(slipResult),
+  });
+
+// Session-based extraction fallback (pipeline page, if needed)
+export const uploadSlipPdf = (uploadId, file) => {
+  const fd = new FormData();
+  fd.append('file', file);
+  return req(`/slip-coding/extract/${uploadId}`, { method: 'POST', body: fd });
+};
+
+// Retrieve stored slip coding extraction result (for hydration after refresh)
+export const getSlipCodingResult = (uploadId) =>
+  req(`/slip-coding/result/${uploadId}`);
+

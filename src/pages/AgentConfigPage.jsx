@@ -1,13 +1,17 @@
+import { useState, useRef, useCallback } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight, MapPin, Tag, ShieldCheck, CloudRain, Layers, Eye,
   TrendingUp, Award, Lock, Check, Sparkles, Settings2, BarChart3,
-  FileOutput, Network
+  FileOutput, Network, FileText, Upload, Loader2, X, AlertCircle, CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { usePipelineStore } from '@/store/usePipelineStore';
 import { cn } from '@/lib/utils';
+import { extractSlipStandalone } from '@/lib/api';
 
 // ── Agent definitions ──────────────────────────────────────────────────────────
 
@@ -114,6 +118,63 @@ export default function AgentConfigPage() {
 
   const selectedCount = 1 + (selectedAgents.sovCope ? 1 : 0) + uwCheckedCount;
 
+  // ── Slip Coding state ────────────────────────────────────────────────────────
+  const {
+    slipCodingResult, slipCodingStatus, slipPdfName,
+    setSlipCodingResult, setSlipCodingStatus, setSlipPdfName,
+  } = usePipelineStore();
+
+  const inputRef = useRef(null);
+  const [dragging, setDragging] = useState(false);
+
+  const extractMutation = useMutation({
+    mutationFn: (file) => extractSlipStandalone(file),
+    onMutate: () => { setSlipCodingStatus('running'); },
+    onSuccess: (data) => {
+      setSlipCodingResult(data);
+      setSlipCodingStatus('done');
+      setSlipPdfName(data.pdf_name || '');
+      toast.success(`Slip extracted — ${data.rms_account_file?.length ?? 0} peril rows`);
+    },
+    onError: (err) => {
+      setSlipCodingStatus('error');
+      toast.error(`Extraction failed: ${err.message}`);
+    },
+  });
+
+  const handleFile = useCallback((file) => {
+    if (!file?.name?.toLowerCase().endsWith('.pdf')) {
+      toast.error('Please upload a PDF file.');
+      return;
+    }
+    setSlipPdfName(file.name);
+    extractMutation.mutate(file);
+  }, [extractMutation]);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault(); setDragging(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) handleFile(f);
+  }, [handleFile]);
+
+  const handleClear = () => {
+    setSlipCodingResult(null);
+    setSlipCodingStatus('idle');
+    setSlipPdfName(null);
+    if (inputRef.current) inputRef.current.value = '';
+  };
+
+  const isRunning = slipCodingStatus === 'running';
+  const isDone    = slipCodingStatus === 'done' && !!slipCodingResult;
+  const isError   = slipCodingStatus === 'error';
+
+  const previewFields = isDone ? [
+    { label: 'BLANLIMAMT', value: slipCodingResult.rms_account_file?.[0]?.BLANLIMAMT },
+    { label: 'PARTOF',     value: slipCodingResult.rms_account_file?.[0]?.PARTOF },
+    { label: 'INCEPTDATE', value: slipCodingResult.rms_account_file?.[0]?.INCEPTDATE },
+    { label: 'EXPIREDATE', value: slipCodingResult.rms_account_file?.[0]?.EXPIREDATE },
+  ].filter(f => f.value != null) : [];
+
   return (
     <div className="min-h-[calc(100vh-3.5rem)] flex items-center justify-center p-6 py-8">
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
@@ -128,6 +189,86 @@ export default function AgentConfigPage() {
             <p className="text-sm text-muted-foreground leading-relaxed">
               Select your required target output format and review the pipeline architecture before initiating the modeling process.
             </p>
+          </div>
+
+          {/* Policy Slip Coding */}
+          <div className="glass-strong rounded-2xl border border-violet-200/60 p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <FileText className="w-4 h-4 text-violet-500" />
+              <h2 className="font-bold text-sm uppercase tracking-wide text-foreground">Policy Slip Coding</h2>
+              <Badge variant="outline" className="ml-auto text-[10px] border-violet-200 text-violet-500 bg-violet-50">Optional</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+              Upload an insurance policy slip PDF to extract terms (participation, limits, deductibles) — shown in the Insurance Terms node.
+            </p>
+
+            {/* Drop zone */}
+            {!isDone && !isRunning && !isError && (
+              <div
+                onDragOver={e => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => inputRef.current?.click()}
+                className={cn(
+                  'border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all',
+                  dragging ? 'border-violet-400 bg-violet-50' : 'border-slate-200 hover:border-violet-300 hover:bg-violet-50/40',
+                )}
+              >
+                <input ref={inputRef} type="file" accept=".pdf,application/pdf" className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+                <FileText size={22} className="mx-auto text-slate-300 mb-1.5" />
+                <p className="text-xs font-semibold text-slate-500">Drop policy slip PDF</p>
+                <p className="text-[10px] text-slate-400">or click to browse · PDF only</p>
+              </div>
+            )}
+
+            {/* Extracting spinner */}
+            {isRunning && (
+              <div className="flex flex-col items-center gap-2 py-4">
+                <Loader2 size={24} className="text-violet-500 animate-spin" />
+                <p className="text-xs font-semibold text-violet-600">Extracting policy terms via AI…</p>
+                <p className="text-[10px] text-slate-400">This may take 15–30 seconds</p>
+              </div>
+            )}
+
+            {/* Error state */}
+            {isError && (
+              <div className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 rounded-xl">
+                <AlertCircle size={14} className="text-rose-500 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-rose-700">Extraction failed</p>
+                  <p className="text-[10px] text-rose-600">Ensure the PDF has selectable text (not a scanned image).</p>
+                </div>
+                <button onClick={handleClear} className="text-slate-400 hover:text-rose-500"><X size={12} /></button>
+              </div>
+            )}
+
+            {/* Success summary */}
+            {isDone && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                  <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-bold text-emerald-700 truncate">{slipPdfName}</p>
+                    <p className="text-[10px] text-emerald-600">
+                      {slipCodingResult.rms_account_file?.length ?? 0} peril rows · {slipCodingResult.currency ?? 'USD'}
+                      {slipCodingResult.extraction_status === 'partial' && <span className="ml-1 text-amber-600">· partial</span>}
+                    </p>
+                  </div>
+                  <button onClick={handleClear} className="text-slate-400 hover:text-rose-500 ml-1"><X size={12} /></button>
+                </div>
+                {previewFields.length > 0 && (
+                  <div className="grid grid-cols-2 gap-1">
+                    {previewFields.map(f => (
+                      <div key={f.label} className="flex items-center justify-between bg-violet-50 border border-violet-100 rounded-md px-2 py-1">
+                        <code className="text-[9px] font-mono text-violet-600">{f.label}</code>
+                        <span className="text-[9px] font-bold text-violet-800 tabular-nums">{String(f.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Target Format */}

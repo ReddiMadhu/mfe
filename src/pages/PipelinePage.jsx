@@ -12,6 +12,7 @@ import {
   uploadFile, runGeocode,
   suggestColumns, confirmColumns, runMapCodes, runNormalizeValues, forgetMapping,
   uploadPolicyFile, configureFrequency, getEpCurveStatus, generateEpCurve, runEpHazardAssessment,
+  applySlipToSession,
 } from '@/lib/api';
 import { usePipelineStore } from '@/store/usePipelineStore';
 import { useAgentStream } from '@/hooks/useAgentStream';
@@ -654,6 +655,17 @@ function EpCurveStep({ uploadId, onDone }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sovDone, epPerilConfig, stepStatus.epHazard]);
 
+  // Auto-apply slip coding result (extracted on Configure page) to session
+  const { slipCodingResult } = usePipelineStore();
+  useEffect(() => {
+    if (uploadId && slipCodingResult) {
+      applySlipToSession(uploadId, slipCodingResult).catch(() => {
+        // Silent fail — Zustand is source of truth for display; session sync is a convenience
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uploadId]);
+
   // Generate EP Curve
   const generateMutation = useMutation({
     mutationFn: () => generateEpCurve(uploadId),
@@ -926,6 +938,7 @@ export default function PipelinePage() {
         <EpNodeInfoPanel
           nodeId={activeEpNode}
           onClose={() => setActiveEpNode(null)}
+          uploadId={activeId}
           uploadMeta={epUploadMeta}
           epPolicyFile={epPolicyFile}
           epFrequencyConfig={epFrequencyConfig}

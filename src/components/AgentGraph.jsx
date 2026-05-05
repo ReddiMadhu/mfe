@@ -275,11 +275,13 @@ const NODE_SUMMARY = {
       { icon: CheckCircle, label: 'Source',  value: 'SOV Agent',        color: 'text-emerald-500' },
     ],
   }),
-  epPolicy: (r) => ({
-    headline: r?.row_count ? `${r.row_count} policy rows uploaded.` : 'Policy file required.',
+  epPolicy: (r, slipResult) => ({
+    headline: slipResult
+      ? `Slip coded — ${slipResult.rms_account_file?.length ?? 0} peril rows`
+      : r?.row_count ? `${r.row_count} policy rows uploaded.` : 'Policy file required.',
     stats: [
-      { icon: FileText,    label: 'Rows',   value: safe(r?.row_count), color: 'text-orange-500' },
-      { icon: AlertCircle, label: 'Status',  value: r?.row_count ? 'Uploaded' : 'Required', color: r?.row_count ? 'text-emerald-500' : 'text-orange-500' },
+      { icon: FileText,    label: 'Rows',   value: safe(slipResult ? slipResult.rms_account_file?.length : r?.row_count), color: slipResult ? 'text-violet-500' : 'text-orange-500' },
+      { icon: AlertCircle, label: 'Status', value: slipResult ? 'Slip Coded' : r?.row_count ? 'Uploaded' : 'Required', color: (slipResult || r?.row_count) ? 'text-emerald-500' : 'text-orange-500' },
     ],
   }),
   epAccount: (r) => ({
@@ -335,9 +337,10 @@ function PipelineNode({
     if (status === 'running') logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs.length, status]);
 
+  const { slipCodingResult } = usePipelineStore();
   const summaryBuilder = NODE_SUMMARY[nodeDef.id];
   const { headline, stats } = summaryBuilder
-    ? summaryBuilder(result)
+    ? summaryBuilder(result, slipCodingResult)
     : { headline: `${nodeDef.label} complete.`, stats: [] };
 
   const nodeStep = NODE_STEP_MAP[nodeDef.id];
@@ -517,6 +520,8 @@ export default function AgentGraph({
   const selectedAgents    = usePipelineStore(s => s.selectedAgents);
   const epPolicyFile      = usePipelineStore(s => s.epPolicyFile);
   const epFrequencyConfig = usePipelineStore(s => s.epFrequencyConfig);
+  const slipCodingResult  = usePipelineStore(s => s.slipCodingResult);
+  const slipCodingStatus  = usePipelineStore(s => s.slipCodingStatus);
 
   // Compute how many UW modules are selected
   const uwKeys = ['cope', 'hazards', 'geospatial', 'objAnalysis', 'riskModel', 'propensity'];
@@ -560,7 +565,10 @@ export default function AgentGraph({
       return epFrequencyConfig?.num_simulations ? 'done' : 'pending';
     }
     if (nodeDef.id === 'epPolicy') {
-      return epPolicyFile?.row_count ? 'done' : 'pending';
+      if (slipCodingResult) return 'done';
+      if (slipCodingStatus === 'running') return 'running';
+      if (epPolicyFile?.row_count) return 'done';
+      return 'pending';
     }
     if (nodeDef.id === 'epCurve') {
       if (stepStatus.epCurve && stepStatus.epCurve !== 'idle') return stepStatus.epCurve;
@@ -621,12 +629,12 @@ export default function AgentGraph({
     // EP Curve Geometry — new column to the right
     const epNW = 120;
     const epNH = 28;
-    const epWX  = NX3 + 250;   // wrapper left (pushed right to double gap to UW)
+    const epWX  = NX3 + 185;   // wrapper left (reduced gap to UW/CAT)
     const epNX  = epWX + 10;   // sub-agent nodes left
     const epNX2 = epNX + 144;  // convergence node left (reduced horizontal margin)
     const epTop = catTop + 20; // push down below header row
     const epRowGap = 32;       // tighter vertical gap for shorter nodes
-    const epH   = epRowGap * 4 + epNH + 20; // 10px top/bottom padding
+    const epH   = epRowGap * 2 + epNH + 20; // 10px top/bottom padding (3 parallel nodes)
 
     return {
       BASE_H: Math.max(uwTop + uwH + 25, epTop + epH + 25),
@@ -658,7 +666,7 @@ export default function AgentGraph({
       wrappers: {
         cat:          { left: WX, width: 576, top: catTop, height: catH },
         underwriting: { left: WX, width: 576, top: uwTop, height: uwH },
-        epCurve:      { left: epWX, width: 320, top: epTop, height: epH },
+        epCurve:      { left: epWX, width: 430, top: epTop, height: epH },
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps

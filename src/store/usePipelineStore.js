@@ -62,6 +62,11 @@ export const usePipelineStore = create(persist((set) => ({
   epCurveStatus: null,        // { location_ready, policy_ready, ... }
   normalizeDiff: null,
 
+  // Slip Coding
+  slipCodingResult: null,     // { rms_account_file, air_contract_file, location_file_updates, extraction_summary }
+  slipCodingStatus: 'idle',   // 'idle' | 'running' | 'done' | 'error'
+  slipPdfName: null,          // original filename of uploaded policy slip PDF
+
   // --- Actions ---
   setUploadId: (id) => set({ uploadId: id }),
   setTargetFormat: (fmt) => set({ targetFormat: fmt }),
@@ -125,6 +130,11 @@ export const usePipelineStore = create(persist((set) => ({
   setEpCurveResult: (r) => set({ epCurveResult: r }),
   setEpCurveStatus: (s) => set({ epCurveStatus: s }),
 
+  // Slip Coding actions
+  setSlipCodingResult: (r) => set({ slipCodingResult: r }),
+  setSlipCodingStatus: (s) => set({ slipCodingStatus: s }),
+  setSlipPdfName: (n) => set({ slipPdfName: n }),
+
   reset: () => set({
     uploadId: null,
     uploadMeta: null,
@@ -158,6 +168,9 @@ export const usePipelineStore = create(persist((set) => ({
       all_ready: false,
       ready_count: 0
     },
+    slipCodingResult: null,
+    slipCodingStatus: 'idle',
+    slipPdfName: null,
     selectedAgents: {
       dataAgent: true, sovCope: true,
       cope: false, hazards: false, geospatial: false,

@@ -2,11 +2,13 @@ import { useRef } from 'react';
 import {
   MapPin, Building2, FileText, Activity, CloudRain,
   CheckCircle2, AlertCircle, Loader2, X, Database,
-  Hash, Cpu, Globe, BarChart3,
+  Hash, Cpu, Globe, BarChart3, ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import SlipCodingPanel from '@/components/SlipCodingPanel';
+import { usePipelineStore } from '@/store/usePipelineStore';
 
 // ── Stat row inside panel ───────────────────────────────────────────────────
 function PanelStat({ icon: Icon, label, value, color = 'text-slate-500' }) {
@@ -116,8 +118,15 @@ function PolicyPanel({ epPolicyFile, onUploadClick, isUploading }) {
   );
 }
 
-function FrequencyPanel({ epFrequencyConfig, freqForm, setFreqForm, onSave, isSaving }) {
+function FrequencyPanel({ uploadId, epFrequencyConfig, freqForm, setFreqForm, onSave, isSaving }) {
   const ready = !!epFrequencyConfig?.num_simulations;
+  const { slipCodingResult, targetFormat } = usePipelineStore();
+  const slipRows = slipCodingResult
+    ? (targetFormat === 'RMS' ? slipCodingResult.rms_account_file : slipCodingResult.air_contract_file)
+    : null;
+  const slipCols = targetFormat === 'RMS'
+    ? ['POLICYNUM','BLANLIMAMT','PARTOF','UNDCOVAMT','BLANDEDAMT']
+    : ['LayerID','LayerPerils','Limit1','AttachmentAmt','DedAmt1'];
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2 mb-3">
@@ -133,6 +142,32 @@ function FrequencyPanel({ epFrequencyConfig, freqForm, setFreqForm, onSave, isSa
           : <Badge className="ml-auto bg-orange-100 text-orange-700 border-orange-200 text-[9px]">Input Required</Badge>
         }
       </div>
+      {/* Slip-derived Account File preview */}
+      {slipRows?.length > 0 && (
+        <div className="mb-3 space-y-1.5">
+          <p className="text-[10px] font-bold text-violet-600 uppercase tracking-wide flex items-center gap-1">
+            <ShieldCheck size={10} /> Policy Terms from Slip ({targetFormat})
+          </p>
+          <div className="overflow-x-auto rounded-lg border border-violet-100">
+            <table className="w-full text-[9px] border-collapse min-w-max">
+              <thead className="bg-violet-50">
+                <tr>{slipCols.map(c => <th key={c} className="px-2 py-1 text-left font-bold text-violet-500 border-b border-violet-100 whitespace-nowrap">{c}</th>)}</tr>
+              </thead>
+              <tbody>
+                {slipRows.map((row, i) => (
+                  <tr key={i} className={i % 2 === 1 ? 'bg-violet-50/40' : ''}>
+                    {slipCols.map(c => (
+                      <td key={c} className="px-2 py-1 font-mono text-slate-600 border-b border-slate-50 whitespace-nowrap">
+                        {row[c] != null ? String(row[c]) : <span className="text-slate-300">—</span>}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
       {ready ? (
         <>
           <PanelStat icon={BarChart3} label="Simulations"    value={epFrequencyConfig.num_simulations?.toLocaleString()} color="text-emerald-500" />
@@ -275,6 +310,7 @@ export default function EpNodeInfoPanel({
   nodeId,
   onClose,
   uploadMeta,
+  uploadId,
   epPolicyFile,
   epFrequencyConfig,
   epPerilConfig,
@@ -326,14 +362,16 @@ export default function EpNodeInfoPanel({
           <AccountPanel uploadMeta={uploadMeta} />
         )}
         {nodeId === 'epPolicy' && (
-          <PolicyPanel
+          <SlipCodingPanel
+            uploadId={uploadId}
             epPolicyFile={epPolicyFile}
-            onUploadClick={onPolicyUploadClick}
-            isUploading={isPolicyUploading}
+            onCsvUploadClick={onPolicyUploadClick}
+            isCsvUploading={isPolicyUploading}
           />
         )}
         {nodeId === 'epFrequency' && (
           <FrequencyPanel
+            uploadId={uploadId}
             epFrequencyConfig={epFrequencyConfig}
             freqForm={freqForm}
             setFreqForm={setFreqForm}
