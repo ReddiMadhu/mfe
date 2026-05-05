@@ -76,18 +76,10 @@ function LivePreviewTable({ uploadId, apiPath, color }) {
     </div>
   );
 
-  if (data.old_sample && data.new_sample) {
-    const oldHeaders = data.old_headers || data.headers;
-    return (
-      <div className="flex flex-col gap-2">
-        {renderTable(data.headers, data.new_sample, "New File (With Slip Coding)", color)}
-        {renderTable(oldHeaders, data.old_sample, "Old File (Auto-generated)", "text-slate-500")}
-      </div>
-    );
-  }
-
-  return renderTable(data.headers, data.sample);
+  // Only show the new (slip-coded) table. Old comparison view removed.
+  return renderTable(data.headers, data.new_sample ?? data.sample);
 }
+
 
 // ── Stat row inside panel ───────────────────────────────────────────────────
 function PanelStat({ icon: Icon, label, value, color = 'text-slate-500' }) {
@@ -123,7 +115,7 @@ function LocationPanel({ uploadId, uploadMeta }) {
         <span>·</span>
         <span className="text-emerald-600 font-medium">Geocoded &amp; Validated</span>
       </div>
-      <LivePreviewTable uploadId={uploadId} apiPath="preview-location" color="text-emerald-600" />
+      <LivePreviewTable uploadId={uploadId} apiPath="final-location" color="text-emerald-600" />
     </div>
   );
 }
@@ -147,7 +139,7 @@ function AccountPanel({ uploadId, uploadMeta }) {
         <span>·</span>
         <span className="text-emerald-600 font-medium">Roll-up Ready</span>
       </div>
-      <LivePreviewTable uploadId={uploadId} apiPath="preview-account" color="text-emerald-600" />
+      <LivePreviewTable uploadId={uploadId} apiPath="final-account" color="text-emerald-600" />
     </div>
   );
 }
