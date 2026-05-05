@@ -100,7 +100,7 @@ export const runEpHazardAssessment = (uploadId) =>
 export const extractSlipStandalone = (file) => {
   const fd = new FormData();
   fd.append('file', file);
-  return req('/slip-coding/extract-standalone', { method: 'POST', body: fd });
+  return req('api/slip-coding/extract-standalone', { method: 'POST', body: fd });
 };
 
 // Apply stored slip result to a live session (auto-called after SOV upload)
