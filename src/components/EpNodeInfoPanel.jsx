@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   MapPin, Building2, FileText, Activity, CloudRain,
   CheckCircle2, AlertCircle, Loader2, Database,
-  Hash, Cpu, Globe, BarChart3, ShieldCheck, ChevronDown, ChevronRight,
+  Hash, Cpu, Globe, BarChart3, ShieldCheck, ChevronDown, ChevronRight, Download,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -45,7 +45,7 @@ function LivePreviewTable({ uploadId, apiPath, color }) {
   }
 
   return (
-    <div className="rounded-xl overflow-hidden border border-border/30 max-h-[420px] overflow-y-auto custom-scrollbar">
+    <div className="rounded-xl border border-border/30 max-h-[420px] overflow-auto custom-scrollbar">
       <table className="w-full text-left border-collapse min-w-max">
         <thead>
           <tr>
@@ -212,6 +212,9 @@ function FrequencyPanel({ uploadId, epFrequencyConfig, freqForm, setFreqForm, on
             color="text-violet-600"
             bg="bg-violet-50"
             border="border-violet-100"
+            downloadPath="download-account"
+            uploadId={uploadId}
+            formatLabel={targetFormat}
           >
             <LivePreviewTable uploadId={uploadId} apiPath="preview-account" color="text-violet-600" />
           </FilePreviewAccordion>
@@ -222,93 +225,53 @@ function FrequencyPanel({ uploadId, epFrequencyConfig, freqForm, setFreqForm, on
             color="text-emerald-600"
             bg="bg-emerald-50"
             border="border-emerald-100"
+            downloadPath="download"
+            uploadId={uploadId}
+            formatLabel={targetFormat}
           >
             <LivePreviewTable uploadId={uploadId} apiPath="preview-location" color="text-emerald-600" />
           </FilePreviewAccordion>
         </div>
       )}
-
-      {/* Configuration Form */}
-      <div className="mt-4 pt-3 border-t border-slate-100">
-      {ready ? (
-        <div className="space-y-1">
-          <PanelStat icon={BarChart3} label="Simulations"    value={epFrequencyConfig.num_simulations?.toLocaleString()} color="text-emerald-500" />
-          <PanelStat icon={Activity}  label="Model"          value={epFrequencyConfig.frequency_model}                    color="text-sky-500"    />
-          <PanelStat icon={Database}  label="Time Horizon"   value={`${epFrequencyConfig.time_horizon_years} yr`}         color="text-violet-500" />
-          <PanelStat icon={CheckCircle2} label="Status"      value="Configured"                                           color="text-emerald-500"/>
-        </div>
-      ) : (
-        <div className="pt-2 space-y-3">
-          <p className="text-[11px] text-orange-600 font-medium flex items-center gap-1.5">
-            <AlertCircle size={12} /> Configure simulation parameters to proceed
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[10px] text-slate-500 font-medium block mb-1">Simulations</label>
-              <input
-                type="number"
-                value={freqForm?.num_simulations ?? 10000}
-                onChange={e => setFreqForm(f => ({ ...f, num_simulations: Number(e.target.value) }))}
-                className="w-full text-[11px] border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-violet-300"
-              />
-            </div>
-            <div>
-              <label className="text-[10px] text-slate-500 font-medium block mb-1">Time Horizon (yrs)</label>
-              <input
-                type="number"
-                value={freqForm?.time_horizon_years ?? 1}
-                onChange={e => setFreqForm(f => ({ ...f, time_horizon_years: Number(e.target.value) }))}
-                className="w-full text-[11px] border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-violet-300"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="text-[10px] text-slate-500 font-medium block mb-1">Frequency Model</label>
-            <select
-              value={freqForm?.frequency_model ?? 'poisson'}
-              onChange={e => setFreqForm(f => ({ ...f, frequency_model: e.target.value }))}
-              className="w-full text-[11px] border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-violet-300"
-            >
-              <option value="poisson">Poisson</option>
-              <option value="negative_binomial">Negative Binomial</option>
-              <option value="empirical">Empirical</option>
-            </select>
-          </div>
-          <Button
-            size="sm"
-            onClick={onSave}
-            disabled={isSaving}
-            className="h-7 text-[10px] font-semibold bg-orange-500 hover:bg-orange-600 text-white w-full"
-          >
-            {isSaving
-              ? <><Loader2 size={10} className="mr-1.5 animate-spin" />Saving…</>
-              : 'Save Configuration'
-            }
-          </Button>
-        </div>
-      )}
-      </div>
     </div>
   );
 }
 
 // Helper accordion for Frequency panel tables
-function FilePreviewAccordion({ title, icon: Icon, color, bg, border, children }) {
+function FilePreviewAccordion({ title, icon: Icon, color, bg, border, downloadPath, uploadId, formatLabel, children }) {
   const [open, setOpen] = useState(false);
+  const href = `${API_BASE}/api/${downloadPath}/${uploadId}?format=xlsx`;
+  const isAccount = downloadPath === 'download-account';
+  const filePrefix = isAccount && formatLabel === 'RMS' ? 'contract_output' : isAccount ? 'account_output' : 'cat_output';
+  const filename = `${filePrefix}_${uploadId?.slice(0, 8)}.xlsx`;
+
   return (
     <div className={cn("rounded-lg border overflow-hidden transition-all", border, bg)}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-black/5 transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          <Icon size={12} className={color} />
-          <span className={cn("text-[11px] font-bold tracking-wide uppercase", color)}>{title}</span>
-        </div>
-        {open ? <ChevronDown size={14} className={color} /> : <ChevronRight size={14} className={color} />}
-      </button>
+      <div className="flex items-center justify-between px-2 py-1.5 border-b border-black/5 bg-white/50">
+        <button
+          onClick={() => setOpen(!open)}
+          className="flex-1 flex items-center justify-between text-left hover:bg-black/5 transition-colors rounded px-2 py-1"
+        >
+          <div className="flex items-center gap-2">
+            <Icon size={12} className={color} />
+            <span className={cn("text-[11px] font-bold tracking-wide uppercase", color)}>{title}</span>
+          </div>
+          {open ? <ChevronDown size={14} className={color} /> : <ChevronRight size={14} className={color} />}
+        </button>
+        {downloadPath && uploadId && (
+          <a
+            href={href}
+            download={filename}
+            className="flex items-center gap-1.5 px-2 py-1 ml-2 bg-white rounded shadow-sm border border-black/10 text-[10px] font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors whitespace-nowrap"
+            title={`Download ${formatLabel} file`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Download size={10} /> XLSX
+          </a>
+        )}
+      </div>
       {open && (
-        <div className="border-t border-black/5 bg-white p-2">
+        <div className="bg-white p-2">
           {children}
         </div>
       )}
