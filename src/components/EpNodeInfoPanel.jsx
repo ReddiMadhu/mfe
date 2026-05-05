@@ -24,7 +24,9 @@ function LivePreviewTable({ uploadId, apiPath, color }) {
     queryKey: [apiPath, uploadId],
     queryFn: () => fetch(`${API_BASE}/api/${apiPath}/${uploadId}`).then(r => r.json()),
     enabled: !!uploadId,
-    staleTime: 60_000,
+    staleTime: 0,       // Always re-fetch — slip data changes after apply
+    gcTime: 0,          // Don't keep stale data in cache
+    refetchOnMount: true,
   });
 
   if (isLoading) {
@@ -76,8 +78,19 @@ function LivePreviewTable({ uploadId, apiPath, color }) {
     </div>
   );
 
-  // Only show the new (slip-coded) table. Old comparison view removed.
-  return renderTable(data.headers, data.new_sample ?? data.sample);
+  return (
+    <div>
+      {/* Slip applied status badge */}
+      <div className="flex items-center gap-2 mb-2">
+        {data.slip_applied
+          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">✔ Slip Coding Applied</span>
+          : <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">⚠ No Slip Coding — showing base SOV data</span>
+        }
+        <span className="text-[9px] text-muted-foreground">{data.headers?.length} cols · {(data.new_sample ?? data.sample)?.length} rows</span>
+      </div>
+      {renderTable(data.headers, data.new_sample ?? data.sample)}
+    </div>
+  );
 }
 
 
