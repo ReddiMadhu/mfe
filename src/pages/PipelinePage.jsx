@@ -896,8 +896,14 @@ export default function PipelinePage() {
 
   // Auto-advance to SOV COPE after geocode completes (based on Configure screen selection)
   const hasAutoAdvancedRef = useRef(false);
+
+  // Reset auto-advance ref when starting a new pipeline
   useEffect(() => {
-    if (stepStatus.geocode === 'done' && step === 2 && !agentType && !hasAutoAdvancedRef.current) {
+    if (step <= 1) hasAutoAdvancedRef.current = false;
+  }, [step]);
+
+  useEffect(() => {
+    if (stepStatus.geocode === 'done' && step === 2 && !hasAutoAdvancedRef.current) {
       hasAutoAdvancedRef.current = true;
       if (selectedAgents.sovCope) {
         // SOV COPE was selected on Configure screen → auto-start CatAI path
@@ -906,7 +912,7 @@ export default function PipelinePage() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stepStatus.geocode, step, agentType, selectedAgents.sovCope]);
+  }, [stepStatus.geocode, step, selectedAgents.sovCope]);
 
   const handleUploaded = useCallback((id) => {
     setUploadId(id);
