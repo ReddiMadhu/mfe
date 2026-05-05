@@ -932,8 +932,15 @@ export default function PipelinePage() {
 
   // AgentGraph node click → navigate to that step's output (if reached)
   const handleNodeClick = useCallback((nodeStep) => {
-    if (nodeStep <= step) setActiveViewStep(nodeStep);
-  }, [step, setActiveViewStep]);
+    if (nodeStep <= step) {
+      // If an EP panel is open, close it first (don't restore prevViewStep — we're navigating away)
+      if (activeEpNode) {
+        setActiveEpNode(null);
+        prevViewStepRef.current = null;
+      }
+      setActiveViewStep(nodeStep);
+    }
+  }, [step, activeEpNode, setActiveViewStep]);
 
   const sectionProps = { activeViewStep };
 

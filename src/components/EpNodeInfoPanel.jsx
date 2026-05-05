@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   MapPin, Building2, FileText, Activity, CloudRain,
-  CheckCircle2, AlertCircle, Loader2, X, Database,
+  CheckCircle2, AlertCircle, Loader2, Database,
   Hash, Cpu, Globe, BarChart3, ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -394,7 +394,7 @@ export default function EpNodeInfoPanel({
 
   return (
     <div className="animate-in slide-in-from-top-3 fade-in duration-300 rounded-2xl border border-slate-200 bg-white shadow-md overflow-hidden">
-      {/* Header bar */}
+      {/* Header bar — click the same node in AgentGraph to close */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-100 bg-slate-50/60">
         {meta && (
           <>
@@ -402,12 +402,7 @@ export default function EpNodeInfoPanel({
             <span className="text-[11px] font-bold uppercase tracking-widest text-slate-600">{meta.label}</span>
           </>
         )}
-        <button
-          onClick={onClose}
-          className="ml-auto w-5 h-5 flex items-center justify-center rounded-full hover:bg-slate-200 transition-colors"
-        >
-          <X size={11} className="text-slate-500" />
-        </button>
+        <span className="ml-auto text-[9px] text-slate-400 italic">Click node again to close</span>
       </div>
 
       {/* Content */}
