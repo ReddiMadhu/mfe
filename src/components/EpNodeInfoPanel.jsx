@@ -1,4 +1,3 @@
-import { useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   MapPin, Building2, FileText, Activity, CloudRain,
@@ -134,58 +133,47 @@ function AccountPanel({ uploadId, uploadMeta }) {
 }
 
 function PolicyPanel({ uploadId, epPolicyFile, onUploadClick, isUploading }) {
-  const ready = !!epPolicyFile?.row_count;
+  const { slipCodingResult, slipCodingStatus, slipPdfName } = usePipelineStore();
+  const isDone  = slipCodingStatus === 'done' && !!slipCodingResult;
+  const csvReady = !!epPolicyFile?.row_count;
+  const ready = isDone || csvReady;
+
   return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-2 mb-3">
-        <div className={cn('w-7 h-7 rounded-full flex items-center justify-center', ready ? 'bg-emerald-100' : 'bg-orange-100')}>
-          <FileText size={14} className={ready ? 'text-emerald-600' : 'text-orange-500'} />
-        </div>
-        <div>
-          <p className="text-xs font-bold text-slate-800">Insurance Terms</p>
-          <p className="text-[10px] text-slate-400">Policy file — Policy_ID, Limit, Deductible, Coverage_Type</p>
-        </div>
-        {ready
-          ? <Badge className="ml-auto bg-emerald-100 text-emerald-700 border-emerald-200 text-[9px]">✓ Ready</Badge>
-          : <Badge className="ml-auto bg-orange-100 text-orange-700 border-orange-200 text-[9px]">Input Required</Badge>
-        }
-      </div>
-      {ready ? (
-        <>
-          <PanelStat icon={Database}  label="Policy Rows"   value={epPolicyFile.row_count}                 color="text-emerald-500" />
-          <PanelStat icon={Hash}      label="Columns"       value={epPolicyFile.headers?.length ?? '—'}     color="text-sky-500"    />
-          <PanelStat icon={CheckCircle2} label="Status"     value="Uploaded"                                color="text-emerald-500"/>
-        </>
-      ) : (
-        <div className="pt-2">
-          <p className="text-[11px] text-orange-600 font-medium mb-3 flex items-center gap-1.5">
-            <AlertCircle size={12} /> Upload a policy CSV/XLSX to proceed
-          </p>
-          <p className="text-[10px] text-slate-400 mb-3">
-            Required columns: <span className="font-mono text-slate-600">Policy_ID, Account_ID, Policy_Limit, Policy_Deductible, Coverage_Type, Policy_Type</span>
-          </p>
-          <Button
-            size="sm"
-            onClick={onUploadClick}
-            disabled={isUploading}
-            className="h-7 text-[10px] font-semibold bg-orange-500 hover:bg-orange-600 text-white"
-          >
-            {isUploading
-              ? <><Loader2 size={10} className="mr-1.5 animate-spin" />Uploading…</>
-              : 'Upload Policy File'
+    <div className="space-y-4">
+      {/* Header row — matches DonePage export card style */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <div className={cn('w-7 h-7 rounded-full flex items-center justify-center shrink-0', ready ? 'bg-emerald-100' : 'bg-orange-100')}>
+              <FileText size={14} className={ready ? 'text-emerald-600' : 'text-orange-500'} />
+            </div>
+            <p className="text-sm font-semibold text-foreground">Insurance Terms</p>
+            {ready
+              ? <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[9px] ml-1">✓ Ready</Badge>
+              : <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-[9px] ml-1">Input Required</Badge>
             }
-          </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground pl-9">
+            {isDone
+              ? <>Policy slip extracted from <span className="font-medium text-violet-600">{slipPdfName}</span> — {slipCodingResult?.pdf_page_count} pages · {slipCodingResult?.currency ?? 'USD'}</>
+              : csvReady
+                ? <>{epPolicyFile.row_count} rows uploaded · {epPolicyFile.headers?.length ?? '—'} columns</>
+                : 'Upload a PDF slip on the Configure page or a policy CSV to proceed.'
+            }
+          </p>
         </div>
-      )}
-      {/* Full slip PDF panel below the basic stats */}
-      <div className="mt-4 pt-3 border-t border-slate-100">
-        <SlipCodingPanel
-          uploadId={uploadId}
-          epPolicyFile={epPolicyFile}
-          onCsvUploadClick={onUploadClick}
-          isCsvUploading={isUploading}
-        />
       </div>
+
+      {/* Divider */}
+      <div className="h-px bg-border/40 w-full" />
+
+      {/* Full slip panel — tabs, tables, extraction summary */}
+      <SlipCodingPanel
+        uploadId={uploadId}
+        epPolicyFile={epPolicyFile}
+        onCsvUploadClick={onUploadClick}
+        isCsvUploading={isUploading}
+      />
     </div>
   );
 }

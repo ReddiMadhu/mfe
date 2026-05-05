@@ -823,6 +823,8 @@ export default function PipelinePage() {
 
   // EP node info panel state
   const [activeEpNode, setActiveEpNode] = useState(null);
+  // Track the activeViewStep that was in place before an EP panel was opened so we can restore it on close
+  const prevViewStepRef = useRef(null);
   const {
     epPolicyFile, epFrequencyConfig, epPerilConfig,
     setEpFrequencyConfig, uploadMeta: epUploadMeta,
@@ -947,7 +949,21 @@ export default function PipelinePage() {
           onNodeClick={handleNodeClick}
           currentPipelineStep={step}
           isGeocodeDone={stepStatus.geocode === 'done'}
-          onEpNodeClick={(id) => setActiveEpNode(prev => prev === id ? null : id)}
+          onEpNodeClick={(id) => {
+            if (id === activeEpNode) {
+              // Toggling the same node off — restore previous wizard view
+              setActiveEpNode(null);
+              if (prevViewStepRef.current !== null) {
+                setActiveViewStep(prevViewStepRef.current);
+                prevViewStepRef.current = null;
+              }
+            } else {
+              // Opening a new EP node — save current view step and hide wizard sections
+              prevViewStepRef.current = activeViewStep;
+              setActiveEpNode(id);
+              setActiveViewStep(null);  // hides all Section cards
+            }
+          }}
         />
         {/* Hidden policy upload input */}
         <input
@@ -963,7 +979,13 @@ export default function PipelinePage() {
       {activeEpNode && (
         <EpNodeInfoPanel
           nodeId={activeEpNode}
-          onClose={() => setActiveEpNode(null)}
+          onClose={() => {
+            setActiveEpNode(null);
+            if (prevViewStepRef.current !== null) {
+              setActiveViewStep(prevViewStepRef.current);
+              prevViewStepRef.current = null;
+            }
+          }}
           uploadId={activeId}
           uploadMeta={epUploadMeta}
           epPolicyFile={epPolicyFile}
