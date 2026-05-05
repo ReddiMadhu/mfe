@@ -662,8 +662,7 @@ function EpCurveStep({ uploadId, onDone }) {
         // Silent fail — Zustand is source of truth for display; session sync is a convenience
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uploadId]);
+  }, [uploadId, slipCodingResult]);
 
   // Generate EP Curve
   const generateMutation = useMutation({
