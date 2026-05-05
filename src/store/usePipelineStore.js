@@ -135,6 +135,23 @@ export const usePipelineStore = create(persist((set) => ({
   setSlipCodingStatus: (s) => set({ slipCodingStatus: s }),
   setSlipPdfName: (n) => set({ slipPdfName: n }),
 
+  clearPipelineExecution: () => set({
+    agentType: null,
+    executionStep: 1,
+    activeViewStep: 1,
+    stepStatus: { upload: 'done', preview: 'done', normalize: 'idle', geocode: 'idle', mapping: 'idle', mapCodes: 'idle', normalizeValues: 'idle', epHazard: 'idle', epCurve: 'idle' },
+    agentStates: {},
+    normalizeResult: null,
+    geocodeResult: null,
+    columnMap: {},
+    catResult: null,
+    mapCodesSummaryText: null,
+    normalizeSummaryText: null,
+    geocodeDiff: null,
+    mapCodesDiff: null,
+    normalizeDiff: null,
+  }),
+
   reset: () => set({
     uploadId: null,
     uploadMeta: null,

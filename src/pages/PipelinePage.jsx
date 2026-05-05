@@ -162,16 +162,15 @@ function AcquireStep({ onStartPipeline }) {
   const [tab, setTab]       = useState('upload');
   const [file, setFile]     = useState(null);
   const [dragging, setDragging] = useState(false);
-  const { setUploadId, setUploadMeta, setStepStatus, uploadMeta, uploadId } = usePipelineStore();
+  const { setUploadId, setUploadMeta, setStepStatus, uploadMeta, uploadId, clearPipelineExecution } = usePipelineStore();
   const inputRef = useRef();
 
   const uploadMutation = useMutation({
     mutationFn: (f) => uploadFile(f instanceof File ? f : file, 'AIR', {}),
     onSuccess: (data) => {
+      clearPipelineExecution(); // Cleans up stale statuses from previous runs
       setUploadId(data.upload_id);
       setUploadMeta({ row_count: data.row_count, headers: data.headers, sample: data.sample ?? [] });
-      setStepStatus('upload', 'done');
-      setStepStatus('preview', 'done');
       toast.success(`${data.row_count} rows uploaded — review preview below`);
     },
     onError: (err) => toast.error(`Upload failed: ${err.message}`),
