@@ -27,10 +27,10 @@ import { DashboardView } from './DonePage';
 import StepDiffTable from '@/components/StepDiffTable';
 
 // ── Canonical field lists ──────────────────────────────────────────────────
-const AIR_FIELDS = ['PolicyID','InsuredName','LocationID','LocationName','FullAddress','Street','City','Area','PostalCode','CountryISO','Latitude','Longitude','OccupancyCodeType','OccupancyCode','ConstructionCodeType','ConstructionCode','RiskCount','NumberOfStories','GrossArea','YearBuilt','YearRetrofitted','TIV','BuildingValue','ContentsValue','TimeElementValue','Currency','LineOfBusiness','SprinklerSystem','RoofGeometry','FoundationType','WallSiding','SoftStory','WallType'];
-const RMS_FIELDS = ['ACCNTNUM','LOCNUM','LOCNAME','STREETNAME','CITY','STATECODE','POSTALCODE','CNTRYCODE','Latitude','Longitude','BLDGSCHEME','BLDGCLASS','OCCSCHEME','OCCTYPE','NUMBLDGS','NUMSTORIES','FLOORAREA','YEARBUILT','YEARUPGRAD','SPRINKLER','ROOFGEOM','FOUNDATION','CLADDING','SOFTSTORY','WALLTYPE','TIV','EQCV1VAL','EQCV2VAL','WSCV1VAL','WSCV2VAL','WSCV3VAL'];
+const AIR_FIELDS = ['PolicyID', 'InsuredName', 'LocationID', 'LocationName', 'FullAddress', 'Street', 'City', 'Area', 'PostalCode', 'CountryISO', 'Latitude', 'Longitude', 'OccupancyCodeType', 'OccupancyCode', 'ConstructionCodeType', 'ConstructionCode', 'RiskCount', 'NumberOfStories', 'GrossArea', 'YearBuilt', 'YearRetrofitted', 'TIV', 'BuildingValue', 'ContentsValue', 'TimeElementValue', 'Currency', 'LineOfBusiness', 'SprinklerSystem', 'RoofGeometry', 'FoundationType', 'WallSiding', 'SoftStory', 'WallType'];
+const RMS_FIELDS = ['ACCNTNUM', 'LOCNUM', 'LOCNAME', 'STREETNAME', 'CITY', 'STATECODE', 'POSTALCODE', 'CNTRYCODE', 'Latitude', 'Longitude', 'BLDGSCHEME', 'BLDGCLASS', 'OCCSCHEME', 'OCCTYPE', 'NUMBLDGS', 'NUMSTORIES', 'FLOORAREA', 'YEARBUILT', 'YEARUPGRAD', 'SPRINKLER', 'ROOFGEOM', 'FOUNDATION', 'CLADDING', 'SOFTSTORY', 'WALLTYPE', 'TIV', 'EQCV1VAL', 'EQCV2VAL', 'WSCV1VAL', 'WSCV2VAL', 'WSCV3VAL'];
 
-const CONFIDENCE_BG    = (s) => s >= 0.8 ? 'bg-green-500' : s >= 0.5 ? 'bg-amber-500' : 'bg-rose-500';
+const CONFIDENCE_BG = (s) => s >= 0.8 ? 'bg-green-500' : s >= 0.5 ? 'bg-amber-500' : 'bg-rose-500';
 const CONFIDENCE_COLOR = (s) => s >= 0.8 ? 'text-green-400' : s >= 0.5 ? 'text-amber-400' : 'text-rose-400';
 const NONE_VALUE = '__none__';
 
@@ -159,8 +159,8 @@ function DataPreviewTable({ headers, rows }) {
 
 // ── Step 1: Acquire Data ───────────────────────────────────────────────────
 function AcquireStep({ onStartPipeline }) {
-  const [tab, setTab]       = useState('upload');
-  const [file, setFile]     = useState(null);
+  const [tab, setTab] = useState('upload');
+  const [file, setFile] = useState(null);
   const [dragging, setDragging] = useState(false);
   const { setUploadId, setUploadMeta, setStepStatus, uploadMeta, uploadId, clearPipelineExecution } = usePipelineStore();
   const inputRef = useRef();
@@ -200,7 +200,7 @@ function AcquireStep({ onStartPipeline }) {
       {/* Tabs */}
       <div className="flex rounded-xl border border-border/40 overflow-hidden">
         {[
-          { id: 'upload',    label: 'Upload Excel / CSV',       icon: Upload },
+          { id: 'upload', label: 'Upload Excel / CSV', icon: Upload },
           { id: 'xtracctio', label: 'Import from xtracctio.ai', icon: Link2 },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
@@ -222,8 +222,8 @@ function AcquireStep({ onStartPipeline }) {
           className={cn(
             'border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all',
             dragging ? 'border-primary bg-primary/5' :
-            file     ? 'border-emerald-500/50 bg-emerald-500/5' :
-                       'border-border/40 hover:border-primary/40 hover:bg-primary/3',
+              file ? 'border-emerald-500/50 bg-emerald-500/5' :
+                'border-border/40 hover:border-primary/40 hover:bg-primary/3',
           )}
         >
           <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
@@ -310,8 +310,8 @@ function GeocodeStep({ activeId, viewMode }) {
   // isRunning from stepStatus (set by geocodeMutation.onMutate/onSuccess in main PipelinePage)
   const isRunning = stepStatus.geocode === 'running';
   // isDone only when the API response has populated geocodeDiff
-  const isDone    = !!geocodeDiff;
-  const total     = uploadMeta?.row_count || 0;
+  const isDone = !!geocodeDiff;
+  const total = uploadMeta?.row_count || 0;
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
@@ -475,8 +475,8 @@ function MappingStep({ uploadId, targetFormat, onDone }) {
               </div>
               <div className="col-span-1 flex justify-center items-center gap-1">
                 {isDuplicate ? <AlertCircle className="w-4 h-4 text-rose-400" /> :
-                 isMapped    ? <CheckCircle2 className="w-4 h-4 text-green-400" /> :
-                               <AlertCircle className="w-4 h-4 text-amber-400" />}
+                  isMapped ? <CheckCircle2 className="w-4 h-4 text-green-400" /> :
+                    <AlertCircle className="w-4 h-4 text-amber-400" />}
                 {topSug?.method === 'memory' && (
                   <button onClick={() => forget({ sourceCol: col })}
                     className="w-4 h-4 flex items-center justify-center rounded-full text-violet-400/60 hover:text-rose-400 transition-colors">
@@ -514,25 +514,25 @@ function CodeMappingStep({ uploadId, onDone, viewMode }) {
 
   const mapCodesMutation = useMutation({
     mutationFn: () => runMapCodes(uploadId),
-    onMutate:   () => setStepStatus('mapCodes', 'running'),
-    onSuccess:  (data) => {
+    onMutate: () => setStepStatus('mapCodes', 'running'),
+    onSuccess: (data) => {
       setStepStatus('mapCodes', 'done');
       if (data?.summary_text) setMapCodesSummaryText(data.summary_text);
       if (data?.diff_data) setMapCodesDiff(data.diff_data);
       toast.success('Code mapping complete');
       onDone();
     },
-    onError:    (err) => { setStepStatus('mapCodes', 'error'); toast.error(err.message); },
+    onError: (err) => { setStepStatus('mapCodes', 'error'); toast.error(err.message); },
   });
 
   // isRunning: spinner only when API is actively in-flight
   const isRunning = mapCodesMutation.isPending;
   // isDone: table only when API response returned diff data
-  const isDone    = !!mapCodesDiff;
+  const isDone = !!mapCodesDiff;
 
   useEffect(() => {
     if (!stepStatus.mapCodes || stepStatus.mapCodes === 'idle') mapCodesMutation.mutate();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -556,8 +556,8 @@ function NormalizeValuesStep({ uploadId, onDone, viewMode }) {
 
   const normalizeMutation = useMutation({
     mutationFn: () => runNormalizeValues(uploadId),
-    onMutate:   () => setStepStatus('normalizeValues', 'running'),
-    onSuccess:  (data) => {
+    onMutate: () => setStepStatus('normalizeValues', 'running'),
+    onSuccess: (data) => {
       setStepStatus('normalizeValues', 'done');
       setCatResult(data);
       if (data?.summary_text) setNormalizeSummaryText(data.summary_text);
@@ -565,17 +565,17 @@ function NormalizeValuesStep({ uploadId, onDone, viewMode }) {
       toast.success('Value normalization complete');
       onDone();
     },
-    onError:    (err) => { setStepStatus('normalizeValues', 'error'); toast.error(err.message); },
+    onError: (err) => { setStepStatus('normalizeValues', 'error'); toast.error(err.message); },
   });
 
   // isRunning: spinner only when API is actively in-flight
   const isRunning = normalizeMutation.isPending;
   // isDone: table only when API response returned diff data
-  const isDone    = !!normalizeDiff;
+  const isDone = !!normalizeDiff;
 
   useEffect(() => {
     if (!stepStatus.normalizeValues || stepStatus.normalizeValues === 'idle') normalizeMutation.mutate();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -651,21 +651,12 @@ function EpCurveStep({ uploadId, onDone }) {
     if (sovDone && !epPerilConfig && stepStatus.epHazard !== 'running' && stepStatus.epHazard !== 'done' && stepStatus.epHazard !== 'error') {
       hazardMutation.mutate();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sovDone, epPerilConfig, stepStatus.epHazard]);
 
   // Auto-apply slip coding result (extracted on Configure page) to session
-  const { slipCodingResult } = usePipelineStore();
-  useEffect(() => {
-    if (uploadId && slipCodingResult) {
-      console.log('[SlipApply] Attempting to apply slip to session:', uploadId, 'slip keys:', Object.keys(slipCodingResult));
-      applySlipToSession(uploadId, slipCodingResult)
-        .then(() => console.log('[SlipApply] ✅ Slip successfully applied to session', uploadId))
-        .catch((err) => console.error('[SlipApply] ❌ Failed to apply slip to session:', err?.message || err));
-    } else {
-      console.log('[SlipApply] Skipped — uploadId:', uploadId, 'slipResult:', !!slipCodingResult);
-    }
-  }, [uploadId, slipCodingResult]);
+  // NOTE: This is intentionally a no-op at the EpCurveStep level.
+  // The actual apply logic lives in the main PipelinePage component (see handleUploaded).
 
   // Generate EP Curve
   const generateMutation = useMutation({
@@ -879,8 +870,8 @@ export default function PipelinePage() {
 
   const geocodeMutation = useMutation({
     mutationFn: () => runGeocode(activeId),
-    onMutate:   () => setStepStatus('geocode', 'running'),
-    onSuccess:  (data) => {
+    onMutate: () => setStepStatus('geocode', 'running'),
+    onSuccess: (data) => {
       setStepStatus('geocode', 'done');
       setGeocodeResult(data);
       if (data?.diff_data) setGeocodeDiff(data.diff_data);
@@ -894,7 +885,7 @@ export default function PipelinePage() {
     if (step === 2 && (!stepStatus.geocode || stepStatus.geocode === 'idle') && activeId) {
       geocodeMutation.mutate();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, activeId]);
 
   // Auto-advance to SOV COPE after geocode completes (based on Configure screen selection)
@@ -924,13 +915,36 @@ export default function PipelinePage() {
         console.warn('[PIPELINE DEBUG] sovCope is FALSE — not advancing! Go to Configure page and enable SOV COPE.');
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepStatus.geocode, step, selectedAgents.sovCope]);
 
   const handleUploaded = useCallback((id) => {
     setUploadId(id);
     advance(2);
   }, [setUploadId, advance]);
+
+  // Auto-apply slip coding result (extracted on Configure page) to the new session.
+  // Lives here (main PipelinePage) so it fires as soon as uploadId exists — not inside a conditional child component.
+  const { slipCodingResult } = usePipelineStore();
+  useEffect(() => {
+    if (activeId && slipCodingResult) {
+      console.log('[SlipApply] Attempting to apply slip to session:', activeId, '| slip keys:', Object.keys(slipCodingResult));
+      toast.info('Applying Slip Coding to session…');
+      applySlipToSession(activeId, slipCodingResult)
+        .then((res) => {
+          console.log('[SlipApply] ✅ Applied:', res);
+          toast.success('Slip Coding applied to session');
+        })
+        .catch((err) => {
+          console.error('[SlipApply] ❌ Failed:', err?.message || err);
+          toast.error(`Slip apply failed: ${err?.message || 'unknown error'}`);
+        });
+    } else {
+      console.log('[SlipApply] Skipped — activeId:', activeId, '| slipResult present:', !!slipCodingResult);
+    }
+  // Only re-run when the ID or the slip data changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId, slipCodingResult]);
 
   // AgentGraph node click → navigate to that step's output (if reached)
   const handleNodeClick = useCallback((nodeStep) => {
