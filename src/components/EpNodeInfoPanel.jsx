@@ -209,11 +209,11 @@ function FrequencyPanel({ uploadId, epFrequencyConfig, freqForm, setFreqForm, on
           color="text-violet-600"
           bg="bg-violet-50"
           border="border-violet-100"
-          downloadPath="download-account"
+          downloadPath="download-final-account"
           uploadId={uploadId}
           formatLabel={targetFormat}
         >
-          <LivePreviewTable uploadId={uploadId} apiPath="preview-account" color="text-violet-600" />
+          <LivePreviewTable uploadId={uploadId} apiPath="final-account" color="text-violet-600" />
         </FilePreviewAccordion>
 
         <FilePreviewAccordion
@@ -222,11 +222,11 @@ function FrequencyPanel({ uploadId, epFrequencyConfig, freqForm, setFreqForm, on
           color="text-emerald-600"
           bg="bg-emerald-50"
           border="border-emerald-100"
-          downloadPath="download"
+          downloadPath="download-final"
           uploadId={uploadId}
           formatLabel={targetFormat}
         >
-          <LivePreviewTable uploadId={uploadId} apiPath="preview-location" color="text-emerald-600" />
+          <LivePreviewTable uploadId={uploadId} apiPath="final-location" color="text-emerald-600" />
         </FilePreviewAccordion>
       </div>
     </div>
@@ -237,7 +237,7 @@ function FrequencyPanel({ uploadId, epFrequencyConfig, freqForm, setFreqForm, on
 function FilePreviewAccordion({ title, icon: Icon, color, bg, border, downloadPath, uploadId, formatLabel, children }) {
   const [open, setOpen] = useState(false);
   const href = `${API_BASE}/api/${downloadPath}/${uploadId}?format=xlsx`;
-  const isAccount = downloadPath === 'download-account';
+  const isAccount = downloadPath === 'download-account' || downloadPath === 'download-final-account';
   const filePrefix = isAccount && formatLabel === 'RMS' ? 'contract_output' : isAccount ? 'account_output' : 'cat_output';
   const filename = `${filePrefix}_${uploadId?.slice(0, 8)}.xlsx`;
 
