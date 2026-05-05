@@ -191,48 +191,44 @@ function FrequencyPanel({ uploadId, epFrequencyConfig, freqForm, setFreqForm, on
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2 mb-3">
-        <div className={cn('w-7 h-7 rounded-full flex items-center justify-center', ready ? 'bg-emerald-100' : 'bg-orange-100')}>
-          <Activity size={14} className={ready ? 'text-emerald-600' : 'text-orange-500'} />
+        <div className="w-7 h-7 rounded-full flex items-center justify-center bg-emerald-100">
+          <Activity size={14} className="text-emerald-600" />
         </div>
         <div>
           <p className="text-xs font-bold text-slate-800">Annual Simulation</p>
-          <p className="text-[10px] text-slate-400">Frequency configuration — simulation parameters</p>
+          <p className="text-[10px] text-slate-400">Final exported output files</p>
         </div>
-        {ready
-          ? <Badge className="ml-auto bg-emerald-100 text-emerald-700 border-emerald-200 text-[9px]">✓ Ready</Badge>
-          : <Badge className="ml-auto bg-orange-100 text-orange-700 border-orange-200 text-[9px]">Input Required</Badge>
-        }
+        <Badge className="ml-auto bg-emerald-100 text-emerald-700 border-emerald-200 text-[9px]">✓ Ready</Badge>
       </div>
-      {/* Account & Location File Previews (Collapsible) */}
-      {ready && (
-        <div className="mt-4 space-y-2 border-t border-slate-100 pt-3">
-          <FilePreviewAccordion
-            title="Account File (Slip-derived terms)"
-            icon={Building2}
-            color="text-violet-600"
-            bg="bg-violet-50"
-            border="border-violet-100"
-            downloadPath="download-account"
-            uploadId={uploadId}
-            formatLabel={targetFormat}
-          >
-            <LivePreviewTable uploadId={uploadId} apiPath="preview-account" color="text-violet-600" />
-          </FilePreviewAccordion>
 
-          <FilePreviewAccordion
-            title="Location File (with Slip limits)"
-            icon={MapPin}
-            color="text-emerald-600"
-            bg="bg-emerald-50"
-            border="border-emerald-100"
-            downloadPath="download"
-            uploadId={uploadId}
-            formatLabel={targetFormat}
-          >
-            <LivePreviewTable uploadId={uploadId} apiPath="preview-location" color="text-emerald-600" />
-          </FilePreviewAccordion>
-        </div>
-      )}
+      {/* Account & Location File Previews (Collapsible) */}
+      <div className="mt-4 space-y-2 border-t border-slate-100 pt-3">
+        <FilePreviewAccordion
+          title="Account File (Slip-derived terms)"
+          icon={Building2}
+          color="text-violet-600"
+          bg="bg-violet-50"
+          border="border-violet-100"
+          downloadPath="download-account"
+          uploadId={uploadId}
+          formatLabel={targetFormat}
+        >
+          <LivePreviewTable uploadId={uploadId} apiPath="preview-account" color="text-violet-600" />
+        </FilePreviewAccordion>
+
+        <FilePreviewAccordion
+          title="Location File (with Slip limits)"
+          icon={MapPin}
+          color="text-emerald-600"
+          bg="bg-emerald-50"
+          border="border-emerald-100"
+          downloadPath="download"
+          uploadId={uploadId}
+          formatLabel={targetFormat}
+        >
+          <LivePreviewTable uploadId={uploadId} apiPath="preview-location" color="text-emerald-600" />
+        </FilePreviewAccordion>
+      </div>
     </div>
   );
 }
