@@ -909,7 +909,8 @@ export default function PipelinePage() {
       sovCope: selectedAgents.sovCope,
       agentType,
     });
-    if (stepStatus.geocode === 'done' && step === 2 && !hasAutoAdvancedRef.current) {
+    // Relaxed step check: sometimes step might already be 3 (geocode) when this fires
+    if (stepStatus.geocode === 'done' && step >= 2 && step <= 4 && !hasAutoAdvancedRef.current) {
       hasAutoAdvancedRef.current = true;
       console.log('[PIPELINE DEBUG] Auto-advancing → SOV COPE (catai)');
       if (selectedAgents.sovCope) {
