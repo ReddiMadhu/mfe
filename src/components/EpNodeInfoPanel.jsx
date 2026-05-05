@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   MapPin, Building2, FileText, Activity, CloudRain,
   CheckCircle2, AlertCircle, Loader2, Database,
-  Hash, Cpu, Globe, BarChart3, ShieldCheck,
+  Hash, Cpu, Globe, BarChart3, ShieldCheck, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -202,39 +203,40 @@ function FrequencyPanel({ uploadId, epFrequencyConfig, freqForm, setFreqForm, on
           : <Badge className="ml-auto bg-orange-100 text-orange-700 border-orange-200 text-[9px]">Input Required</Badge>
         }
       </div>
-      {/* Slip-derived Account File preview */}
-      {slipRows?.length > 0 && (
-        <div className="mb-3 space-y-1.5">
-          <p className="text-[10px] font-bold text-violet-600 uppercase tracking-wide flex items-center gap-1">
-            <ShieldCheck size={10} /> Policy Terms from Slip ({targetFormat})
-          </p>
-          <div className="overflow-x-auto rounded-lg border border-violet-100">
-            <table className="w-full text-[9px] border-collapse min-w-max">
-              <thead className="bg-violet-50">
-                <tr>{slipCols.map(c => <th key={c} className="px-2 py-1 text-left font-bold text-violet-500 border-b border-violet-100 whitespace-nowrap">{c}</th>)}</tr>
-              </thead>
-              <tbody>
-                {slipRows.map((row, i) => (
-                  <tr key={i} className={i % 2 === 1 ? 'bg-violet-50/40' : ''}>
-                    {slipCols.map(c => (
-                      <td key={c} className="px-2 py-1 font-mono text-slate-600 border-b border-slate-50 whitespace-nowrap">
-                        {row[c] != null ? String(row[c]) : <span className="text-slate-300">—</span>}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {/* Account & Location File Previews (Collapsible) */}
+      {ready && (
+        <div className="mt-4 space-y-2 border-t border-slate-100 pt-3">
+          <FilePreviewAccordion
+            title="Account File (Slip-derived terms)"
+            icon={Building2}
+            color="text-violet-600"
+            bg="bg-violet-50"
+            border="border-violet-100"
+          >
+            <LivePreviewTable uploadId={uploadId} apiPath="preview-account" color="text-violet-600" />
+          </FilePreviewAccordion>
+
+          <FilePreviewAccordion
+            title="Location File (with Slip limits)"
+            icon={MapPin}
+            color="text-emerald-600"
+            bg="bg-emerald-50"
+            border="border-emerald-100"
+          >
+            <LivePreviewTable uploadId={uploadId} apiPath="preview-location" color="text-emerald-600" />
+          </FilePreviewAccordion>
         </div>
       )}
+
+      {/* Configuration Form */}
+      <div className="mt-4 pt-3 border-t border-slate-100">
       {ready ? (
-        <>
+        <div className="space-y-1">
           <PanelStat icon={BarChart3} label="Simulations"    value={epFrequencyConfig.num_simulations?.toLocaleString()} color="text-emerald-500" />
           <PanelStat icon={Activity}  label="Model"          value={epFrequencyConfig.frequency_model}                    color="text-sky-500"    />
           <PanelStat icon={Database}  label="Time Horizon"   value={`${epFrequencyConfig.time_horizon_years} yr`}         color="text-violet-500" />
           <PanelStat icon={CheckCircle2} label="Status"      value="Configured"                                           color="text-emerald-500"/>
-        </>
+        </div>
       ) : (
         <div className="pt-2 space-y-3">
           <p className="text-[11px] text-orange-600 font-medium flex items-center gap-1.5">
@@ -283,6 +285,31 @@ function FrequencyPanel({ uploadId, epFrequencyConfig, freqForm, setFreqForm, on
               : 'Save Configuration'
             }
           </Button>
+        </div>
+      )}
+      </div>
+    </div>
+  );
+}
+
+// Helper accordion for Frequency panel tables
+function FilePreviewAccordion({ title, icon: Icon, color, bg, border, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={cn("rounded-lg border overflow-hidden transition-all", border, bg)}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-black/5 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <Icon size={12} className={color} />
+          <span className={cn("text-[11px] font-bold tracking-wide uppercase", color)}>{title}</span>
+        </div>
+        {open ? <ChevronDown size={14} className={color} /> : <ChevronRight size={14} className={color} />}
+      </button>
+      {open && (
+        <div className="border-t border-black/5 bg-white p-2">
+          {children}
         </div>
       )}
     </div>
