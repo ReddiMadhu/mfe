@@ -111,16 +111,6 @@ function PanelStat({ icon: Icon, label, value, color = 'text-slate-500' }) {
 function LocationPanel({ uploadId, uploadMeta }) {
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center">
-          <MapPin size={14} className="text-emerald-600" />
-        </div>
-        <div>
-          <p className="text-xs font-bold text-slate-800">Exposure &amp; Geography</p>
-          <p className="text-[10px] text-slate-400">Location file — auto-populated from SOV Agent output</p>
-        </div>
-        <Badge className="ml-auto bg-emerald-100 text-emerald-700 border-emerald-200 text-[9px]">✓ Ready</Badge>
-      </div>
       <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
         <span className="font-medium">{uploadMeta?.row_count ?? '—'} rows</span>
         <span>·</span>
@@ -137,16 +127,6 @@ function LocationPanel({ uploadId, uploadMeta }) {
 function AccountPanel({ uploadId, uploadMeta }) {
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center">
-          <Building2 size={14} className="text-emerald-600" />
-        </div>
-        <div>
-          <p className="text-xs font-bold text-slate-800">Portfolio Roll-up</p>
-          <p className="text-[10px] text-slate-400">Account file — auto-aggregated from SOV Agent output</p>
-        </div>
-        <Badge className="ml-auto bg-emerald-100 text-emerald-700 border-emerald-200 text-[9px]">✓ Ready</Badge>
-      </div>
       <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
         <span className="font-medium">{uploadMeta?.row_count ?? '—'} locations</span>
         <span>·</span>
@@ -164,33 +144,18 @@ function PolicyPanel({ uploadId, epPolicyFile, onUploadClick, isUploading }) {
   const ready = isDone || csvReady;
 
   return (
-    <div className="space-y-4">
-      {/* Header row — matches DonePage export card style */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <div className={cn('w-7 h-7 rounded-full flex items-center justify-center shrink-0', ready ? 'bg-emerald-100' : 'bg-orange-100')}>
-              <FileText size={14} className={ready ? 'text-emerald-600' : 'text-orange-500'} />
-            </div>
-            <p className="text-sm font-semibold text-foreground">Insurance Terms</p>
-            {ready
-              ? <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[9px] ml-1">✓ Ready</Badge>
-              : <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-[9px] ml-1">Input Required</Badge>
-            }
-          </div>
-          <p className="text-[11px] text-muted-foreground pl-9">
-            {isDone
-              ? <>Policy slip extracted from <span className="font-medium text-violet-600">{slipPdfName}</span> — {slipCodingResult?.pdf_page_count} pages · {slipCodingResult?.currency ?? 'USD'}</>
-              : csvReady
-                ? <>{epPolicyFile.row_count} rows uploaded · {epPolicyFile.headers?.length ?? '—'} columns</>
-                : 'Upload a PDF slip on the Configure page or a policy CSV to proceed.'
-            }
-          </p>
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div className="h-px bg-border/40 w-full" />
+    <div className="space-y-3">
+      {/* Status line */}
+      {!ready && (
+        <p className="text-[11px] text-muted-foreground">
+          Upload a PDF slip on the Configure page or a policy CSV to proceed.
+        </p>
+      )}
+      {csvReady && !isDone && (
+        <p className="text-[11px] text-muted-foreground">
+          {epPolicyFile.row_count} rows uploaded · {epPolicyFile.headers?.length ?? '—'} columns
+        </p>
+      )}
 
       {/* Full slip panel — tabs, tables, extraction summary */}
       <SlipCodingPanel
@@ -206,24 +171,8 @@ function PolicyPanel({ uploadId, epPolicyFile, onUploadClick, isUploading }) {
 function FrequencyPanel({ uploadId, epFrequencyConfig, freqForm, setFreqForm, onSave, isSaving }) {
   const ready = !!epFrequencyConfig?.num_simulations;
   const { slipCodingResult, targetFormat } = usePipelineStore();
-  const slipRows = slipCodingResult
-    ? (targetFormat === 'RMS' ? slipCodingResult.rms_account_file : slipCodingResult.air_contract_file)
-    : null;
-  const slipCols = targetFormat === 'RMS'
-    ? ['POLICYNUM','BLANLIMAMT','PARTOF','UNDCOVAMT','BLANDEDAMT']
-    : ['LayerID','LayerPerils','Limit1','AttachmentAmt','DedAmt1'];
   return (
     <div className="space-y-1">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-7 h-7 rounded-full flex items-center justify-center bg-emerald-100">
-          <Activity size={14} className="text-emerald-600" />
-        </div>
-        <div>
-          <p className="text-xs font-bold text-slate-800">Annual Simulation</p>
-          <p className="text-[10px] text-slate-400">Final exported output files</p>
-        </div>
-        <Badge className="ml-auto bg-emerald-100 text-emerald-700 border-emerald-200 text-[9px]">✓ Ready</Badge>
-      </div>
 
       {/* Account & Location File Previews (Collapsible) */}
       <div className="mt-4 space-y-2 border-t border-slate-100 pt-3">
@@ -261,9 +210,11 @@ function FrequencyPanel({ uploadId, epFrequencyConfig, freqForm, setFreqForm, on
 function FilePreviewAccordion({ title, icon: Icon, color, bg, border, downloadPath, uploadId, formatLabel, children }) {
   const [open, setOpen] = useState(false);
   const href = `${API_BASE}/api/${downloadPath}/${uploadId}?format=xlsx`;
-  const isAccount = downloadPath === 'download-account' || downloadPath === 'download-final-account';
-  const filePrefix = isAccount && formatLabel === 'RMS' ? 'contract_output' : isAccount ? 'account_output' : 'cat_output';
-  const filename = `${filePrefix}_${uploadId?.slice(0, 8)}.xlsx`;
+
+  const handleDownload = (e) => {
+    e.stopPropagation();
+    window.open(href, '_blank');
+  };
 
   return (
     <div className={cn("rounded-lg border overflow-hidden transition-all", border, bg)}>
@@ -279,15 +230,13 @@ function FilePreviewAccordion({ title, icon: Icon, color, bg, border, downloadPa
           {open ? <ChevronDown size={14} className={color} /> : <ChevronRight size={14} className={color} />}
         </button>
         {downloadPath && uploadId && (
-          <a
-            href={href}
-            download={filename}
+          <button
+            onClick={handleDownload}
             className="flex items-center gap-1.5 px-2 py-1 ml-2 bg-white rounded shadow-sm border border-black/10 text-[10px] font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors whitespace-nowrap"
             title={`Download ${formatLabel} file`}
-            onClick={(e) => e.stopPropagation()}
           >
             <Download size={10} /> XLSX
-          </a>
+          </button>
         )}
       </div>
       {open && (
