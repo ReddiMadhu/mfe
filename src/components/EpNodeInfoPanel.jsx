@@ -3,8 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import {
   MapPin, Building2, FileText, Activity, CloudRain,
   CheckCircle2, AlertCircle, Loader2, Database,
-  Hash, Cpu, Globe, BarChart3, ShieldCheck, ChevronDown, ChevronRight, Download,
+  Hash, Cpu, Globe, BarChart3, ShieldCheck, ChevronDown, ChevronRight, Download, X,
 } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,13 +20,13 @@ const CELL_CLASS   = 'px-3 py-2.5 border-b border-border/10 text-[11px] text-for
 const ROW_CLASS    = 'hover:bg-primary/5 transition-colors';
 
 // ── Live preview table (reused for location + account) ──────────────────────
-function LivePreviewTable({ uploadId, apiPath, color }) {
+function LivePreviewTable({ uploadId, apiPath, color, showSlipBadge = true }) {
   const { data, isLoading } = useQuery({
     queryKey: [apiPath, uploadId],
     queryFn: () => fetch(`${API_BASE}/api/${apiPath}/${uploadId}`).then(r => r.json()),
     enabled: !!uploadId,
-    staleTime: 0,       // Always re-fetch — slip data changes after apply
-    gcTime: 0,          // Don't keep stale data in cache
+    staleTime: 0,
+    gcTime: 0,
     refetchOnMount: true,
   });
 
@@ -80,18 +81,21 @@ function LivePreviewTable({ uploadId, apiPath, color }) {
 
   return (
     <div>
-      {/* Slip applied status badge */}
-      <div className="flex items-center gap-2 mb-2">
-        {data.slip_applied
-          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">✔ Slip Coding Applied</span>
-          : <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">⚠ No Slip Coding — showing base SOV data</span>
-        }
-        <span className="text-[9px] text-muted-foreground">{data.headers?.length} cols · {(data.new_sample ?? data.sample)?.length} rows</span>
-      </div>
+      {/* Slip applied status badge — only shown when showSlipBadge is true */}
+      {showSlipBadge && (
+        <div className="flex items-center gap-2 mb-2">
+          {data.slip_applied
+            ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">✔ Slip Coding Applied</span>
+            : <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">⚠ No Slip Coding — showing base SOV data</span>
+          }
+          <span className="text-[9px] text-muted-foreground">{data.headers?.length} cols · {(data.new_sample ?? data.sample)?.length} rows</span>
+        </div>
+      )}
       {renderTable(data.headers, data.new_sample ?? data.sample)}
     </div>
   );
 }
+
 
 
 // ── Stat row inside panel ───────────────────────────────────────────────────
@@ -111,31 +115,21 @@ function PanelStat({ icon: Icon, label, value, color = 'text-slate-500' }) {
 function LocationPanel({ uploadId, uploadMeta }) {
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-        <span className="font-medium">{uploadMeta?.row_count ?? '—'} rows</span>
-        <span>·</span>
-        <span>{uploadMeta?.headers?.length ?? '—'} columns</span>
-        <span>·</span>
-        <span className="text-emerald-600 font-medium">Geocoded &amp; Validated</span>
-      </div>
-      <LivePreviewTable uploadId={uploadId} apiPath="final-location" color="text-emerald-600" />
+      <LivePreviewTable uploadId={uploadId} apiPath="base-location" color="text-emerald-600" showSlipBadge={false} />
     </div>
   );
 }
+
 
 // ── Account panel — live table ──────────────────────────────────────────────
 function AccountPanel({ uploadId, uploadMeta }) {
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-        <span className="font-medium">{uploadMeta?.row_count ?? '—'} locations</span>
-        <span>·</span>
-        <span className="text-emerald-600 font-medium">Roll-up Ready</span>
-      </div>
-      <LivePreviewTable uploadId={uploadId} apiPath="final-account" color="text-emerald-600" />
+      <LivePreviewTable uploadId={uploadId} apiPath="base-account" color="text-emerald-600" showSlipBadge={false} />
     </div>
   );
 }
+
 
 function PolicyPanel({ uploadId, epPolicyFile, onUploadClick, isUploading }) {
   const { slipCodingResult, slipCodingStatus, slipPdfName } = usePipelineStore();
@@ -353,7 +347,7 @@ export default function EpNodeInfoPanel({
 
   return (
     <div className="animate-in slide-in-from-top-3 fade-in duration-300 rounded-2xl border border-slate-200 bg-white shadow-md overflow-hidden">
-      {/* Header bar — click the same node in AgentGraph to close */}
+      {/* Header bar — X button closes the panel */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-100 bg-slate-50/60">
         {meta && (
           <>
@@ -361,7 +355,13 @@ export default function EpNodeInfoPanel({
             <span className="text-[11px] font-bold uppercase tracking-widest text-slate-600">{meta.label}</span>
           </>
         )}
-        <span className="ml-auto text-[9px] text-slate-400 italic">Click node again to close</span>
+        <button
+          onClick={onClose}
+          className="ml-auto p-1 rounded hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors"
+          title="Close panel"
+        >
+          <X size={13} />
+        </button>
       </div>
 
       {/* Content */}

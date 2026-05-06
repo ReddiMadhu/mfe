@@ -147,15 +147,15 @@ export function DashboardView({ uploadId }) {
   });
 
   const { data: locPreview, isLoading: locLoading } = useQuery({
-    queryKey: ['preview-location', uploadId],
-    queryFn: () => fetch(`${API_BASE}/api/preview-location/${uploadId}`).then(res => res.json()),
+    queryKey: ['base-location', uploadId],
+    queryFn: () => fetch(`${API_BASE}/api/base-location/${uploadId}`).then(res => res.json()),
     enabled: !!uploadId,
     staleTime: 60_000,
   });
 
   const { data: accPreview, isLoading: accLoading } = useQuery({
-    queryKey: ['preview-account', uploadId],
-    queryFn: () => fetch(`${API_BASE}/api/preview-account/${uploadId}`).then(res => res.json()),
+    queryKey: ['base-account', uploadId],
+    queryFn: () => fetch(`${API_BASE}/api/base-account/${uploadId}`).then(res => res.json()),
     enabled: !!uploadId,
     staleTime: 60_000,
   });

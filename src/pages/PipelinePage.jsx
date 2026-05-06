@@ -973,19 +973,11 @@ export default function PipelinePage() {
           currentPipelineStep={step}
           isGeocodeDone={stepStatus.geocode === 'done'}
           onEpNodeClick={(id) => {
-            if (id === activeEpNode) {
-              // Toggling the same node off — restore previous wizard view
-              setActiveEpNode(null);
-              if (prevViewStepRef.current !== null) {
-                setActiveViewStep(prevViewStepRef.current);
-                prevViewStepRef.current = null;
-              }
-            } else {
-              // Opening a new EP node — save current view step and hide wizard sections
-              prevViewStepRef.current = activeViewStep;
-              setActiveEpNode(id);
-              setActiveViewStep(null);  // hides all Section cards
-            }
+            if (id === activeEpNode) return; // same node — do nothing; use ✕ button to close
+            // Opening a new EP node — save current view step and hide wizard sections
+            prevViewStepRef.current = activeViewStep;
+            setActiveEpNode(id);
+            setActiveViewStep(null);  // hides all Section cards
           }}
         />
         {/* Hidden policy upload input */}
