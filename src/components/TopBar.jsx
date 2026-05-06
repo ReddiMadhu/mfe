@@ -31,11 +31,7 @@ export default function TopBar() {
         </div>
       </button>
 
-      {/* Divider + subtle tagline */}
-      <div className="h-5 w-px bg-border ml-2 hidden sm:block" />
-      <span className="text-xs text-muted-foreground hidden sm:block">
-        CAT &amp; Underwriting Pipeline
-      </span>
+      {/* Removed Divider + subtle tagline */}
 
       <div className="ml-auto">
         <Button

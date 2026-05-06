@@ -54,9 +54,9 @@ function PipelineStage({ num, title, description, active, locked, onToggle, chil
           onClick={(locked || disabled) ? undefined : onToggle}
           disabled={locked || disabled}
           className={cn(
-            'w-6 h-6 rounded-[4px] flex items-center justify-center border-2 shrink-0 transition-all duration-200 shadow-sm',
+            'w-5 h-5 rounded-[4px] flex items-center justify-center border-2 shrink-0 transition-all duration-200 shadow-sm',
             active
-              ? 'border-primary bg-gradient-to-br from-primary to-primary/80 text-white'
+              ? 'border-primary bg-transparent text-primary'
               : disabled
                 ? 'border-slate-200 bg-slate-50 text-slate-300 cursor-not-allowed'
                 : 'border-slate-300 bg-white text-transparent hover:border-slate-400 cursor-pointer'
@@ -180,23 +180,16 @@ export default function AgentConfigPage() {
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
 
         {/* ── Left Column: Action Area ────────────────────── */}
-        <div className="lg:col-span-5 flex flex-col gap-6 lg:sticky lg:top-24">
+        <div className="lg:col-span-4 flex flex-col gap-6 lg:sticky lg:top-24">
           
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
-              Review & Launch
-            </h1>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Select your required target output format and review the pipeline architecture before initiating the modeling process.
-            </p>
-          </div>
+
 
           {/* Policy Slip Coding */}
-          <div className="glass-strong rounded-2xl border border-violet-200/60 p-5 shadow-sm">
+          <div className="glass-strong rounded-2xl border border-border/40 p-5 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
-              <FileText className="w-4 h-4 text-violet-500" />
+              <FileText className="w-4 h-4 text-foreground" />
               <h2 className="font-bold text-sm uppercase tracking-wide text-foreground">Policy Slip Coding</h2>
-              <Badge variant="outline" className="ml-auto text-[10px] border-violet-200 text-violet-500 bg-violet-50">Optional</Badge>
+              <Badge variant="outline" className="ml-auto text-[10px] border-slate-300 text-slate-500 bg-slate-50">Optional</Badge>
             </div>
             <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
               Upload an insurance policy slip PDF to extract terms (participation, limits, deductibles) — shown in the Insurance Terms node.
@@ -211,7 +204,7 @@ export default function AgentConfigPage() {
                 onClick={() => inputRef.current?.click()}
                 className={cn(
                   'border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all',
-                  dragging ? 'border-violet-400 bg-violet-50' : 'border-slate-200 hover:border-violet-300 hover:bg-violet-50/40',
+                  dragging ? 'border-primary bg-primary/5' : 'border-slate-200 hover:border-primary/30 hover:bg-primary/5',
                 )}
               >
                 <input ref={inputRef} type="file" accept=".pdf,application/pdf" className="hidden"
@@ -225,8 +218,8 @@ export default function AgentConfigPage() {
             {/* Extracting spinner */}
             {isRunning && (
               <div className="flex flex-col items-center gap-2 py-4">
-                <Loader2 size={24} className="text-violet-500 animate-spin" />
-                <p className="text-xs font-semibold text-violet-600">Extracting policy terms via AI…</p>
+                <Loader2 size={24} className="text-primary animate-spin" />
+                <p className="text-xs font-semibold text-primary">Extracting policy terms via AI…</p>
                 <p className="text-[10px] text-slate-400">This may take 15–30 seconds</p>
               </div>
             )}
@@ -260,9 +253,9 @@ export default function AgentConfigPage() {
                 {previewFields.length > 0 && (
                   <div className="grid grid-cols-2 gap-1">
                     {previewFields.map(f => (
-                      <div key={f.label} className="flex items-center justify-between bg-violet-50 border border-violet-100 rounded-md px-2 py-1">
-                        <code className="text-[9px] font-mono text-violet-600">{f.label}</code>
-                        <span className="text-[9px] font-bold text-violet-800 tabular-nums">{String(f.value)}</span>
+                      <div key={f.label} className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
+                        <code className="text-[9px] font-mono text-slate-600">{f.label}</code>
+                        <span className="text-[9px] font-bold text-slate-800 tabular-nums">{String(f.value)}</span>
                       </div>
                     ))}
                   </div>
@@ -309,11 +302,11 @@ export default function AgentConfigPage() {
                       className={cn(
                         'w-4 h-4 rounded-[4px] border-2 flex items-center justify-center transition-all shadow-sm',
                         targetFormat === fmt.id
-                          ? 'border-primary bg-gradient-to-br from-primary to-primary/80'
+                          ? 'border-primary bg-transparent'
                           : 'border-slate-300',
                       )}
                     >
-                      {targetFormat === fmt.id && <Check size={10} className="text-white" strokeWidth={3} />}
+                      {targetFormat === fmt.id && <Check size={10} className="text-primary" strokeWidth={3} />}
                     </div>
                   </div>
                   <span className="text-[11px] text-muted-foreground line-clamp-1 font-medium">{fmt.desc}</span>
@@ -340,7 +333,7 @@ export default function AgentConfigPage() {
         </div>
 
         {/* ── Right Column: Pipeline Architecture ─────────── */}
-        <div className="lg:col-span-7 flex flex-col pt-4 lg:pt-0">
+        <div className="lg:col-span-8 flex flex-col pt-4 lg:pt-0">
           <div className="flex items-center gap-2 mb-6 px-2">
             <Network className="w-4 h-4 text-slate-500" />
             <h2 className="font-bold text-sm uppercase tracking-wide text-primary">
@@ -418,7 +411,7 @@ export default function AgentConfigPage() {
                         className={cn(
                           "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-[10px] font-medium transition-all duration-200",
                           isSelected
-                            ? "border-primary bg-gradient-to-br from-primary to-primary/80 text-white shadow-sm"
+                            ? "bg-white border-primary text-primary shadow-sm"
                             : "bg-white border-slate-300 text-slate-700 shadow-sm hover:border-slate-400 hover:bg-slate-50"
                         )}
                       >
@@ -435,9 +428,9 @@ export default function AgentConfigPage() {
             <div className={cn("flex gap-4 relative group")}>
               <div className="flex flex-col items-center mt-5">
                 <div className={cn(
-                  'w-6 h-6 rounded-[4px] flex items-center justify-center border-2 shrink-0 transition-all duration-200 shadow-sm',
+                  'w-5 h-5 rounded-[4px] flex items-center justify-center border-2 shrink-0 transition-all duration-200 shadow-sm',
                   selectedAgents.sovCope
-                    ? 'border-purple-500 bg-gradient-to-br from-purple-500 to-purple-400 text-white'
+                    ? 'border-primary bg-transparent text-primary'
                     : 'border-slate-200 bg-slate-50 text-slate-300 cursor-not-allowed'
                 )}>
                   {selectedAgents.sovCope && <Check size={14} strokeWidth={4} />}
@@ -446,16 +439,16 @@ export default function AgentConfigPage() {
               <div className="flex-1 pb-6">
                 <div className={cn(
                   "rounded-2xl border p-5 transition-all duration-300",
-                  selectedAgents.sovCope ? 'glass-strong border-purple-200 shadow-sm' : 'glass border-border/40 opacity-50'
+                  selectedAgents.sovCope ? 'glass-strong border-slate-300 shadow-sm' : 'glass border-border/40 opacity-50'
                 )}>
                   <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
                     <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
-                      <TrendingUp size={16} className="text-purple-500" />
+                      <TrendingUp size={16} className="text-muted-foreground" />
                       3. EP Curve Generation
                     </h3>
                     <Badge variant="outline" className={cn("text-[10px]",
                       selectedAgents.sovCope
-                        ? "border-purple-300 text-purple-600 bg-purple-50"
+                        ? "border-slate-300 text-slate-500 bg-slate-50"
                         : "border-slate-300 text-slate-400")}>
                       {selectedAgents.sovCope ? 'Auto-enabled' : 'Requires SOV COPE'}
                     </Badge>
@@ -465,25 +458,18 @@ export default function AgentConfigPage() {
                   </p>
                   <div className="flex flex-wrap gap-1.5 pt-3 border-t border-border/40">
                     {[
-                      { label: 'Location File', badge: 'Auto-filled from SOV', color: 'emerald' },
-                      { label: 'Policy File', badge: 'Upload required', color: 'orange' },
-                      { label: 'Account File', badge: 'Auto-filled from SOV', color: 'emerald' },
-                      { label: 'Peril + Region', badge: 'From Hazard Assessment', color: 'emerald' },
-                      { label: 'Frequency Config', badge: 'Configure in pipeline', color: 'orange' },
+                      { label: 'Location File', badge: 'Auto-filled from SOV' },
+                      { label: 'Policy File', badge: 'Upload required' },
+                      { label: 'Account File', badge: 'Auto-filled from SOV' },
                     ].map((item) => (
                       <span key={item.label}
                         className={cn(
                           'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-semibold border transition-colors',
                           selectedAgents.sovCope
-                            ? item.color === 'emerald'
-                              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                              : 'bg-orange-50 border-orange-200 text-orange-700'
+                            ? 'bg-slate-100 border-slate-200 text-slate-800'
                             : 'bg-muted/50 border-border/30 text-muted-foreground'
                         )}
                       >
-                        <span className={cn('w-1.5 h-1.5 rounded-full',
-                          item.color === 'emerald' ? 'bg-emerald-500' : 'bg-orange-500'
-                        )} />
                         {item.label}
                         <span className="text-[8px] font-normal opacity-70 ml-0.5">— {item.badge}</span>
                       </span>

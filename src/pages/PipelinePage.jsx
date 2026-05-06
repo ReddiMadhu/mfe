@@ -961,7 +961,7 @@ export default function PipelinePage() {
   const sectionProps = { activeViewStep };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] p-6 w-full max-w-[1400px] mx-auto flex flex-col gap-5">
+    <div className="min-h-[calc(100vh-4rem)] p-6 w-full max-w-[1470px] mx-auto flex flex-col gap-5">
 
       {/* ── Agent Network ─────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-border/30 px-3 py-2 shadow-sm">
