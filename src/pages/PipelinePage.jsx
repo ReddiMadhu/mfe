@@ -559,6 +559,7 @@ function EpCurveStep({ uploadId, onDone }) {
     epPerilConfig, setEpPerilConfig,
     epCurveResult, setEpCurveResult,
     setStepStatus, stepStatus, uploadMeta,
+    slipCodingResult,
   } = usePipelineStore();
 
   const [freqForm, setFreqForm] = useState({
@@ -617,7 +618,7 @@ function EpCurveStep({ uploadId, onDone }) {
   // NOTE: This is intentionally a no-op at the EpCurveStep level.
   // The actual apply logic lives in the main PipelinePage component (see handleUploaded).
 
-  const policyReady = !!epPolicyFile?.row_count;
+  const policyReady = !!epPolicyFile?.row_count || !!slipCodingResult;
   const freqReady = !!epFrequencyConfig?.num_simulations;
   const perilReady = !!epPerilConfig;
   const readyCount = (sovDone ? 2 : 0) + (policyReady ? 1 : 0) + (perilReady ? 1 : 0) + (freqReady ? 1 : 0);
@@ -701,7 +702,9 @@ function EpCurveStep({ uploadId, onDone }) {
         {/* Policy File — orange */}
         <SubCard title="Insurance Terms (Policy File)" desc="Upload: Policy_ID, Account_ID, Limit, Deductible, Coverage_Type, Policy_Type" ready={policyReady} color="orange">
           {policyReady ? (
-            <p className="text-[10px] text-emerald-600 font-medium">{epPolicyFile.row_count} rows uploaded</p>
+            <p className="text-[10px] text-emerald-600 font-medium">
+              {slipCodingResult ? `AI Slip Coded — ${slipCodingResult.rms_account_file?.length ?? 0} peril rows` : `${epPolicyFile?.row_count} rows uploaded`}
+            </p>
           ) : (
             <div>
               <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
