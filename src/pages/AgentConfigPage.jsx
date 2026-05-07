@@ -179,165 +179,11 @@ export default function AgentConfigPage() {
     <div className="min-h-[calc(100vh-3.5rem)] flex items-center justify-center p-6 py-8">
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
 
-        {/* ── Left Column: Action Area ────────────────────── */}
-        <div className="lg:col-span-5 flex flex-col gap-6 lg:sticky lg:top-24">
-          
-
-
-          {/* Policy Slip Coding */}
-          <div className="glass-strong rounded-2xl border border-border/40 p-5 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <FileText className="w-4 h-4 text-foreground" />
-              <h2 className="font-bold text-sm uppercase tracking-wide text-foreground">Policy Slip Coding</h2>
-              <Badge variant="outline" className="ml-auto text-[10px] border-slate-300 text-slate-500 bg-slate-50">Optional</Badge>
-            </div>
-            <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-              Upload an insurance policy slip PDF to extract terms (participation, limits, deductibles) — shown in the Insurance Terms node.
-            </p>
-
-            {/* Drop zone */}
-            {!isDone && !isRunning && !isError && (
-              <div
-                onDragOver={e => { e.preventDefault(); setDragging(true); }}
-                onDragLeave={() => setDragging(false)}
-                onDrop={handleDrop}
-                onClick={() => inputRef.current?.click()}
-                className={cn(
-                  'border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all',
-                  dragging ? 'border-primary bg-primary/5' : 'border-slate-200 hover:border-primary/30 hover:bg-primary/5',
-                )}
-              >
-                <input ref={inputRef} type="file" accept=".pdf,application/pdf" className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-                <FileText size={22} className="mx-auto text-slate-300 mb-1.5" />
-                <p className="text-xs font-semibold text-slate-500">Drop policy slip PDF</p>
-                <p className="text-[10px] text-slate-400">or click to browse · PDF only</p>
-              </div>
-            )}
-
-            {/* Extracting spinner */}
-            {isRunning && (
-              <div className="flex flex-col items-center gap-2 py-4">
-                <Loader2 size={24} className="text-primary animate-spin" />
-                <p className="text-xs font-semibold text-primary">Extracting policy terms via AI…</p>
-                <p className="text-[10px] text-slate-400">This may take 15–30 seconds</p>
-              </div>
-            )}
-
-            {/* Error state */}
-            {isError && (
-              <div className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 rounded-xl">
-                <AlertCircle size={14} className="text-rose-500 shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-xs font-semibold text-rose-700">Extraction failed</p>
-                  <p className="text-[10px] text-rose-600">Ensure the PDF has selectable text (not a scanned image).</p>
-                </div>
-                <button onClick={handleClear} className="text-slate-400 hover:text-rose-500"><X size={12} /></button>
-              </div>
-            )}
-
-            {/* Success summary */}
-            {isDone && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
-                  <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-bold text-emerald-700 truncate">{slipPdfName}</p>
-                    <p className="text-[10px] text-emerald-600">
-                      {slipCodingResult.rms_account_file?.length ?? 0} peril rows · {slipCodingResult.currency ?? 'USD'}
-                      {slipCodingResult.extraction_status === 'partial' && <span className="ml-1 text-amber-600">· partial</span>}
-                    </p>
-                  </div>
-                  <button onClick={handleClear} className="text-slate-400 hover:text-rose-500 ml-1"><X size={12} /></button>
-                </div>
-                {previewFields.length > 0 && (
-                  <div className="grid grid-cols-2 gap-1">
-                    {previewFields.map(f => (
-                      <div key={f.label} className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
-                        <code className="text-[9px] font-mono text-slate-600">{f.label}</code>
-                        <span className="text-[9px] font-bold text-slate-800 tabular-nums">{String(f.value)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Target Format */}
-          <div className="glass-strong rounded-2xl border border-primary/20 p-6 shadow-sm mt-2">
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <h2 className="font-bold text-sm uppercase tracking-wide text-foreground">
-                Required: Target Format
-              </h2>
-            </div>
-            <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-              This determines output column names, required code types, and post-processing validation rules.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              {[
-                { id: 'AIR', name: 'AIR Touchstone', desc: 'Occupancy / Construction' },
-                { id: 'RMS', name: 'RMS RiskLink', desc: 'OCCTYPE / BLDGCLASS' },
-              ].map((fmt) => (
-                <button
-                  key={fmt.id}
-                  onClick={() => setTargetFormat(fmt.id)}
-                  className={cn(
-                    'flex-1 flex flex-col rounded-xl border-2 p-4 text-left transition-all duration-200',
-                    targetFormat === fmt.id
-                      ? 'border-primary bg-primary/5 shadow-sm'
-                      : 'border-border/50 bg-background hover:border-primary/30 hover:bg-primary/[0.02]',
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className={cn(
-                      'text-sm font-bold uppercase tracking-wide',
-                      targetFormat === fmt.id ? 'text-primary' : 'text-foreground/80',
-                    )}>
-                      {fmt.id}
-                    </span>
-                    <div
-                      className={cn(
-                        'w-4 h-4 rounded-[4px] border-2 flex items-center justify-center transition-all shadow-sm',
-                        targetFormat === fmt.id
-                          ? 'border-primary bg-transparent'
-                          : 'border-slate-300',
-                      )}
-                    >
-                      {targetFormat === fmt.id && <Check size={10} className="text-primary" strokeWidth={3} />}
-                    </div>
-                  </div>
-                  <span className="text-[11px] text-muted-foreground line-clamp-1 font-medium">{fmt.desc}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Launch CTA */}
-          <div className="mt-2">
-            <Button
-              onClick={handleLaunch}
-              variant="outline"
-              size="lg"
-              className="w-full bg-white text-primary border-2 border-primary font-bold h-14 rounded-xl text-base shadow-sm hover:bg-primary/5 hover:-translate-y-0.5 transition-all"
-            >
-              Launch Pipeline
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-            <p className="text-center text-[11px] text-muted-foreground mt-3 font-medium">
-              {selectedCount} active agent{selectedCount !== 1 ? 's' : ''}  ·  {targetFormat} schema
-            </p>
-          </div>
-        </div>
-
         {/* ── Right Column: Pipeline Architecture ─────────── */}
         <div className="lg:col-span-7 flex flex-col pt-4 lg:pt-0">
           <div className="flex items-center gap-2 mb-6 px-2">
-            <Network className="w-4 h-4 text-slate-500" />
             <h2 className="font-bold text-sm uppercase tracking-wide text-primary">
-              Select the Agents
+              Configure Agent Network
             </h2>
           </div>
 
@@ -480,6 +326,158 @@ export default function AgentConfigPage() {
             </PipelineStage>
           </div>
 
+        </div>
+
+        {/* ── Left Column: Action Area ────────────────────── */}
+        <div className="lg:col-span-5 flex flex-col gap-6 lg:sticky lg:top-24">
+          
+
+
+          {/* Policy Slip Coding */}
+          <div className="glass-strong rounded-2xl border border-border/40 p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <FileText className="w-4 h-4 text-foreground" />
+              <h2 className="font-bold text-sm uppercase tracking-wide text-foreground">Policy Slip Coding</h2>
+              <Badge variant="outline" className="ml-auto text-[10px] border-slate-300 text-slate-500 bg-slate-50">Optional</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+              Upload an insurance policy slip PDF to extract terms (participation, limits, deductibles) — shown in the Insurance Terms node.
+            </p>
+
+            {/* Drop zone */}
+            {!isDone && !isRunning && !isError && (
+              <div
+                onDragOver={e => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => inputRef.current?.click()}
+                className={cn(
+                  'border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all',
+                  dragging ? 'border-primary bg-primary/5' : 'border-slate-200 hover:border-primary/30 hover:bg-primary/5',
+                )}
+              >
+                <input ref={inputRef} type="file" accept=".pdf,application/pdf" className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+                <FileText size={22} className="mx-auto text-slate-300 mb-1.5" />
+                <p className="text-xs font-semibold text-slate-500">Drop policy slip PDF</p>
+                <p className="text-[10px] text-slate-400">or click to browse · PDF only</p>
+              </div>
+            )}
+
+            {/* Extracting spinner */}
+            {isRunning && (
+              <div className="flex flex-col items-center gap-2 py-4">
+                <Loader2 size={24} className="text-primary animate-spin" />
+                <p className="text-xs font-semibold text-primary">Extracting policy terms via AI…</p>
+                <p className="text-[10px] text-slate-400">This may take 15–30 seconds</p>
+              </div>
+            )}
+
+            {/* Error state */}
+            {isError && (
+              <div className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 rounded-xl">
+                <AlertCircle size={14} className="text-rose-500 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-rose-700">Extraction failed</p>
+                  <p className="text-[10px] text-rose-600">Ensure the PDF has selectable text (not a scanned image).</p>
+                </div>
+                <button onClick={handleClear} className="text-slate-400 hover:text-rose-500"><X size={12} /></button>
+              </div>
+            )}
+
+            {/* Success summary */}
+            {isDone && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                  <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-bold text-emerald-700 truncate">{slipPdfName}</p>
+                    <p className="text-[10px] text-emerald-600">
+                      {slipCodingResult.rms_account_file?.length ?? 0} peril rows · {slipCodingResult.currency ?? 'USD'}
+                      {slipCodingResult.extraction_status === 'partial' && <span className="ml-1 text-amber-600">· partial</span>}
+                    </p>
+                  </div>
+                  <button onClick={handleClear} className="text-slate-400 hover:text-rose-500 ml-1"><X size={12} /></button>
+                </div>
+                {previewFields.length > 0 && (
+                  <div className="grid grid-cols-2 gap-1">
+                    {previewFields.map(f => (
+                      <div key={f.label} className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
+                        <code className="text-[9px] font-mono text-slate-600">{f.label}</code>
+                        <span className="text-[9px] font-bold text-slate-800 tabular-nums">{String(f.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Target Format */}
+          <div className="glass-strong rounded-2xl border border-primary/20 p-6 shadow-sm mt-2">
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <h2 className="font-bold text-sm uppercase tracking-wide text-foreground">
+                Required: Target Format
+              </h2>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+              This determines output column names, required code types, and post-processing validation rules.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              {[
+                { id: 'AIR', name: 'AIR Touchstone', desc: 'Occupancy / Construction' },
+                { id: 'RMS', name: 'RMS RiskLink', desc: 'OCCTYPE / BLDGCLASS' },
+              ].map((fmt) => (
+                <button
+                  key={fmt.id}
+                  onClick={() => setTargetFormat(fmt.id)}
+                  className={cn(
+                    'flex-1 flex flex-col rounded-xl border-2 p-4 text-left transition-all duration-200',
+                    targetFormat === fmt.id
+                      ? 'border-primary bg-primary/5 shadow-sm'
+                      : 'border-border/50 bg-background hover:border-primary/30 hover:bg-primary/[0.02]',
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className={cn(
+                      'text-sm font-bold uppercase tracking-wide',
+                      targetFormat === fmt.id ? 'text-primary' : 'text-foreground/80',
+                    )}>
+                      {fmt.id}
+                    </span>
+                    <div
+                      className={cn(
+                        'w-4 h-4 rounded-[4px] border-2 flex items-center justify-center transition-all shadow-sm',
+                        targetFormat === fmt.id
+                          ? 'border-primary bg-transparent'
+                          : 'border-slate-300',
+                      )}
+                    >
+                      {targetFormat === fmt.id && <Check size={10} className="text-primary" strokeWidth={3} />}
+                    </div>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground line-clamp-1 font-medium">{fmt.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Launch CTA */}
+          <div className="mt-2">
+            <Button
+              onClick={handleLaunch}
+              size="lg"
+              className="w-full gradient-primary glow-primary text-white font-bold h-14 rounded-xl text-base shadow-sm hover:opacity-90 hover:-translate-y-0.5 transition-all"
+            >
+              Launch Pipeline
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+            <p className="text-center text-[11px] text-muted-foreground mt-3 font-medium">
+              {selectedCount} active agent{selectedCount !== 1 ? 's' : ''}  ·  {targetFormat} schema
+            </p>
+          </div>
         </div>
 
       </div>
