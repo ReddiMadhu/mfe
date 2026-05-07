@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import SlipCodingPanel from '@/components/SlipCodingPanel';
 import { usePipelineStore } from '@/store/usePipelineStore';
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -332,6 +333,9 @@ export default function EpNodeInfoPanel({
   isPolicyUploading,
   isFreqSaving,
 }) {
+  const navigate = useNavigate();
+  const { epCurveResult } = usePipelineStore();
+
   if (!nodeId) return null;
 
   const PANEL_META = {
@@ -394,8 +398,26 @@ export default function EpNodeInfoPanel({
           <PerilPanel epPerilConfig={epPerilConfig} stepStatus={stepStatus} />
         )}
         {nodeId === 'epCurve' && (
-          <div className="text-[11px] text-slate-400 italic py-2">
-            Final EP Curve output will appear here once all inputs are ready and the simulation runs.
+          <div className="py-2">
+            {!epCurveResult ? (
+              <div className="text-[11px] text-slate-400 italic">
+                Final EP Curve output will appear here once all inputs are ready and the simulation runs.
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-5 bg-violet-50/50 rounded-xl border border-violet-100/50">
+                <CheckCircle2 size={32} className="text-violet-500 mb-3" />
+                <p className="text-sm font-bold text-violet-900 mb-1">Pre-EP Modeling Output Ready</p>
+                <p className="text-[11px] text-violet-600/80 mb-4 text-center max-w-[280px]">
+                  The occurrence and aggregate exceedance probability curves have been generated successfully.
+                </p>
+                <Button 
+                  onClick={() => navigate(`/simulation/${uploadId}/dashboard`)} 
+                  className="gradient-primary glow-primary text-white h-9 px-5 rounded-lg text-xs font-semibold shadow-sm"
+                >
+                  View Full Dashboard <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

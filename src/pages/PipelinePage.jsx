@@ -582,37 +582,48 @@ function EpCurveStep({ uploadId, onDone }) {
     onError: (err) => toast.error(`Policy upload failed: ${err.message}`),
   });
 
-  // Frequency config save
-  const freqMutation = useMutation({
-    mutationFn: () => configureFrequency(uploadId, freqForm),
-    onSuccess: (data) => {
-      setEpFrequencyConfig(data.config);
-      toast.success('Frequency configuration saved');
-    },
-    onError: (err) => toast.error(`Config failed: ${err.message}`),
-  });
-
-  // Hazard Assessment auto-run
-  const hazardMutation = useMutation({
-    mutationFn: () => runEpHazardAssessment(uploadId),
-    onMutate: () => setStepStatus('epHazard', 'running'),
-    onSuccess: (data) => {
-      setStepStatus('epHazard', 'done');
-      setEpPerilConfig(data.peril_config);
-      toast.success('EP Hazard assessment completed');
-    },
-    onError: (err) => {
-      setStepStatus('epHazard', 'error');
-      toast.error(`Hazard assessment failed: ${err.message}`);
-    },
-  });
-
+  // Frequency config auto-run (Bypass useMutation to avoid Strict Mode unmount detachment)
+  const [freqStatus, setFreqStatus] = useState('idle');
   useEffect(() => {
-    if (sovDone && !epPerilConfig && stepStatus.epHazard !== 'running' && stepStatus.epHazard !== 'done' && stepStatus.epHazard !== 'error') {
-      hazardMutation.mutate();
+    if (sovDone && !epFrequencyConfig && freqStatus === 'idle') {
+      setFreqStatus('running');
+      
+      const runFreq = async () => {
+        try {
+          const data = await configureFrequency(uploadId, freqForm);
+          setEpFrequencyConfig(data.config);
+          setFreqStatus('done');
+          toast.success('Simulation parameters configured');
+        } catch (err) {
+          setFreqStatus('error');
+          toast.error(`Config failed: ${err.message}`);
+        }
+      };
+      
+      runFreq();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sovDone, epPerilConfig, stepStatus.epHazard]);
+  }, [sovDone, epFrequencyConfig, freqStatus, uploadId, freqForm, setEpFrequencyConfig]);
+
+  // Hazard Assessment auto-run (Bypass useMutation to avoid Strict Mode unmount detachment)
+  useEffect(() => {
+    if (sovDone && !epPerilConfig && stepStatus.epHazard === 'idle') {
+      setStepStatus('epHazard', 'running');
+      
+      const runHazard = async () => {
+        try {
+          const data = await runEpHazardAssessment(uploadId);
+          setStepStatus('epHazard', 'done');
+          setEpPerilConfig(data.peril_config);
+          toast.success('EP Hazard assessment completed');
+        } catch (err) {
+          setStepStatus('epHazard', 'error');
+          toast.error(`Hazard assessment failed: ${err.message}`);
+        }
+      };
+      
+      runHazard();
+    }
+  }, [sovDone, epPerilConfig, stepStatus.epHazard, setStepStatus, uploadId, setEpPerilConfig]);
 
   // Auto-apply slip coding result (extracted on Configure page) to session
   // NOTE: This is intentionally a no-op at the EpCurveStep level.
@@ -719,37 +730,15 @@ function EpCurveStep({ uploadId, onDone }) {
         </SubCard>
 
         {/* Frequency Config — orange */}
-        <SubCard title="Annual Simulation (Frequency Config)" desc="Configure simulation parameters." ready={freqReady} color="orange">
+        <SubCard title="Annual Simulation (Frequency Config)" desc="Simulation parameters (defaults applied)." ready={freqReady} color="orange">
           {freqReady ? (
-            <p className="text-[10px] text-emerald-600 font-medium">{epFrequencyConfig.num_simulations} sims · {epFrequencyConfig.time_horizon_years}yr · {epFrequencyConfig.frequency_model}</p>
+            <p className="text-[10px] text-emerald-600 font-medium">{epFrequencyConfig.num_simulations.toLocaleString()} sims · {epFrequencyConfig.time_horizon_years}yr · {epFrequencyConfig.frequency_model}</p>
+          ) : freqStatus === 'error' ? (
+            <p className="text-[10px] text-red-500 font-medium">Failed to configure simulation</p>
+          ) : freqStatus === 'running' ? (
+            <div className="flex items-center text-[10px] text-slate-500"><Loader2 className="w-3 h-3 mr-1 animate-spin" />Configuring parameters…</div>
           ) : (
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <label className="text-[9px] text-muted-foreground font-medium">Simulations</label>
-                  <input type="number" value={freqForm.num_simulations} onChange={e => setFreqForm(f => ({ ...f, num_simulations: +e.target.value }))}
-                    className="w-full h-7 px-2 text-[11px] rounded-md border border-border bg-background" />
-                </div>
-                <div className="flex-1">
-                  <label className="text-[9px] text-muted-foreground font-medium">Years</label>
-                  <input type="number" value={freqForm.time_horizon_years} onChange={e => setFreqForm(f => ({ ...f, time_horizon_years: +e.target.value }))}
-                    className="w-full h-7 px-2 text-[11px] rounded-md border border-border bg-background" />
-                </div>
-                <div className="flex-1">
-                  <label className="text-[9px] text-muted-foreground font-medium">Model</label>
-                  <select value={freqForm.frequency_model} onChange={e => setFreqForm(f => ({ ...f, frequency_model: e.target.value }))}
-                    className="w-full h-7 px-2 text-[11px] rounded-md border border-border bg-background">
-                    <option value="poisson">Poisson</option>
-                    <option value="negative_binomial">Neg. Binomial</option>
-                  </select>
-                </div>
-              </div>
-              <Button size="sm" variant="outline" onClick={() => freqMutation.mutate()}
-                disabled={freqMutation.isPending || freqForm.num_simulations <= 0}
-                className="h-7 text-[10px] font-semibold border-orange-300 text-orange-600 hover:bg-orange-50">
-                {freqMutation.isPending ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Saving…</> : 'Save Configuration'}
-              </Button>
-            </div>
+            <p className="text-[10px] text-slate-400 italic">Waiting for SOV completion...</p>
           )}
         </SubCard>
       </div>
