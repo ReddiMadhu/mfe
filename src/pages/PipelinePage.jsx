@@ -617,37 +617,35 @@ function EpCurveStep({ uploadId, onDone }) {
   // NOTE: This is intentionally a no-op at the EpCurveStep level.
   // The actual apply logic lives in the main PipelinePage component (see handleUploaded).
 
-  // Generate EP Curve
-  const generateMutation = useMutation({
-    mutationFn: async () => {
-      // 2-second delay to simulate the agents running
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      return generateEpCurve(uploadId);
-    },
-    onMutate: () => setStepStatus('epCurve', 'running'),
-    onSuccess: (data) => {
-      setStepStatus('epCurve', 'done');
-      setEpCurveResult(data);
-      toast.success('EP Curve generated');
-      onDone?.();
-    },
-    onError: (err) => { setStepStatus('epCurve', 'error'); toast.error(err.message); },
-  });
-
   const policyReady = !!epPolicyFile?.row_count;
   const freqReady = !!epFrequencyConfig?.num_simulations;
   const perilReady = !!epPerilConfig;
   const readyCount = (sovDone ? 2 : 0) + (policyReady ? 1 : 0) + (perilReady ? 1 : 0) + (freqReady ? 1 : 0);
   const allReady = sovDone && policyReady && freqReady && perilReady;
 
-  const autoRunStarted = useRef(false);
-
+  // Auto-generate EP Curve when all inputs are ready
   useEffect(() => {
-    if (allReady && !epCurveResult && !generateMutation.isPending && stepStatus.epCurve !== 'error' && !autoRunStarted.current) {
-      autoRunStarted.current = true;
-      generateMutation.mutate();
+    if (allReady && !epCurveResult && stepStatus.epCurve === 'idle') {
+      setStepStatus('epCurve', 'running');
+      
+      const run = async () => {
+        try {
+          // 2-second delay to simulate the agents running
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          const data = await generateEpCurve(uploadId);
+          setStepStatus('epCurve', 'done');
+          setEpCurveResult(data);
+          toast.success('EP Curve generated');
+          onDone?.();
+        } catch (err) {
+          setStepStatus('epCurve', 'error');
+          toast.error(err.message);
+        }
+      };
+      
+      run();
     }
-  }, [allReady, epCurveResult, generateMutation, stepStatus.epCurve]);
+  }, [allReady, epCurveResult, stepStatus.epCurve, setStepStatus, uploadId, setEpCurveResult, onDone]);
 
   const SubCard = ({ title, desc, ready, color, children }) => (
     <div className={cn(
