@@ -94,6 +94,16 @@ export const generateEpCurve = (uploadId) =>
 export const runEpHazardAssessment = (uploadId) =>
   req(`/ep-curve/run-hazard/${uploadId}`, { method: 'POST' });
 
+// ── Annual Simulation Dashboard ───────────────────────────────────────────────
+
+// Aggregated metrics for the 3 summary cards + EP curve result
+export const getSimulationSummary = (uploadId) =>
+  req(`/ep-curve/simulation-summary/${uploadId}`);
+
+// Full policy rows for the Policy data table
+export const getPolicyData = (uploadId) =>
+  req(`/ep-curve/policy-data/${uploadId}`);
+
 // ── Slip Coding ──────────────────────────────────────────────────────────────
 
 // Sessionless extraction — used on Configure page (no uploadId yet)

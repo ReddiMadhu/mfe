@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -619,7 +619,11 @@ function EpCurveStep({ uploadId, onDone }) {
 
   // Generate EP Curve
   const generateMutation = useMutation({
-    mutationFn: () => generateEpCurve(uploadId),
+    mutationFn: async () => {
+      // 2-second delay to simulate the agents running
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return generateEpCurve(uploadId);
+    },
     onMutate: () => setStepStatus('epCurve', 'running'),
     onSuccess: (data) => {
       setStepStatus('epCurve', 'done');
@@ -635,6 +639,15 @@ function EpCurveStep({ uploadId, onDone }) {
   const perilReady = !!epPerilConfig;
   const readyCount = (sovDone ? 2 : 0) + (policyReady ? 1 : 0) + (perilReady ? 1 : 0) + (freqReady ? 1 : 0);
   const allReady = sovDone && policyReady && freqReady && perilReady;
+
+  const autoRunStarted = useRef(false);
+
+  useEffect(() => {
+    if (allReady && !epCurveResult && !generateMutation.isPending && stepStatus.epCurve !== 'error' && !autoRunStarted.current) {
+      autoRunStarted.current = true;
+      generateMutation.mutate();
+    }
+  }, [allReady, epCurveResult, generateMutation, stepStatus.epCurve]);
 
   const SubCard = ({ title, desc, ready, color, children }) => (
     <div className={cn(
@@ -740,17 +753,38 @@ function EpCurveStep({ uploadId, onDone }) {
         </SubCard>
       </div>
 
-      {/* Readiness + Generate */}
+      {/* Readiness + Auto Generate Status */}
       <div className="flex items-center justify-between pt-2">
         <span className="text-xs text-muted-foreground font-medium">{readyCount}/5 inputs ready</span>
-        <Button onClick={() => generateMutation.mutate()}
-          disabled={!allReady || generateMutation.isPending}
-          className="gradient-primary glow-primary text-white font-semibold rounded-xl h-10 px-6 hover:opacity-90 transition-all disabled:opacity-40">
-          {generateMutation.isPending
-            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating…</>
-            : <><TrendingUp className="w-4 h-4 mr-2" />Generate EP Curve</>}
-        </Button>
+        {allReady && !epCurveResult && (
+          <div className="flex items-center gap-2 text-orange-600 font-semibold text-sm animate-in fade-in">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Executing Annual Simulation…</span>
+          </div>
+        )}
       </div>
+
+      {/* View Dashboard CTA — shown after successful generation */}
+      {epCurveResult && (
+        <div className="mt-2 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50/50 p-4 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0 shadow-sm">
+              <CheckCircle2 className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="font-bold text-sm text-emerald-900">EP Curve Generated Successfully</p>
+              <p className="text-xs text-emerald-600 mt-0.5">
+                {epFrequencyConfig?.num_simulations?.toLocaleString() ?? '—'} simulations · {epCurveResult.oep_curve?.length ?? 0} return periods
+              </p>
+            </div>
+          </div>
+          <Button asChild className="gradient-primary glow-primary text-white font-semibold rounded-xl h-9 px-5 hover:opacity-90 transition-all shrink-0">
+            <Link to={`/simulation/${uploadId}/dashboard`}>
+              View Dashboard <ArrowRight className="w-4 h-4 ml-1.5" />
+            </Link>
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
