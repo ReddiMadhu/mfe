@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
-  Upload, Link2, FileSpreadsheet, Tag, BarChart3, Globe, MapPin,
+  Upload, FileSpreadsheet, Tag, BarChart3, Globe, MapPin,
   CheckCircle2, Loader2, AlertCircle, Play, Brain, X,
   ArrowRight, Sparkles, Building2, Lock, ChevronUp, ChevronDown,
   TrendingUp, FileText, Activity, Check,
@@ -12,7 +12,7 @@ import {
   uploadFile, runGeocode,
   suggestColumns, confirmColumns, runMapCodes, runNormalizeValues, forgetMapping,
   uploadPolicyFile, configureFrequency, getEpCurveStatus, generateEpCurve, runEpHazardAssessment,
-  applySlipToSession,
+  applySlipToSession, extractSlipStandalone,
 } from '@/lib/api';
 import { usePipelineStore } from '@/store/usePipelineStore';
 import { useAgentStream } from '@/hooks/useAgentStream';
@@ -159,7 +159,6 @@ function DataPreviewTable({ headers, rows }) {
 
 // ── Step 1: Acquire Data ───────────────────────────────────────────────────
 function AcquireStep({ onStartPipeline }) {
-  const [tab, setTab] = useState('upload');
   const [file, setFile] = useState(null);
   const [dragging, setDragging] = useState(false);
   const { setUploadId, setUploadMeta, setStepStatus, uploadMeta, uploadId, clearPipelineExecution } = usePipelineStore();
@@ -168,7 +167,7 @@ function AcquireStep({ onStartPipeline }) {
   const uploadMutation = useMutation({
     mutationFn: (f) => uploadFile(f instanceof File ? f : file, 'AIR', {}),
     onSuccess: (data) => {
-      clearPipelineExecution(); // Cleans up stale statuses from previous runs
+      clearPipelineExecution();
       setUploadId(data.upload_id);
       setUploadMeta({ row_count: data.row_count, headers: data.headers, sample: data.sample ?? [] });
       toast.success(`${data.row_count} rows uploaded — review preview below`);
@@ -196,80 +195,40 @@ function AcquireStep({ onStartPipeline }) {
 
   // ── Pre-upload: file picker ──
   return (
-    <div className="space-y-5">
-      {/* Tabs */}
-      <div className="flex rounded-xl border border-border/40 overflow-hidden">
-        {[
-          { id: 'upload', label: 'Upload Excel / CSV', icon: Upload },
-          { id: 'xtracctio', label: 'Import from xtracctio.ai', icon: Link2 },
-        ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            className={cn(
-              'flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-medium transition-colors',
-              tab === t.id ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground',
-            )}>
-            <t.icon size={14} /> {t.label}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'upload' && (
-        <div
-          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={handleDrop}
-          onClick={() => inputRef.current?.click()}
-          className={cn(
-            'border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all',
-            dragging ? 'border-primary bg-primary/5' :
-              file ? 'border-emerald-500/50 bg-emerald-500/5' :
-                'border-border/40 hover:border-primary/40 hover:bg-primary/3',
-          )}
-        >
-          <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
-            onChange={e => {
-              const f = e.target.files?.[0];
-              if (f) {
-                setFile(f);
-                uploadMutation.mutate(f);
-              }
-            }} />
-          {file ? (
-            <div className="flex flex-col items-center gap-2">
-              {uploadMutation.isPending ? <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" /> : <FileSpreadsheet className="w-10 h-10 text-emerald-400" />}
-              <p className="font-semibold text-foreground">{file.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {uploadMutation.isPending ? 'Uploading...' : `${(file.size / 1024).toFixed(1)} KB`}
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-2">
-              <Upload className="w-10 h-10 text-muted-foreground/40" />
-              <p className="text-sm font-medium text-foreground">Drag & drop or <span className="text-primary underline">browse</span></p>
-              <p className="text-xs text-muted-foreground">CSV, XLSX, XLS supported</p>
-            </div>
-          )}
-        </div>
+    <div
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={handleDrop}
+      onClick={() => inputRef.current?.click()}
+      className={cn(
+        'border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all',
+        dragging ? 'border-primary bg-primary/5' :
+          file ? 'border-emerald-500/50 bg-emerald-500/5' :
+            'border-border/40 hover:border-primary/40 hover:bg-primary/3',
       )}
-
-      {tab === 'xtracctio' && (
-        <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">Paste your xtracctio.ai export URL or session reference:</p>
-          <input placeholder="https://app.xtracctio.ai/export/..."
-            className="w-full h-10 px-3 rounded-xl border border-border/50 bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
+    >
+      <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
+        onChange={e => {
+          const f = e.target.files?.[0];
+          if (f) {
+            setFile(f);
+            uploadMutation.mutate(f);
+          }
+        }} />
+      {file ? (
+        <div className="flex flex-col items-center gap-2">
+          {uploadMutation.isPending ? <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" /> : <FileSpreadsheet className="w-10 h-10 text-emerald-400" />}
+          <p className="font-semibold text-foreground">{file.name}</p>
+          <p className="text-xs text-muted-foreground">
+            {uploadMutation.isPending ? 'Uploading...' : `${(file.size / 1024).toFixed(1)} KB`}
+          </p>
         </div>
-      )}
-
-      {tab === 'xtracctio' && (
-        <Button
-          onClick={() => uploadMutation.mutate()}
-          disabled={uploadMutation.isPending}
-          className="w-full gradient-primary glow-primary text-white font-semibold rounded-xl h-11 hover:opacity-90 transition-all disabled:opacity-40"
-        >
-          {uploadMutation.isPending
-            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Uploading…</>
-            : <><Play className="w-4 h-4 mr-2" />Import Data</>}
-        </Button>
+      ) : (
+        <div className="flex flex-col items-center gap-2">
+          <Upload className="w-10 h-10 text-muted-foreground/40" />
+          <p className="text-sm font-medium text-foreground">Drag & drop or <span className="text-primary underline">browse</span></p>
+          <p className="text-xs text-muted-foreground">CSV, XLSX, XLS supported</p>
+        </div>
       )}
     </div>
   );
@@ -925,7 +884,10 @@ export default function PipelinePage() {
 
   // Auto-apply slip coding result (extracted on Configure page) to the new session.
   // Lives here (main PipelinePage) so it fires as soon as uploadId exists — not inside a conditional child component.
-  const { slipCodingResult } = usePipelineStore();
+  const {
+    slipCodingResult, slipCodingStatus, slipPdfName,
+    setSlipCodingResult, setSlipCodingStatus, setSlipPdfName,
+  } = usePipelineStore();
   useEffect(() => {
     if (activeId && slipCodingResult) {
       console.log('[SlipApply] Attempting to apply slip to session:', activeId, '| slip keys:', Object.keys(slipCodingResult));
@@ -945,6 +907,58 @@ export default function PipelinePage() {
   // Only re-run when the ID or the slip data changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId, slipCodingResult]);
+
+  // ── Slip Coding UI state (PDF upload in Upload SOV section) ──────────────────────────
+  const slipInputRef = useRef(null);
+  const [slipDragging, setSlipDragging] = useState(false);
+
+  const slipExtractMutation = useMutation({
+    mutationFn: (file) => extractSlipStandalone(file),
+    onMutate: () => { setSlipCodingStatus('running'); },
+    onSuccess: (data) => {
+      setSlipCodingResult(data);
+      setSlipCodingStatus('done');
+      setSlipPdfName(data.pdf_name || '');
+      toast.success(`Slip extracted — ${data.rms_account_file?.length ?? 0} peril rows`);
+    },
+    onError: (err) => {
+      setSlipCodingStatus('error');
+      toast.error(`Extraction failed: ${err.message}`);
+    },
+  });
+
+  const handleSlipFile = useCallback((file) => {
+    if (!file?.name?.toLowerCase().endsWith('.pdf')) {
+      toast.error('Please upload a PDF file.');
+      return;
+    }
+    setSlipPdfName(file.name);
+    slipExtractMutation.mutate(file);
+  }, [slipExtractMutation]);
+
+  const handleSlipDrop = useCallback((e) => {
+    e.preventDefault(); setSlipDragging(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) handleSlipFile(f);
+  }, [handleSlipFile]);
+
+  const handleSlipClear = () => {
+    setSlipCodingResult(null);
+    setSlipCodingStatus('idle');
+    setSlipPdfName(null);
+    if (slipInputRef.current) slipInputRef.current.value = '';
+  };
+
+  const isSlipRunning = slipCodingStatus === 'running';
+  const isSlipDone = slipCodingStatus === 'done' && !!slipCodingResult;
+  const isSlipError = slipCodingStatus === 'error';
+
+  const slipPreviewFields = isSlipDone ? [
+    { label: 'BLANLIMAMT', value: slipCodingResult.rms_account_file?.[0]?.BLANLIMAMT },
+    { label: 'PARTOF', value: slipCodingResult.rms_account_file?.[0]?.PARTOF },
+    { label: 'INCEPTDATE', value: slipCodingResult.rms_account_file?.[0]?.INCEPTDATE },
+    { label: 'EXPIREDATE', value: slipCodingResult.rms_account_file?.[0]?.EXPIREDATE },
+  ].filter(f => f.value != null) : [];
 
   // AgentGraph node click → navigate to that step's output (if reached)
   const handleNodeClick = useCallback((nodeStep) => {
@@ -1030,6 +1044,107 @@ export default function PipelinePage() {
         ) : null}
       >
         <AcquireStep onStartPipeline={handleUploaded} />
+
+        {/* ── AI Policy Slip Coding ── */}
+        <div className="mt-4 pt-4 border-t border-border/30">
+          <div className="relative overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-b from-white to-indigo-50/40 p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-indigo-200">
+            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-indigo-500/5 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-purple-500/5 blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 flex items-center gap-3 mb-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-100/80 text-indigo-600 shadow-sm border border-indigo-200/50">
+                <FileText className="w-3.5 h-3.5" />
+              </div>
+              <h3 className="font-bold text-sm uppercase tracking-wider text-indigo-950">AI Policy Slip Coding</h3>
+              <span className="ml-auto text-[10px] border border-indigo-200/80 text-indigo-600 bg-indigo-50/80 font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Optional</span>
+            </div>
+            <p className="relative z-10 text-xs text-slate-500 mb-4 leading-relaxed font-medium">
+              Upload an insurance policy slip PDF. Our AI extracts participation terms, limits, and deductibles.
+            </p>
+
+            {/* Drop zone */}
+            {!isSlipDone && !isSlipRunning && !isSlipError && (
+              <div
+                onDragOver={e => { e.preventDefault(); setSlipDragging(true); }}
+                onDragLeave={() => setSlipDragging(false)}
+                onDrop={handleSlipDrop}
+                onClick={() => slipInputRef.current?.click()}
+                className={cn(
+                  'relative z-10 group overflow-hidden rounded-xl border-2 border-dashed p-5 text-center cursor-pointer transition-all duration-300',
+                  slipDragging
+                    ? 'border-indigo-400 bg-indigo-50/80 scale-[1.02] shadow-inner'
+                    : 'border-indigo-200 bg-white/60 hover:border-indigo-300 hover:bg-indigo-50/50'
+                )}
+              >
+                <input ref={slipInputRef} type="file" accept=".pdf,application/pdf" className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleSlipFile(f); }} />
+                <div className={cn(
+                  'mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full transition-transform duration-300',
+                  slipDragging ? 'bg-indigo-200 scale-110' : 'bg-indigo-100/80 group-hover:scale-110 group-hover:bg-indigo-200/80'
+                )}>
+                  <Upload className={cn('h-4 w-4 transition-colors duration-300', slipDragging ? 'text-indigo-700' : 'text-indigo-600')} />
+                </div>
+                <p className="text-[12px] font-bold text-indigo-900 mb-0.5">{slipDragging ? 'Drop to upload' : 'Click or drag PDF here'}</p>
+                <p className="text-[10px] font-medium text-slate-400">Max 50MB · PDF only</p>
+              </div>
+            )}
+
+            {/* Spinner */}
+            {isSlipRunning && (
+              <div className="relative z-10 flex items-center gap-3 p-4 rounded-xl border border-indigo-100 bg-white/80 shadow-sm">
+                <div className="relative shrink-0">
+                  <div className="h-10 w-10 rounded-full border-4 border-indigo-100" />
+                  <div className="absolute inset-0 h-10 w-10 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
+                  <Sparkles size={14} className="absolute inset-0 m-auto text-indigo-500 animate-pulse" />
+                </div>
+                <div>
+                  <p className="text-[12px] font-bold text-indigo-900">AI is reading document...</p>
+                  <p className="text-[10px] text-indigo-500 font-medium">Extracting complex peril terms</p>
+                </div>
+              </div>
+            )}
+
+            {/* Error */}
+            {isSlipError && (
+              <div className="relative z-10 flex items-start gap-3 p-3.5 bg-rose-50/80 border border-rose-200 rounded-xl">
+                <AlertCircle size={15} className="text-rose-500 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-[12px] font-bold text-rose-900">Extraction failed</p>
+                  <p className="text-[10px] text-rose-700 font-medium">Ensure the PDF has selectable text and try again.</p>
+                </div>
+                <button onClick={handleSlipClear} className="rounded-full p-1 text-rose-400 hover:bg-rose-100 transition-colors">
+                  <X size={13} strokeWidth={2.5} />
+                </button>
+              </div>
+            )}
+
+            {/* Success */}
+            {isSlipDone && (
+              <div className="relative z-10 space-y-2">
+                <div className="flex items-center gap-3 p-3 bg-white border border-emerald-200/80 rounded-xl shadow-sm">
+                  <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-bold text-emerald-950 truncate">{slipPdfName}</p>
+                    <p className="text-[10px] text-emerald-600 font-semibold">{slipCodingResult.rms_account_file?.length ?? 0} peril rows · {slipCodingResult.currency ?? 'USD'}</p>
+                  </div>
+                  <button onClick={handleSlipClear} className="rounded-full p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-colors">
+                    <X size={13} strokeWidth={2.5} />
+                  </button>
+                </div>
+                {slipPreviewFields.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {slipPreviewFields.map(f => (
+                      <div key={f.label} className="flex flex-col bg-white border border-slate-200/70 rounded-lg p-2 hover:border-indigo-200 transition-all group">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 group-hover:text-indigo-400">{f.label}</span>
+                        <span className="text-[12px] font-bold text-slate-700 tabular-nums truncate">{String(f.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </Section>
 
       <Section {...sectionProps} stepNum={2} title="1 - Data Agent" icon={MapPin}

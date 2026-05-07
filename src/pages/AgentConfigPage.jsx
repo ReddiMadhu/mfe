@@ -1,17 +1,12 @@
-import { useState, useRef, useCallback } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight, MapPin, Tag, ShieldCheck, CloudRain, Layers, Eye,
-  TrendingUp, Award, Lock, Check, Sparkles, Settings2, BarChart3,
-  FileOutput, Network, FileText, Upload, Loader2, X, AlertCircle, CheckCircle2,
+  TrendingUp, Award, Check, Sparkles, Settings2, FileOutput, BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { usePipelineStore } from '@/store/usePipelineStore';
 import { cn } from '@/lib/utils';
-import { extractSlipStandalone } from '@/lib/api';
 
 // ── Agent definitions ──────────────────────────────────────────────────────────
 
@@ -118,62 +113,7 @@ export default function AgentConfigPage() {
 
   const selectedCount = 1 + (selectedAgents.sovCope ? 1 : 0) + uwCheckedCount;
 
-  // ── Slip Coding state ────────────────────────────────────────────────────────
-  const {
-    slipCodingResult, slipCodingStatus, slipPdfName,
-    setSlipCodingResult, setSlipCodingStatus, setSlipPdfName,
-  } = usePipelineStore();
 
-  const inputRef = useRef(null);
-  const [dragging, setDragging] = useState(false);
-
-  const extractMutation = useMutation({
-    mutationFn: (file) => extractSlipStandalone(file),
-    onMutate: () => { setSlipCodingStatus('running'); },
-    onSuccess: (data) => {
-      setSlipCodingResult(data);
-      setSlipCodingStatus('done');
-      setSlipPdfName(data.pdf_name || '');
-      toast.success(`Slip extracted — ${data.rms_account_file?.length ?? 0} peril rows`);
-    },
-    onError: (err) => {
-      setSlipCodingStatus('error');
-      toast.error(`Extraction failed: ${err.message}`);
-    },
-  });
-
-  const handleFile = useCallback((file) => {
-    if (!file?.name?.toLowerCase().endsWith('.pdf')) {
-      toast.error('Please upload a PDF file.');
-      return;
-    }
-    setSlipPdfName(file.name);
-    extractMutation.mutate(file);
-  }, [extractMutation]);
-
-  const handleDrop = useCallback((e) => {
-    e.preventDefault(); setDragging(false);
-    const f = e.dataTransfer.files?.[0];
-    if (f) handleFile(f);
-  }, [handleFile]);
-
-  const handleClear = () => {
-    setSlipCodingResult(null);
-    setSlipCodingStatus('idle');
-    setSlipPdfName(null);
-    if (inputRef.current) inputRef.current.value = '';
-  };
-
-  const isRunning = slipCodingStatus === 'running';
-  const isDone = slipCodingStatus === 'done' && !!slipCodingResult;
-  const isError = slipCodingStatus === 'error';
-
-  const previewFields = isDone ? [
-    { label: 'BLANLIMAMT', value: slipCodingResult.rms_account_file?.[0]?.BLANLIMAMT },
-    { label: 'PARTOF', value: slipCodingResult.rms_account_file?.[0]?.PARTOF },
-    { label: 'INCEPTDATE', value: slipCodingResult.rms_account_file?.[0]?.INCEPTDATE },
-    { label: 'EXPIREDATE', value: slipCodingResult.rms_account_file?.[0]?.EXPIREDATE },
-  ].filter(f => f.value != null) : [];
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] flex items-center justify-center p-6 py-8">
@@ -333,129 +273,49 @@ export default function AgentConfigPage() {
 
 
 
-          {/* Policy Slip Coding */}
-          <div className="relative overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-b from-white to-indigo-50/40 p-6 shadow-sm transition-all duration-300 hover:shadow-md hover:border-indigo-200">
+          {/* View Ontology */}
+          <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-slate-300">
             {/* Subtle background decoration */}
-            <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-indigo-500/5 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-purple-500/5 blur-3xl pointer-events-none" />
+            <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-slate-100/60 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-slate-100/60 blur-3xl pointer-events-none" />
 
             <div className="relative z-10 flex items-center gap-3 mb-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100/80 text-indigo-600 shadow-sm border border-indigo-200/50">
-                <FileText className="w-4 h-4" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500 shadow-sm border border-slate-200">
+                <BookOpen className="w-4 h-4" />
               </div>
-              <h2 className="font-bold text-sm uppercase tracking-wider text-indigo-950">AI Policy Slip Coding</h2>
-              <Badge variant="outline" className="ml-auto text-[10px] border-indigo-200/80 text-indigo-600 bg-indigo-50/80 font-bold shadow-sm uppercase tracking-wide">
-                Optional
+              <h2 className="font-bold text-sm uppercase tracking-wider text-slate-700">Ontology & Rules</h2>
+              <Badge variant="outline" className="ml-auto text-[10px] border-slate-200 text-slate-500 bg-slate-50 font-bold shadow-sm uppercase tracking-wide">
+                Reference
               </Badge>
             </div>
-            <p className="relative z-10 text-xs text-slate-500 mb-5 leading-relaxed pr-2 font-medium">
-              Upload an insurance policy slip PDF. Our AI automatically extracts participation terms, limits, and deductibles to feed the Insurance Terms node.
+            <p className="relative z-10 text-xs text-slate-400 mb-4 leading-relaxed pr-2 font-medium">
+              Browse the COPE dictionary, normalization rules, and geocoding settings that drive the AI agent mapping logic.
             </p>
 
-            {/* Drop zone */}
-            {!isDone && !isRunning && !isError && (
-              <div
-                onDragOver={e => { e.preventDefault(); setDragging(true); }}
-                onDragLeave={() => setDragging(false)}
-                onDrop={handleDrop}
-                onClick={() => inputRef.current?.click()}
-                className={cn(
-                  'relative z-10 group overflow-hidden rounded-xl border-2 border-dashed p-6 text-center cursor-pointer transition-all duration-300',
-                  dragging 
-                    ? 'border-indigo-400 bg-indigo-50/80 scale-[1.02] shadow-inner' 
-                    : 'border-indigo-200 bg-white/60 hover:border-indigo-300 hover:bg-indigo-50/50'
-                )}
-              >
-                <input ref={inputRef} type="file" accept=".pdf,application/pdf" className="hidden"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-                <div className={cn(
-                  "mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full transition-transform duration-300",
-                  dragging ? "bg-indigo-200 scale-110" : "bg-indigo-100/80 group-hover:scale-110 group-hover:bg-indigo-200/80"
-                )}>
-                  <Upload className={cn("h-5 w-5 transition-colors duration-300", dragging ? "text-indigo-700" : "text-indigo-600")} />
-                </div>
-                <p className="text-[13px] font-bold text-indigo-900 mb-1">
-                  {dragging ? 'Drop to upload' : 'Click or drag PDF here'}
-                </p>
-                <p className="text-[11px] font-medium text-slate-400">Maximum file size 50MB</p>
-              </div>
-            )}
+            <button
+              onClick={() => navigate('/ontology')}
+              className="relative z-10 w-full flex items-center gap-3 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-bold border border-slate-200 hover:bg-slate-200 hover:border-slate-300 active:scale-[0.98] transition-all duration-200"
+            >
+              <BookOpen className="w-4 h-4 shrink-0 text-slate-500" />
+              <span>View Ontology</span>
+              <ArrowRight className="w-4 h-4 ml-auto shrink-0 text-slate-400" />
+            </button>
 
-            {/* Extracting spinner */}
-            {isRunning && (
-              <div className="relative z-10 flex flex-col items-center justify-center gap-4 py-8 rounded-xl border border-indigo-100 bg-white/80 shadow-sm backdrop-blur-sm">
-                <div className="relative flex items-center justify-center">
-                  <div className="absolute h-14 w-14 rounded-full border-4 border-indigo-100"></div>
-                  <div className="absolute h-14 w-14 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
-                  <Sparkles size={18} className="text-indigo-500 animate-pulse" />
+            <div className="relative z-10 mt-4 grid grid-cols-3 gap-2">
+              {[
+                { label: 'COPE Dictionary', color: 'bg-slate-50 border-slate-200 text-slate-500' },
+                { label: 'Normalization Rules', color: 'bg-slate-50 border-slate-200 text-slate-500' },
+                { label: 'Geocoding Info', color: 'bg-slate-50 border-slate-200 text-slate-500' },
+              ].map(item => (
+                <div key={item.label} className={`flex items-center justify-center text-center px-2 py-1.5 rounded-lg border text-[9px] font-bold uppercase tracking-wide ${item.color}`}>
+                  {item.label}
                 </div>
-                <div className="text-center">
-                  <p className="text-[13px] font-bold text-indigo-900">AI is reading document...</p>
-                  <p className="text-[11px] text-indigo-500 font-medium mt-1">Extracting complex peril terms</p>
-                </div>
-              </div>
-            )}
-
-            {/* Error state */}
-            {isError && (
-              <div className="relative z-10 flex items-start gap-3 p-4 bg-rose-50/80 backdrop-blur-sm border border-rose-200 rounded-xl shadow-sm">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-rose-100/80 text-rose-600 border border-rose-200">
-                  <AlertCircle size={16} strokeWidth={2.5} />
-                </div>
-                <div className="flex-1 pt-0.5">
-                  <p className="text-[13px] font-bold text-rose-900">Extraction failed</p>
-                  <p className="text-[11px] text-rose-700 mt-1 leading-relaxed font-medium">Ensure the PDF contains selectable text (not a flat scanned image) and try again.</p>
-                </div>
-                <button onClick={handleClear} className="rounded-full p-1.5 text-rose-400 hover:bg-rose-100 hover:text-rose-600 transition-colors">
-                  <X size={14} strokeWidth={2.5} />
-                </button>
-              </div>
-            )}
-
-            {/* Success summary */}
-            {isDone && (
-              <div className="relative z-10 space-y-3">
-                <div className="flex items-center gap-3 p-3.5 bg-white border border-emerald-200/80 rounded-xl shadow-sm relative overflow-hidden group hover:border-emerald-300 transition-colors">
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100/80 text-emerald-600 z-10 border border-emerald-200/50">
-                    <CheckCircle2 size={18} strokeWidth={2.5} />
-                  </div>
-                  <div className="flex-1 min-w-0 z-10">
-                    <p className="text-[13px] font-bold text-emerald-950 truncate mb-1">{slipPdfName}</p>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/50 px-2 py-0 text-[9px] font-bold uppercase tracking-wider">
-                        {slipCodingResult.rms_account_file?.length ?? 0} peril rows
-                      </Badge>
-                      <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider bg-emerald-50/50 px-1.5 py-0.5 rounded-md border border-emerald-100">
-                        {slipCodingResult.currency ?? 'USD'}
-                      </span>
-                      {slipCodingResult.extraction_status === 'partial' && (
-                        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200/50 flex items-center gap-1 uppercase tracking-wider">
-                          <AlertCircle size={10} /> Partial
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <button onClick={handleClear} className="z-10 rounded-full p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-colors ml-1">
-                    <X size={14} strokeWidth={2.5} />
-                  </button>
-                </div>
-                {previewFields.length > 0 && (
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {previewFields.map(f => (
-                      <div key={f.label} className="flex flex-col bg-white border border-slate-200/70 rounded-lg p-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all hover:border-indigo-200 hover:shadow-md group">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1 group-hover:text-indigo-400 transition-colors">{f.label}</span>
-                        <span className="text-[13px] font-bold text-slate-700 tabular-nums truncate group-hover:text-indigo-950 transition-colors">{String(f.value)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+              ))}
+            </div>
           </div>
 
           {/* Target Format */}
-          <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-white via-slate-50 to-primary/5 p-6 shadow-md mt-4 transition-all duration-300">
+          <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-white via-slate-50 to-primary/5 p-6 shadow-md mt-2 transition-all duration-300">
             {/* Glow blobs */}
             <div className="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
             <div className="absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
