@@ -738,14 +738,7 @@ export default function PipelinePage() {
   const {
     epPolicyFile, uploadMeta: epUploadMeta,
   } = usePipelineStore();
-  const [epFreqForm, setEpFreqForm] = useState({ num_simulations: 10000, time_horizon_years: 1, frequency_model: 'poisson' });
   const epPolicyInputRef = useRef(null);
-
-  const epFreqMutation = useMutation({
-    mutationFn: () => configureFrequency(activeId, epFreqForm),
-    onSuccess: (data) => { setEpFrequencyConfig(data.config); toast.success('Frequency configuration saved'); },
-    onError: (err) => toast.error(`Config failed: ${err.message}`),
-  });
 
   const { setEpPolicyFile } = usePipelineStore();
   const epPolicyMutation = useMutation({
