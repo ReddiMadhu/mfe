@@ -968,15 +968,9 @@ export default function PipelinePage() {
           uploadId={activeId}
           uploadMeta={epUploadMeta}
           epPolicyFile={epPolicyFile}
-          epFrequencyConfig={epFrequencyConfig}
-          epPerilConfig={epPerilConfig}
           stepStatus={stepStatus}
-          freqForm={epFreqForm}
-          setFreqForm={setEpFreqForm}
           onPolicyUploadClick={() => epPolicyInputRef.current?.click()}
-          onFreqSave={() => epFreqMutation.mutate()}
           isPolicyUploading={epPolicyMutation.isPending}
-          isFreqSaving={epFreqMutation.isPending}
         />
       )}
 
