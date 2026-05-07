@@ -2,7 +2,7 @@ import { useMemo, useState, useRef, useEffect } from 'react';
 import {
   FileSpreadsheet, MapPin, Tag, BarChart3, FileOutput,
   ShieldCheck, CloudRain, Layers, Eye, TrendingUp, Award,
-  Loader2, Check, Lock, AlertCircle, Play,
+  Loader2, Check, Lock, AlertCircle, Play, Sparkles,
   ChevronRight, CheckCircle, XCircle, Percent, Hash,
   Cpu, Zap, Database, FileText, Building2, Activity,
 } from 'lucide-react';
@@ -23,21 +23,21 @@ const EXP_RUNNING_H = 116;
 const NODE_DEFS = [
   { id: 'upload',      label: 'Upload SOV',            icon: FileSpreadsheet, agentKey: 'upload',          color: '#3b82f6' },
   { id: 'geocode',     label: '1 - Data Agent',         icon: MapPin,          agentKey: 'geocoder',        color: '#0ea5e9' },
-  { id: 'catMap',      label: 'Occupancy & Construction Mapping',   icon: Tag,             agentKey: 'cat_code_mapper', color: '#8b5cf6' },
+  { id: 'catMap',      label: 'Occupancy & Construction Mapping',   icon: Sparkles,             agentKey: 'cat_code_mapper', color: '#8b5cf6' },
   { id: 'cope',        label: '6 - Real time CAT Event Assessment',      icon: ShieldCheck,     agentKey: 'cope_triage',     color: '#f59e0b' },
   { id: 'hazards',     label: '3 - Hazard Assessment',      icon: CloudRain,       agentKey: 'hazard_data',     color: '#ef4444' },
   { id: 'geospatial',  label: '4 - Geospatial Data',        icon: Layers,          agentKey: 'geospatial_data', color: '#10b981' },
-  { id: 'catNorm',     label: 'Value Normalization',    icon: BarChart3,       agentKey: 'cat_normalizer',  color: '#f97316' },
+  { id: 'catNorm',     label: 'Value Normalization',    icon: Sparkles,       agentKey: 'cat_normalizer',  color: '#f97316' },
   { id: 'objAnalysis', label: '5 - Property Computer Vision',       icon: Eye,             agentKey: 'object_detection',color: '#ec4899' },
   { id: 'catOut',      label: 'Output Formatting',      icon: FileOutput,      agentKey: 'cat_output',      color: '#64748b' },
   { id: 'riskModel',   label: '7 - Property Vulnerability Risk', icon: TrendingUp, agentKey: 'risk_model',      color: '#4f46e5' },
   { id: 'propensity',  label: '8 - Quote Propensity',       icon: Award,           agentKey: 'quote_propensity',color: '#f43f5e' },
-  // ── EP Curve Generation sub-agents ──
+  // ── Pre-EP Curve Modeling Ready sub-agents ──
   { id: 'epLocation',  label: 'Exposure & Geography',   icon: MapPin,    agentKey: 'ep_location',  color: '#10b981', epSource: 'sov'    },
-  { id: 'epPolicy',    label: 'Insurance Terms',        icon: FileText,  agentKey: 'ep_policy',    color: '#f97316', epSource: 'input'  },
+  { id: 'epPolicy',    label: 'Insurance Terms',        icon: Sparkles,  agentKey: 'ep_policy',    color: '#f97316', epSource: 'input'  },
   { id: 'epAccount',   label: 'Portfolio Roll-up',      icon: Building2, agentKey: 'ep_account',   color: '#10b981', epSource: 'sov'    },
   { id: 'epFrequency', label: 'Annual Simulation',       icon: Activity,  agentKey: 'ep_frequency', color: '#f97316', epSource: 'input'  },
-  { id: 'epCurve',     label: 'EP Curve Output',         icon: TrendingUp,agentKey: 'ep_curve_out', color: '#7c3aed' },
+  { id: 'epCurve',     label: 'Pre-EP Modeling Output',         icon: TrendingUp,agentKey: 'ep_curve_out', color: '#7c3aed' },
 ];
 
 const NODE_STEP_MAP = { upload: 1, geocode: 2, catMap: 7, catNorm: 8, catOut: 9, epCurve: 10 };
@@ -59,7 +59,7 @@ const EDGES = [
   { from: 'geospatial', to: 'riskModel'   }, // was: geospatial → objAnalysis
   { from: 'objAnalysis',to: 'riskModel'   },
   { from: 'riskModel',  to: 'propensity'  },
-  // EP Curve edges — Annual Simulation is the convergence node; EP Curve is final output
+  // Pre-EP Curve edges — Annual Simulation is the convergence node; Pre-EP Curve is final output
   { from: 'catOut',     to: 'epLocation'  },
   { from: 'catOut',     to: 'epAccount'   },
   { from: 'epLocation', to: 'epFrequency' },
@@ -267,7 +267,7 @@ const NODE_SUMMARY = {
     ],
   }),
 
-  // ── EP Curve sub-agent summaries ──
+  // ── Pre-EP Curve sub-agent summaries ──
   epLocation: (r) => ({
     headline: 'Location file from SOV.',
     stats: [
@@ -306,7 +306,7 @@ const NODE_SUMMARY = {
     ],
   }),
   epCurve: (r) => ({
-    headline: r?.status === 'complete' ? 'EP Curve generated.' : 'Waiting for all inputs.',
+    headline: r?.status === 'complete' ? 'Pre-EP Modeling ready.' : 'Waiting for all inputs.',
     stats: [
       { icon: TrendingUp,  label: 'OEP',  value: safe(r?.oep_count), color: 'text-violet-500' },
       { icon: TrendingUp,  label: 'AEP',  value: safe(r?.aep_count), color: 'text-purple-500' },
@@ -536,7 +536,7 @@ export default function AgentGraph({
     if (nodeId === 'upload' || nodeId === 'geocode') return false;
     // SOV COPE group
     if (['catMap', 'catNorm', 'catOut'].includes(nodeId)) return !selectedAgents.sovCope;
-    // EP Curve nodes — always visible when sovCope is selected
+    // Pre-EP Curve nodes — always visible when sovCope is selected
     if (EP_NODE_IDS.has(nodeId)) return !selectedAgents.sovCope;
     // UW agents map directly
     if (selectedAgents[nodeId] !== undefined) return !selectedAgents[nodeId];
@@ -626,7 +626,7 @@ export default function AgentGraph({
     const lowestY = uwTop + uw_ry_obj;
     const dataY = Math.round((catNodeTop + lowestY) / 2);
 
-    // EP Curve Geometry — new column to the right
+    // Pre-EP Curve Geometry — new column to the right
     const epNW = 120;
     const epNH = 28;
     const epWX  = NX3 + 185;   // wrapper left (reduced gap to UW/CAT)
@@ -656,7 +656,7 @@ export default function AgentGraph({
         riskModel:   { left: NX2,  top: uwTop + uw_ry_risk },
         propensity:  { left: NX3,  top: uwTop + uw_ry_risk },
 
-        // EP Curve sub-agents — left stack (input nodes) + convergence (Annual Simulation) + final output (EP Curve)
+        // Pre-EP Curve sub-agents — left stack (input nodes) + convergence (Annual Simulation) + final output (EP Curve)
         epLocation:  { left: epNX, top: epTop + 10 },
         epAccount:   { left: epNX, top: epTop + 10 + epRowGap },
         epPolicy:    { left: epNX, top: epTop + 10 + epRowGap * 2 },
@@ -801,7 +801,7 @@ export default function AgentGraph({
           </div>
         </div>
 
-        {/* EP Curve Generation wrapper */}
+        {/* Pre-EP Curve Generation wrapper */}
         {selectedAgents.sovCope && (
           <div
             className={cn('absolute border border-dashed rounded-2xl transition-all duration-500 ease-in-out',
@@ -811,7 +811,7 @@ export default function AgentGraph({
             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-auto">
               <div className={cn('text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm ring-4 ring-[#f9fafb]',
                 currentPipelineStep >= 9 ? 'text-purple-700 border-purple-200 bg-white' : 'text-slate-500 border-slate-200 bg-slate-50')}>
-                3. EP CURVE
+                3. PRE-EP CURVE MODELING READY
               </div>
             </div>
             <div className="absolute top-0 right-4 -translate-y-1/2 z-20 pointer-events-auto">

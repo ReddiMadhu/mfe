@@ -28,8 +28,8 @@ const SOV_COPE_AGENT = {
   desc: 'Produces AIR/RMS-ready output with AI-assisted column mapping, occupancy & construction coding, and value normalization.',
   icon: Tag,
   steps: [
-    { label: 'Occupancy & Construction Mapping', icon: Tag },
-    { label: 'Value Normalization', icon: BarChart3 },
+    { label: 'Occupancy & Construction Mapping', icon: Sparkles },
+    { label: 'Value Normalization', icon: Sparkles },
     { label: 'Output Formatting', icon: FileOutput },
   ],
 };
@@ -380,10 +380,65 @@ export default function AgentConfigPage() {
               </div>
             </PipelineStage>
 
-            {/* Stage 3: Underwriting Suite (Coming Soon) */}
+            {/* Stage 3: Pre-EP Curve Modeling Ready — auto-enabled with SOV COPE */}
+            <div className={cn("flex gap-4 relative group")}>
+              <div className="flex flex-col items-center mt-5">
+                <div className={cn(
+                  'w-5 h-5 rounded-[4px] flex items-center justify-center border-2 shrink-0 transition-all duration-200 shadow-sm',
+                  selectedAgents.sovCope
+                    ? 'border-primary bg-transparent text-primary'
+                    : 'border-slate-200 bg-slate-50 text-slate-300 cursor-not-allowed'
+                )}>
+                  {selectedAgents.sovCope && <Check size={14} strokeWidth={4} />}
+                </div>
+              </div>
+              <div className="flex-1 pb-6">
+                <div className={cn(
+                  "rounded-2xl border p-5 transition-all duration-300",
+                  selectedAgents.sovCope ? 'glass-strong border-slate-300 shadow-sm' : 'glass border-border/40 opacity-50'
+                )}>
+                  <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
+                    <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
+                      <TrendingUp size={16} className="text-muted-foreground" />
+                      3. Pre-EP Curve Modeling Ready
+                    </h3>
+                    <Badge variant="outline" className={cn("text-[10px]",
+                      selectedAgents.sovCope
+                        ? "border-slate-300 text-slate-500 bg-slate-50"
+                        : "border-slate-300 text-slate-400")}>
+                      {selectedAgents.sovCope ? 'Auto-enabled' : 'Requires SOV COPE'}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                    Prepares Exceedance Probability curves (OEP/AEP) modeling inputs from SOV exposure data, policy terms, and hazard assessment results.
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 pt-3 border-t border-border/40">
+                    {[
+                      { label: 'Location File', badge: 'Auto-filled from SOV' },
+                      { label: 'Policy File', badge: 'Upload required' },
+                      { label: 'Account File', badge: 'Auto-filled from SOV' },
+                    ].map((item) => (
+                      <span key={item.label}
+                        className={cn(
+                          'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-semibold border transition-colors',
+                          selectedAgents.sovCope
+                            ? 'bg-slate-100 border-slate-200 text-slate-800'
+                            : 'bg-muted/50 border-border/30 text-muted-foreground'
+                        )}
+                      >
+                        {item.label}
+                        <span className="text-[8px] font-normal opacity-70 ml-0.5">— {item.badge}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Stage 4: Underwriting Agent (Coming Soon) */}
             <PipelineStage
-              num={3}
-              title="Underwriting Suite"
+              num={4}
+              title="Underwriting Agent"
               description="Advanced real-time risk assessment, hazard overlays, and propensity scoring models."
               icon={ShieldCheck}
               active={isAnyUwActive}
@@ -423,61 +478,6 @@ export default function AgentConfigPage() {
                 </div>
               </div>
             </PipelineStage>
-
-            {/* EP Curve Generation — auto-enabled with SOV COPE */}
-            <div className={cn("flex gap-4 relative group")}>
-              <div className="flex flex-col items-center mt-5">
-                <div className={cn(
-                  'w-5 h-5 rounded-[4px] flex items-center justify-center border-2 shrink-0 transition-all duration-200 shadow-sm',
-                  selectedAgents.sovCope
-                    ? 'border-primary bg-transparent text-primary'
-                    : 'border-slate-200 bg-slate-50 text-slate-300 cursor-not-allowed'
-                )}>
-                  {selectedAgents.sovCope && <Check size={14} strokeWidth={4} />}
-                </div>
-              </div>
-              <div className="flex-1 pb-6">
-                <div className={cn(
-                  "rounded-2xl border p-5 transition-all duration-300",
-                  selectedAgents.sovCope ? 'glass-strong border-slate-300 shadow-sm' : 'glass border-border/40 opacity-50'
-                )}>
-                  <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
-                    <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
-                      <TrendingUp size={16} className="text-muted-foreground" />
-                      3. EP Curve Generation
-                    </h3>
-                    <Badge variant="outline" className={cn("text-[10px]",
-                      selectedAgents.sovCope
-                        ? "border-slate-300 text-slate-500 bg-slate-50"
-                        : "border-slate-300 text-slate-400")}>
-                      {selectedAgents.sovCope ? 'Auto-enabled' : 'Requires SOV COPE'}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                    Generates Exceedance Probability curves (OEP/AEP) from SOV exposure data, policy terms, and hazard assessment results.
-                  </p>
-                  <div className="flex flex-wrap gap-1.5 pt-3 border-t border-border/40">
-                    {[
-                      { label: 'Location File', badge: 'Auto-filled from SOV' },
-                      { label: 'Policy File', badge: 'Upload required' },
-                      { label: 'Account File', badge: 'Auto-filled from SOV' },
-                    ].map((item) => (
-                      <span key={item.label}
-                        className={cn(
-                          'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-semibold border transition-colors',
-                          selectedAgents.sovCope
-                            ? 'bg-slate-100 border-slate-200 text-slate-800'
-                            : 'bg-muted/50 border-border/30 text-muted-foreground'
-                        )}
-                      >
-                        {item.label}
-                        <span className="text-[8px] font-normal opacity-70 ml-0.5">— {item.badge}</span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
 
         </div>

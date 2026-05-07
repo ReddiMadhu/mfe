@@ -30,18 +30,6 @@ export default function TopBar() {
           </p>
         </div>
       </button>
-
-      {/* Removed Divider + subtle tagline */}
-
-      <div className="ml-auto">
-        <Button
-          variant="outline"
-          onClick={() => navigate('/ontology')}
-          className="border-2 border-primary text-primary hover:bg-primary/5 shadow-sm font-bold h-8 px-4"
-        >
-          Ontology
-        </Button>
-      </div>
     </header>
   );
 }
