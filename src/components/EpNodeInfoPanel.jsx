@@ -383,37 +383,24 @@ export default function EpNodeInfoPanel({
             isUploading={isPolicyUploading}
           />
         )}
-        {nodeId === 'epFrequency' && (
-          <FrequencyPanel
-            uploadId={uploadId}
-            epFrequencyConfig={epFrequencyConfig}
-            freqForm={freqForm}
-            setFreqForm={setFreqForm}
-            onSave={onFreqSave}
-            isSaving={isFreqSaving}
-          />
-        )}
-        {nodeId === 'epPeril' && (
-          <PerilPanel epPerilConfig={epPerilConfig} stepStatus={stepStatus} />
-        )}
         {nodeId === 'epCurve' && (
           <div className="py-2">
             {!epCurveResult ? (
               <div className="text-[11px] text-slate-400 italic">
-                Final EP Curve output will appear here once all inputs are ready and the simulation runs.
+                Final output will appear here once all inputs are ready.
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-5 bg-violet-50/50 rounded-xl border border-violet-100/50">
                 <CheckCircle2 size={32} className="text-violet-500 mb-3" />
-                <p className="text-sm font-bold text-violet-900 mb-1">Pre-EP Modeling Output Ready</p>
+                <p className="text-sm font-bold text-violet-900 mb-1">Annual Simulation Completed</p>
                 <p className="text-[11px] text-violet-600/80 mb-4 text-center max-w-[280px]">
-                  The occurrence and aggregate exceedance probability curves have been generated successfully.
+                  Final output file, location file, and account file generated successfully.
                 </p>
                 <Button 
                   onClick={() => navigate(`/simulation/${uploadId}/dashboard`)} 
                   className="gradient-primary glow-primary text-white h-9 px-5 rounded-lg text-xs font-semibold shadow-sm"
                 >
-                  View Full Dashboard <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                  View Simulation Dashboard <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
                 </Button>
               </div>
             )}

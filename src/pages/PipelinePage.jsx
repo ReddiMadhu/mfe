@@ -698,13 +698,13 @@ function EpCurveStep({ uploadId, onDone }) {
             <div>
               <p className="font-bold text-sm text-emerald-900">Annual Simulation Completed</p>
               <p className="text-xs text-emerald-600 mt-0.5">
-                Output ready for review
+                Final output file, location file, and account file generated.
               </p>
             </div>
           </div>
           <Button asChild className="gradient-primary glow-primary text-white font-semibold rounded-xl h-9 px-5 hover:opacity-90 transition-all shrink-0">
             <Link to={`/simulation/${uploadId}/dashboard`}>
-              View Dashboard <ArrowRight className="w-4 h-4 ml-1.5" />
+              View Simulation Dashboard <ArrowRight className="w-4 h-4 ml-1.5" />
             </Link>
           </Button>
         </div>
