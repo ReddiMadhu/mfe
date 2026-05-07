@@ -555,8 +555,6 @@ function NormalizeValuesStep({ uploadId, onDone, viewMode }) {
 function EpCurveStep({ uploadId, onDone }) {
   const {
     epPolicyFile, setEpPolicyFile,
-    epFrequencyConfig, setEpFrequencyConfig,
-    epPerilConfig, setEpPerilConfig,
     epCurveResult, setEpCurveResult,
     setStepStatus, stepStatus, uploadMeta,
     slipCodingResult,
@@ -582,62 +580,22 @@ function EpCurveStep({ uploadId, onDone }) {
     onError: (err) => toast.error(`Policy upload failed: ${err.message}`),
   });
 
-  // Frequency config auto-run (Bypass useMutation to avoid Strict Mode unmount detachment)
-  const [freqStatus, setFreqStatus] = useState('idle');
-  useEffect(() => {
-    if (sovDone && !epFrequencyConfig && freqStatus === 'idle') {
-      setFreqStatus('running');
-      
-      const runFreq = async () => {
-        try {
-          const data = await configureFrequency(uploadId, freqForm);
-          setEpFrequencyConfig(data.config);
-          setFreqStatus('done');
-          toast.success('Simulation parameters configured');
-        } catch (err) {
-          setFreqStatus('error');
-          toast.error(`Config failed: ${err.message}`);
-        }
-      };
-      
-      runFreq();
-    }
-  }, [sovDone, epFrequencyConfig, freqStatus, uploadId, freqForm, setEpFrequencyConfig]);
+  // (Frequency config removed as simulations are placeholders)
 
-  // Hazard Assessment auto-run (Bypass useMutation to avoid Strict Mode unmount detachment)
-  useEffect(() => {
-    if (sovDone && !epPerilConfig && stepStatus.epHazard === 'idle') {
-      setStepStatus('epHazard', 'running');
-      
-      const runHazard = async () => {
-        try {
-          const data = await runEpHazardAssessment(uploadId);
-          setStepStatus('epHazard', 'done');
-          setEpPerilConfig(data.peril_config);
-          toast.success('EP Hazard assessment completed');
-        } catch (err) {
-          setStepStatus('epHazard', 'error');
-          toast.error(`Hazard assessment failed: ${err.message}`);
-        }
-      };
-      
-      runHazard();
-    }
-  }, [sovDone, epPerilConfig, stepStatus.epHazard, setStepStatus, uploadId, setEpPerilConfig]);
+  // (Hazard Assessment removed per user request)
 
   // Auto-apply slip coding result (extracted on Configure page) to session
   // NOTE: This is intentionally a no-op at the EpCurveStep level.
   // The actual apply logic lives in the main PipelinePage component (see handleUploaded).
 
   const policyReady = !!epPolicyFile?.row_count || !!slipCodingResult;
-  const freqReady = !!epFrequencyConfig?.num_simulations;
-  const perilReady = !!epPerilConfig;
-  const readyCount = (sovDone ? 2 : 0) + (policyReady ? 1 : 0) + (perilReady ? 1 : 0) + (freqReady ? 1 : 0);
-  const allReady = sovDone && policyReady && freqReady && perilReady;
+  const readyCount = (sovDone ? 2 : 0) + (policyReady ? 1 : 0);
+  const allReady = sovDone && policyReady;
 
   // Auto-generate EP Curve when all inputs are ready
   useEffect(() => {
-    if (allReady && !epCurveResult && stepStatus.epCurve === 'idle') {
+    // Allow retry on 'error' (e.g. previous run failed when policy wasn't recognized)
+    if (allReady && !epCurveResult && (stepStatus.epCurve === 'idle' || stepStatus.epCurve === 'error')) {
       setStepStatus('epCurve', 'running');
       
       const run = async () => {
@@ -692,18 +650,6 @@ function EpCurveStep({ uploadId, onDone }) {
           {sovDone && <p className="text-[10px] text-emerald-600 font-medium">{uploadMeta?.row_count || '—'} rows from SOV Agent</p>}
         </SubCard>
 
-        {/* Peril + Region — green (from hazard assessment) */}
-        <SubCard title="Model Setup (Peril + Region)" desc="Auto-populated by EP Hazard Assessment." ready={perilReady} color="green">
-          {perilReady ? (
-            <p className="text-[10px] text-emerald-600 font-medium">Mapped to {epPerilConfig.earthquake_regions?.length + epPerilConfig.wind_regions?.length} regions</p>
-          ) : stepStatus.epHazard === 'running' ? (
-            <div className="flex items-center text-[10px] text-slate-500"><Loader2 className="w-3 h-3 mr-1 animate-spin" />Running assessment...</div>
-          ) : stepStatus.epHazard === 'error' ? (
-            <p className="text-[10px] text-red-500 font-medium">Failed to run assessment</p>
-          ) : (
-            <p className="text-[10px] text-slate-400 italic">Waiting for SOV completion...</p>
-          )}
-        </SubCard>
 
         {/* Account File — green */}
         <SubCard title="Portfolio Roll-up (Account File)" desc="Auto-populated from SOV COPE output." ready={sovDone} color="green">
@@ -729,23 +675,11 @@ function EpCurveStep({ uploadId, onDone }) {
           )}
         </SubCard>
 
-        {/* Frequency Config — orange */}
-        <SubCard title="Annual Simulation (Frequency Config)" desc="Simulation parameters (defaults applied)." ready={freqReady} color="orange">
-          {freqReady ? (
-            <p className="text-[10px] text-emerald-600 font-medium">{epFrequencyConfig.num_simulations.toLocaleString()} sims · {epFrequencyConfig.time_horizon_years}yr · {epFrequencyConfig.frequency_model}</p>
-          ) : freqStatus === 'error' ? (
-            <p className="text-[10px] text-red-500 font-medium">Failed to configure simulation</p>
-          ) : freqStatus === 'running' ? (
-            <div className="flex items-center text-[10px] text-slate-500"><Loader2 className="w-3 h-3 mr-1 animate-spin" />Configuring parameters…</div>
-          ) : (
-            <p className="text-[10px] text-slate-400 italic">Waiting for SOV completion...</p>
-          )}
-        </SubCard>
       </div>
 
       {/* Readiness + Auto Generate Status */}
       <div className="flex items-center justify-between pt-2">
-        <span className="text-xs text-muted-foreground font-medium">{readyCount}/5 inputs ready</span>
+        <span className="text-xs text-muted-foreground font-medium">{readyCount}/3 inputs ready</span>
         {allReady && !epCurveResult && (
           <div className="flex items-center gap-2 text-orange-600 font-semibold text-sm animate-in fade-in">
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -762,9 +696,9 @@ function EpCurveStep({ uploadId, onDone }) {
               <CheckCircle2 className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="font-bold text-sm text-emerald-900">EP Curve Generated Successfully</p>
+              <p className="font-bold text-sm text-emerald-900">Annual Simulation Completed</p>
               <p className="text-xs text-emerald-600 mt-0.5">
-                {epFrequencyConfig?.num_simulations?.toLocaleString() ?? '—'} simulations · {epCurveResult.oep_curve?.length ?? 0} return periods
+                Output ready for review
               </p>
             </div>
           </div>
@@ -802,8 +736,7 @@ export default function PipelinePage() {
   // Track the activeViewStep that was in place before an EP panel was opened so we can restore it on close
   const prevViewStepRef = useRef(null);
   const {
-    epPolicyFile, epFrequencyConfig, epPerilConfig,
-    setEpFrequencyConfig, uploadMeta: epUploadMeta,
+    epPolicyFile, uploadMeta: epUploadMeta,
   } = usePipelineStore();
   const [epFreqForm, setEpFreqForm] = useState({ num_simulations: 10000, time_horizon_years: 1, frequency_model: 'poisson' });
   const epPolicyInputRef = useRef(null);
@@ -1215,8 +1148,8 @@ export default function PipelinePage() {
           {step >= 9 && activeViewStep === 9 && <DashboardView uploadId={activeId} />}
 
           {step >= 9 && (
-            <Section {...sectionProps} stepNum={10} title="3. EP Curve Generation" icon={TrendingUp}>
-              <EpCurveStep uploadId={activeId} onDone={() => advance(11)} />
+            <Section {...sectionProps} stepNum={10} title="3. Annual Simulation" icon={TrendingUp}>
+              <EpCurveStep uploadId={activeId} onDone={() => setStep(11)} />
             </Section>
           )}
         </>

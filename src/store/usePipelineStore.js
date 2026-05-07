@@ -34,6 +34,7 @@ export const usePipelineStore = create(persist((set) => ({
     mapping: 'idle',
     mapCodes: 'idle',
     normalizeValues: 'idle',
+    epHazard: 'idle',
     epCurve: 'idle',
   },
 

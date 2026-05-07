@@ -166,7 +166,7 @@ export default function AgentConfigPage() {
               </div>
             </PipelineStage>
 
-            {/* Stage 3: Pre-EP Curve Modeling Ready — auto-enabled with SOV COPE */}
+            {/* Stage 3: Annual Simulation — auto-enabled with SOV COPE */}
             <div className={cn("flex gap-4 relative group")}>
               <div className="flex flex-col items-center mt-5">
                 <div className={cn(
@@ -186,7 +186,7 @@ export default function AgentConfigPage() {
                   <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
                     <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
                       <TrendingUp size={16} className="text-muted-foreground" />
-                      3. Pre-EP Curve Modeling Ready
+                      3. Annual Simulation
                     </h3>
                     <Badge variant="outline" className={cn("text-[10px]",
                       selectedAgents.sovCope
@@ -196,7 +196,7 @@ export default function AgentConfigPage() {
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                    Prepares Exceedance Probability curves (OEP/AEP) modeling inputs from SOV exposure data, policy terms, and hazard assessment results.
+                    Aggregates SOV exposure data, AI slip-coded terms, and hazard assessment results into the final downloadable dataset.
                   </p>
                   <div className="flex flex-wrap gap-1.5 pt-3 border-t border-border/40">
                     {[

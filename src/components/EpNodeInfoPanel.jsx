@@ -343,7 +343,6 @@ export default function EpNodeInfoPanel({
     epAccount:   { icon: Building2, label: 'Portfolio Roll-up',       color: 'text-emerald-600', ring: 'ring-emerald-200' },
     epPolicy:    { icon: FileText,  label: 'Insurance Terms',          color: 'text-orange-500',  ring: 'ring-orange-200'  },
     epFrequency: { icon: Activity,  label: 'Annual Simulation',        color: 'text-orange-500',  ring: 'ring-orange-200'  },
-    epPeril:     { icon: CloudRain, label: 'Model Setup (Peril)',      color: 'text-sky-600',     ring: 'ring-sky-200'     },
     epCurve:     { icon: BarChart3, label: 'EP Curve Output',          color: 'text-violet-600',  ring: 'ring-violet-200'  },
   };
 

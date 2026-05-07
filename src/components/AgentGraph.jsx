@@ -36,14 +36,13 @@ const NODE_DEFS = [
   { id: 'epLocation',  label: 'Exposure & Geography',   icon: MapPin,    agentKey: 'ep_location',  color: '#10b981', epSource: 'sov'    },
   { id: 'epPolicy',    label: 'Insurance Terms',        icon: Sparkles,  agentKey: 'ep_policy',    color: '#f97316', epSource: 'input'  },
   { id: 'epAccount',   label: 'Portfolio Roll-up',      icon: Building2, agentKey: 'ep_account',   color: '#10b981', epSource: 'sov'    },
-  { id: 'epFrequency', label: 'Annual Simulation',       icon: Activity,  agentKey: 'ep_frequency', color: '#f97316', epSource: 'input'  },
-  { id: 'epCurve',     label: 'Pre-EP Modeling Output',         icon: TrendingUp,agentKey: 'ep_curve_out', color: '#7c3aed' },
+  { id: 'epCurve',     label: 'Annual Simulation',        icon: TrendingUp,agentKey: 'ep_curve_out', color: '#7c3aed' },
 ];
 
 const NODE_STEP_MAP = { upload: 1, geocode: 2, catMap: 7, catNorm: 8, catOut: 9, epCurve: 10 };
 
 // EP node IDs for filtering
-const EP_NODE_IDS = new Set(['epLocation','epPolicy','epAccount','epFrequency','epCurve']);
+const EP_NODE_IDS = new Set(['epLocation','epPolicy','epAccount','epCurve']);
 
 const EDGES = [
   { from: 'upload',     to: 'geocode'     },
@@ -59,13 +58,12 @@ const EDGES = [
   { from: 'geospatial', to: 'riskModel'   }, // was: geospatial → objAnalysis
   { from: 'objAnalysis',to: 'riskModel'   },
   { from: 'riskModel',  to: 'propensity'  },
-  // Pre-EP Curve edges — Annual Simulation is the convergence node; Pre-EP Curve is final output
+  // Final Output convergence node
   { from: 'catOut',     to: 'epLocation'  },
   { from: 'catOut',     to: 'epAccount'   },
-  { from: 'epLocation', to: 'epFrequency' },
-  { from: 'epAccount',  to: 'epFrequency' },
-  { from: 'epPolicy',   to: 'epFrequency' },
-  { from: 'epFrequency',to: 'epCurve'     },
+  { from: 'epLocation', to: 'epCurve'     },
+  { from: 'epAccount',  to: 'epCurve'     },
+  { from: 'epPolicy',   to: 'epCurve'     },
 ];
 
 function makePath(fromDef, toDef, fromPos, toPos) {
@@ -298,15 +296,8 @@ const NODE_SUMMARY = {
       { icon: CheckCircle, label: 'Source',   value: 'Hazard Agent',      color: 'text-emerald-500' },
     ],
   }),
-  epFrequency: (r) => ({
-    headline: r?.num_simulations ? `${r.num_simulations} sims configured.` : 'Configuration required.',
-    stats: [
-      { icon: Activity,    label: 'Sims',    value: safe(r?.num_simulations), color: 'text-orange-500' },
-      { icon: AlertCircle, label: 'Status',   value: r?.num_simulations ? 'Set' : 'Required', color: r?.num_simulations ? 'text-emerald-500' : 'text-orange-500' },
-    ],
-  }),
   epCurve: (r) => ({
-    headline: r?.status === 'complete' ? 'Pre-EP Modeling ready.' : 'Waiting for all inputs.',
+    headline: r?.status === 'complete' ? 'Annual Simulation ready.' : 'Waiting for inputs.',
     stats: [
       { icon: TrendingUp,  label: 'OEP',  value: safe(r?.oep_count), color: 'text-violet-500' },
       { icon: TrendingUp,  label: 'AEP',  value: safe(r?.aep_count), color: 'text-purple-500' },
@@ -519,7 +510,6 @@ export default function AgentGraph({
   const uploadMeta        = usePipelineStore(s => s.uploadMeta);
   const selectedAgents    = usePipelineStore(s => s.selectedAgents);
   const epPolicyFile      = usePipelineStore(s => s.epPolicyFile);
-  const epFrequencyConfig = usePipelineStore(s => s.epFrequencyConfig);
   const slipCodingResult  = usePipelineStore(s => s.slipCodingResult);
   const slipCodingStatus  = usePipelineStore(s => s.slipCodingStatus);
 
@@ -561,9 +551,7 @@ export default function AgentGraph({
     if (nodeDef.id === 'epLocation' || nodeDef.id === 'epAccount') {
       return currentPipelineStep >= 9 ? 'done' : 'pending';
     }
-    if (nodeDef.id === 'epFrequency') {
-      return epFrequencyConfig?.num_simulations ? 'done' : 'pending';
-    }
+
     if (nodeDef.id === 'epPolicy') {
       if (slipCodingResult) return 'done';
       if (slipCodingStatus === 'running') return 'running';
@@ -656,12 +644,10 @@ export default function AgentGraph({
         riskModel:   { left: NX2,  top: uwTop + uw_ry_risk },
         propensity:  { left: NX3,  top: uwTop + uw_ry_risk },
 
-        // Pre-EP Curve sub-agents — left stack (input nodes) + convergence (Annual Simulation) + final output (EP Curve)
         epLocation:  { left: epNX, top: epTop + 10 },
         epAccount:   { left: epNX, top: epTop + 10 + epRowGap },
         epPolicy:    { left: epNX, top: epTop + 10 + epRowGap * 2 },
-        epFrequency: { left: epNX2, top: epTop + 10 + epRowGap },     // convergence node: centred vertically
-        epCurve:     { left: epNX2 + 144, top: epTop + 10 + epRowGap }, // final output, one column right
+        epCurve:     { left: epNX2, top: epTop + 10 + epRowGap }, // final output convergence
       },
       wrappers: {
         cat:          { left: WX, width: 576, top: catTop, height: catH },
@@ -811,7 +797,7 @@ export default function AgentGraph({
             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-auto">
               <div className={cn('text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm ring-4 ring-[#f9fafb]',
                 currentPipelineStep >= 9 ? 'text-purple-700 border-purple-200 bg-white' : 'text-slate-500 border-slate-200 bg-slate-50')}>
-                3. PRE-EP CURVE MODELING READY
+                3. ANNUAL SIMULATION
               </div>
             </div>
             <div className="absolute top-0 right-4 -translate-y-1/2 z-20 pointer-events-auto">
@@ -839,7 +825,7 @@ export default function AgentGraph({
         {/* Node cards — automatically transition positions spacing based on layout */}
         {NODE_DEFS.map(nodeDef => {
           const st = getStatus(nodeDef);
-          const isEpNode = ['epLocation', 'epAccount', 'epPolicy', 'epFrequency', 'epCurve'].includes(nodeDef.id);
+          const isEpNode = ['epLocation', 'epAccount', 'epPolicy', 'epCurve'].includes(nodeDef.id);
           const isExpanded = isLiveMode && !isEpNode && (st === 'done' || st === 'running');
           const pos = layout.nodes[nodeDef.id];
           const result =

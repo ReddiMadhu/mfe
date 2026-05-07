@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, Building2, MapPin, FileText, Download, Search,
+  ArrowLeft, Building2, MapPin, FileText, Search,
   ChevronUp, ChevronDown, ChevronsUpDown, BarChart3, TrendingUp,
   FileSpreadsheet, CheckCircle2, ChevronLeft, ChevronRight,
 } from 'lucide-react';
@@ -284,35 +284,6 @@ function DownloadBtn({ uploadId, fileKey, format, label, icon: Icon }) {
   );
 }
 
-// ── EP Curve table ────────────────────────────────────────────────────────────
-function EpTable({ title, data, colorClass }) {
-  if (!data?.length) return null;
-  return (
-    <div>
-      <p className={cn('text-[11px] font-bold uppercase tracking-[0.08em] mb-2', colorClass)}>{title}</p>
-      <div className="rounded-xl overflow-hidden border border-border/30">
-        <table className="w-full text-[12px] border-collapse">
-          <thead>
-            <tr className="bg-gradient-to-r from-slate-800 to-slate-700 text-white">
-              {['Return Period (yrs)', 'Exceedance Prob.', 'Loss Amount'].map(h => (
-                <th key={h} className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.07em] text-left whitespace-nowrap">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border/10">
-            {data.map((row, i) => (
-              <tr key={i} className={cn('hover:bg-indigo-50/40 transition-colors', i % 2 === 0 ? 'bg-white' : 'bg-slate-50/60')}>
-                <td className="px-4 py-2.5 font-mono tabular-nums font-semibold text-foreground">{fmtN.format(row.return_period)}</td>
-                <td className="px-4 py-2.5 font-mono tabular-nums text-foreground/70">{(row.exceedance_probability * 100).toFixed(4)}%</td>
-                <td className="px-4 py-2.5 font-mono tabular-nums font-semibold text-foreground">{fmt.format(row.loss_amount)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 const TABS = [
@@ -326,7 +297,6 @@ export default function SimulationDashboardPage() {
   const navigate = useNavigate();
   const { targetFormat } = usePipelineStore();
   const [activeTab, setActiveTab] = useState('account');
-  const [showEp, setShowEp] = useState(false);
 
   // ── Data fetching ──────────────────────────────────────────────────────────
   const { data: summary, isLoading: summaryLoading } = useQuery({
@@ -374,7 +344,6 @@ export default function SimulationDashboardPage() {
   const acc = summary?.account  ?? {};
   const loc = summary?.location ?? {};
   const pol = summary?.policy   ?? {};
-  const ep  = summary?.ep_curve ?? {};
 
   return (
     <div className="min-h-[calc(100vh-4rem)] p-6 w-full max-w-[1470px] mx-auto flex flex-col gap-6 animate-in fade-in duration-500">
@@ -395,7 +364,7 @@ export default function SimulationDashboardPage() {
           </div>
           <div>
             <h1 className="text-lg font-bold gradient-text leading-tight">Annual Simulation Results</h1>
-            <p className="text-[11px] text-muted-foreground">EP Curve Dashboard · {ep.num_simulations ? fmtN.format(ep.num_simulations) + ' simulations' : 'Loading…'}</p>
+            <p className="text-[11px] text-muted-foreground">EP Curve Dashboard</p>
           </div>
         </div>
         <div className="flex items-center gap-2 ml-auto">
@@ -488,34 +457,6 @@ export default function SimulationDashboardPage() {
           uploadId={uploadId}
           fileKey={activeTab}
         />
-      </div>
-
-      {/* ── EP Curve Summary ────────────────────────────────────────────── */}
-      <div className="glass rounded-2xl border border-border/30 shadow-sm overflow-hidden">
-        <button
-          onClick={() => setShowEp(p => !p)}
-          className="w-full flex items-center justify-between px-6 py-4 hover:bg-muted/20 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-primary" />
-            </div>
-            <div className="text-left">
-              <p className="font-bold text-sm text-foreground">EP Curve Summary</p>
-              <p className="text-[11px] text-muted-foreground">
-                {ep.num_simulations ? `${fmtN.format(ep.num_simulations)} simulations · ${ep.frequency_model} · ${ep.time_horizon_years}yr` : 'Click to expand'}
-              </p>
-            </div>
-          </div>
-          {showEp ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-        </button>
-
-        {showEp && (
-          <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
-            <EpTable title="OEP — Occurrence Exceedance Probability" data={ep.oep_curve} colorClass="text-primary" />
-            <EpTable title="AEP — Aggregate Exceedance Probability"  data={ep.aep_curve} colorClass="text-violet-500" />
-          </div>
-        )}
       </div>
 
     </div>
