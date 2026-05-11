@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import {
   Upload, FileSpreadsheet, Tag, BarChart3, Globe, MapPin,
   CheckCircle2, Loader2, AlertCircle, Play, Brain, X,
@@ -170,9 +169,8 @@ function AcquireStep({ onStartPipeline }) {
       clearPipelineExecution();
       setUploadId(data.upload_id);
       setUploadMeta({ row_count: data.row_count, headers: data.headers, sample: data.sample ?? [] });
-      toast.success(`${data.row_count} rows uploaded — review preview below`);
     },
-    onError: (err) => toast.error(`Upload failed: ${err.message}`),
+    onError: (err) => console.error(`Upload failed: ${err.message}`),
   });
 
   const handleDrop = useCallback((e) => {
@@ -347,16 +345,14 @@ function MappingStep({ uploadId, targetFormat, onDone }) {
     mutationFn: () => confirmColumns(uploadId, localMap),
     onSuccess: (result) => {
       setColumnMap(localMap);
-      result.warnings?.forEach(w => toast.warning(w));
-      toast.success(`${result.mapped_count} columns confirmed`);
       onDone();
     },
-    onError: (err) => toast.error(`Confirm failed: ${err.message}`),
+    onError: (err) => console.error(`Confirm failed: ${err.message}`),
   });
 
   const { mutate: forget } = useMutation({
     mutationFn: ({ sourceCol }) => forgetMapping(sourceCol, targetFormat),
-    onSuccess: () => toast.success('Memory cleared'),
+    onSuccess: () => {},
   });
 
   return (
@@ -478,10 +474,9 @@ function CodeMappingStep({ uploadId, onDone, viewMode }) {
       setStepStatus('mapCodes', 'done');
       if (data?.summary_text) setMapCodesSummaryText(data.summary_text);
       if (data?.diff_data) setMapCodesDiff(data.diff_data);
-      toast.success('Code mapping complete');
       onDone();
     },
-    onError: (err) => { setStepStatus('mapCodes', 'error'); toast.error(err.message); },
+    onError: (err) => { setStepStatus('mapCodes', 'error'); console.error(err.message); },
   });
 
   // isRunning: spinner only when API is actively in-flight
@@ -521,10 +516,9 @@ function NormalizeValuesStep({ uploadId, onDone, viewMode }) {
       setCatResult(data);
       if (data?.summary_text) setNormalizeSummaryText(data.summary_text);
       if (data?.diff_data) setNormalizeDiff(data.diff_data);
-      toast.success('Value normalization complete');
       onDone();
     },
-    onError: (err) => { setStepStatus('normalizeValues', 'error'); toast.error(err.message); },
+    onError: (err) => { setStepStatus('normalizeValues', 'error'); console.error(err.message); },
   });
 
   // isRunning: spinner only when API is actively in-flight
@@ -581,11 +575,10 @@ function EpCurveAutoRunner({ uploadId, onDone }) {
           const data = await generateEpCurve(uploadId);
           setStepStatus('epCurve', 'done');
           setEpCurveResult(data);
-          toast.success('Annual simulation complete — EP curve generated');
           onDone?.();
         } catch (err) {
           setStepStatus('epCurve', 'error');
-          toast.error(err.message);
+          console.error(err.message);
         }
       };
 
@@ -619,10 +612,8 @@ function EpCurveStep({ uploadId }) {
     mutationFn: (file) => uploadPolicyFile(uploadId, file),
     onSuccess: (data) => {
       setEpPolicyFile({ row_count: data.row_count, headers: data.headers, sample: data.sample, fileName: data.file_name });
-      toast.success(`Policy file uploaded — ${data.row_count} rows`);
-      if (data.validation_warnings?.length) data.validation_warnings.forEach(w => toast.warning(w));
     },
-    onError: (err) => toast.error(`Policy upload failed: ${err.message}`),
+    onError: (err) => console.error(`Policy upload failed: ${err.message}`),
   });
 
   // (Frequency config removed as simulations are placeholders)
@@ -765,9 +756,8 @@ export default function PipelinePage() {
     mutationFn: (file) => uploadPolicyFile(activeId, file),
     onSuccess: (data) => {
       setEpPolicyFile({ row_count: data.row_count, headers: data.headers, sample: data.sample, fileName: data.file_name });
-      toast.success(`Policy file uploaded — ${data.row_count} rows`);
     },
-    onError: (err) => toast.error(`Policy upload failed: ${err.message}`),
+    onError: (err) => console.error(`Policy upload failed: ${err.message}`),
   });
 
   const ViewToggle = ({ stepKey }) => (
@@ -804,15 +794,14 @@ export default function PipelinePage() {
       setStepStatus('geocode', 'done');
       setGeocodeResult(data);
       if (data?.diff_data) setGeocodeDiff(data.diff_data);
-      toast.success(`Geocoding complete — ${data.geocoded} geocoded`);
     },
     onError: (err) => {
       setStepStatus('geocode', 'error');
       const msg = err?.message || 'unknown error';
       if (msg.includes('not found') || msg.includes('404')) {
-        toast.error(`Geocoding failed: session missing or expired — re-upload your SOV. (${msg})`);
+        console.error(`Geocoding failed: session missing or expired — re-upload your SOV. (${msg})`);
       } else {
-        toast.error(`Geocoding failed: ${msg}`);
+        console.error(`Geocoding failed: ${msg}`);
       }
     },
   });
@@ -869,19 +858,17 @@ export default function PipelinePage() {
   useEffect(() => {
     if (activeId && slipCodingResult) {
       console.log('[SlipApply] Attempting to apply slip to session:', activeId, '| slip keys:', Object.keys(slipCodingResult));
-      toast.info('Applying Slip Coding to session…');
       applySlipToSession(activeId, slipCodingResult)
         .then((res) => {
           console.log('[SlipApply] ✅ Applied:', res);
           if (res?.ok === false) {
-            toast.error(`Slip could not be saved: ${res?.reason || 'session not found'} — re-upload SOV or refresh.`);
+            console.error(`Slip could not be saved: ${res?.reason || 'session not found'} — re-upload SOV or refresh.`);
             return;
           }
-          toast.success('Slip Coding applied to session');
         })
         .catch((err) => {
           console.error('[SlipApply] ❌ Failed:', err?.message || err);
-          toast.error(`Slip apply failed: ${err?.message || 'unknown error'}`);
+          console.error(`Slip apply failed: ${err?.message || 'unknown error'}`);
         });
     } else {
       console.log('[SlipApply] Skipped — activeId:', activeId, '| slipResult present:', !!slipCodingResult);
@@ -901,17 +888,15 @@ export default function PipelinePage() {
       setSlipCodingResult(data);
       setSlipCodingStatus('done');
       setSlipPdfName(data.pdf_name || '');
-      toast.success(`Slip extracted — ${data.rms_account_file?.length ?? 0} peril rows`);
     },
     onError: (err) => {
       setSlipCodingStatus('error');
-      toast.error(`Extraction failed: ${err.message}`);
+      console.error(`Extraction failed: ${err.message}`);
     },
   });
 
   const handleSlipFile = useCallback((file) => {
     if (!file?.name?.toLowerCase().endsWith('.pdf')) {
-      toast.error('Please upload a PDF file.');
       return;
     }
     setSlipPdfName(file.name);

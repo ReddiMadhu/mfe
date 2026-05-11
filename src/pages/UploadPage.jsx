@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { useMutation } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { Upload, FileSpreadsheet, X, ChevronRight, Settings2, Loader2 } from 'lucide-react';
 import { uploadFile } from '@/lib/api';
 import { usePipelineStore } from '@/store/usePipelineStore';
@@ -38,14 +37,13 @@ export default function UploadPage() {
     onSuccess: (data) => {
       setUploadId(data.upload_id);
       setUploadMeta(data);
-      toast.success(`Uploaded ${data.row_count} rows`);
       navigate(`/session/${data.upload_id}/processing`);
     },
-    onError: (err) => toast.error(`Upload failed: ${err.message}`),
+    onError: (err) => console.error(`Upload failed: ${err.message}`),
   });
 
   const onDrop = useCallback((accepted, rejected) => {
-    if (rejected.length > 0) { toast.error('Only CSV and XLSX files are accepted'); return; }
+    if (rejected.length > 0) { return; }
     const selectedFile = accepted[0];
     setFile(selectedFile);
     reset();

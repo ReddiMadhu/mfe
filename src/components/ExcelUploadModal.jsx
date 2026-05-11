@@ -6,7 +6,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 import DuplicateResolverModal from './DuplicateResolverModal';
 
 const API = import.meta.env.VITE_API_URL || '';
@@ -69,7 +68,6 @@ export default function ExcelUploadModal({ open, onClose, tab, format, onComplet
       const json = await res.json();
 
       if (!res.ok) {
-        toast.error(json.detail || 'Upload failed.');
         setUploading(false);
         return;
       }
@@ -77,7 +75,7 @@ export default function ExcelUploadModal({ open, onClose, tab, format, onComplet
       setResult(json);
       setStep(2);
     } catch (err) {
-      toast.error('Upload error: ' + err.message);
+      console.error('Upload error: ' + err.message);
     } finally {
       setUploading(false);
     }
@@ -85,7 +83,6 @@ export default function ExcelUploadModal({ open, onClose, tab, format, onComplet
 
   const handleCommitClean = useCallback(async (entries) => {
     if (!entries || Object.keys(entries).length === 0) {
-      toast.info('No entries to commit.');
       return;
     }
     setCommitting(true);
@@ -108,10 +105,10 @@ export default function ExcelUploadModal({ open, onClose, tab, format, onComplet
         setStep(4);
         onComplete?.();
       } else {
-        toast.error(json.detail || 'Commit failed.');
+        console.error(json.detail || 'Commit failed.');
       }
     } catch (err) {
-      toast.error('Commit error: ' + err.message);
+      console.error('Commit error: ' + err.message);
     } finally {
       setCommitting(false);
     }

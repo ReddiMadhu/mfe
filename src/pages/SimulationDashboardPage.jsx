@@ -1,7 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import {
   ArrowLeft, Building2, MapPin, FileText, Search,
   ChevronUp, ChevronDown, ChevronsUpDown, BarChart3, TrendingUp,
@@ -361,7 +360,6 @@ function DownloadBtn({ uploadId, fileKey, format, label, icon: Icon }) {
     <a
       href={getHref()}
       download={`${prefix}_${uploadId?.slice(0, 8)}.${ext}`}
-      onClick={() => toast.success(`${label} download started`)}
       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg gradient-primary text-white text-[11px] font-semibold hover:opacity-90 transition-all no-underline"
     >
       <Icon className="w-3.5 h-3.5" />

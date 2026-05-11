@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { Home, FileSpreadsheet, FileText, CheckCircle2, MapPin, DollarSign, Building2, TrendingUp } from 'lucide-react';
 import { getSlipSummary } from '@/lib/api';
 import { usePipelineStore } from '@/store/usePipelineStore';
@@ -98,7 +97,6 @@ function DownloadAction({ format, label, icon: Icon, uploadId, apiPath = 'downlo
       id={`btn-${apiPath}-${format}`}
       href={href}
       download={filename}
-      onClick={() => toast.success(`${label} download started`)}
       className="flex items-center gap-2 px-4 py-2 rounded-xl gradient-primary glow-primary-sm text-white text-[12px] font-semibold hover:opacity-90 hover:-translate-y-0.5 transition-all no-underline shrink-0 whitespace-nowrap"
     >
       <Icon className="w-3.5 h-3.5" />

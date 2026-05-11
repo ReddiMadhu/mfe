@@ -8,7 +8,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 import { usePipelineStore } from '@/store/usePipelineStore';
 import AddRowForm from './AddRowForm';
 import ExcelUploadModal from './ExcelUploadModal';
@@ -135,14 +134,13 @@ function CopeSection({ tab, format }) {
       });
       const json = await res.json();
       if (res.ok) {
-        toast.success(`Uploaded ${json.entries_uploaded} entries. ${json.entries_merged_live} merged live.`);
         fetchData();
         fetchVersions();
       } else {
-        toast.error(json.detail || 'Upload failed');
+        console.error(json.detail || 'Upload failed');
       }
     } catch (err) {
-      toast.error('Upload failed: ' + err.message);
+      console.error('Upload failed: ' + err.message);
     }
     e.target.value = '';
   };
@@ -151,12 +149,11 @@ function CopeSection({ tab, format }) {
     try {
       const res = await fetch(`${API}/api/ontology/versions/${tab.key}/${versionId}`, { method: 'DELETE' });
       if (res.ok) {
-        toast.success('Version deleted');
         fetchVersions();
         fetchData();
       }
     } catch (err) {
-      toast.error('Delete failed');
+      console.error('Delete failed');
     }
   };
 
@@ -169,14 +166,13 @@ function CopeSection({ tab, format }) {
         { method: 'DELETE' }
       );
       if (res.ok) {
-        toast.success(`Code "${entryCode}" deleted.`);
         fetchData();
       } else {
         const json = await res.json();
-        toast.error(json.detail || 'Delete failed.');
+        console.error(json.detail || 'Delete failed.');
       }
     } catch (err) {
-      toast.error('Delete failed: ' + err.message);
+      console.error('Delete failed: ' + err.message);
     }
   };
 
@@ -199,15 +195,14 @@ function CopeSection({ tab, format }) {
         }
       );
       if (res.ok) {
-        toast.success(`Code "${entryCode}" updated.`);
         setEditingCode(null);
         fetchData();
       } else {
         const json = await res.json();
-        toast.error(json.detail || 'Update failed.');
+        console.error(json.detail || 'Update failed.');
       }
     } catch (err) {
-      toast.error('Update failed: ' + err.message);
+      console.error('Update failed: ' + err.message);
     } finally {
       setEditSaving(false);
     }

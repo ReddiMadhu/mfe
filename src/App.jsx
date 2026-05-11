@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import TopBar from '@/components/TopBar';
 import HomePage from '@/pages/HomePage';
@@ -41,18 +40,6 @@ export default function App() {
               </Routes>
             </main>
           </div>
-          <Toaster
-            position="top-right"
-            richColors
-            closeButton
-            toastOptions={{
-              style: {
-                background: 'rgba(255,255,255,0.95)',
-                border: '1px solid #e5e7eb',
-                color: '#0f1117',
-              },
-            }}
-          />
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

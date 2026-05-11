@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import {
   MapPin, Globe, CheckCircle2, Loader2,
   ChevronRight, AlertCircle, Wifi, WifiOff, RefreshCw,
@@ -152,10 +151,9 @@ export default function ProcessingPage() {
     onMutate:  () => setStepStatus('normalize', 'running'),
     onSuccess: (data) => {
       setStepStatus('normalize', 'done');
-      toast.success(`Normalization complete — ${data.flags_added ?? 0} flags`);
       geocodeMutation.mutate();
     },
-    onError: (err) => { setStepStatus('normalize', 'error'); toast.error(`Normalization failed: ${err.message}`); },
+    onError: (err) => { setStepStatus('normalize', 'error'); console.error(`Normalization failed: ${err.message}`); },
   });
 
   const geocodeMutation = useMutation({
@@ -164,9 +162,8 @@ export default function ProcessingPage() {
     onSuccess: (data) => {
       setStepStatus('geocode', 'done');
       setGeocodeResult(data);
-      toast.success(`Geocoding complete — ${data.geocoded} geocoded, ${data.failed} failed`);
     },
-    onError: (err) => { setStepStatus('geocode', 'error'); toast.error(`Geocoding failed: ${err.message}`); },
+    onError: (err) => { setStepStatus('geocode', 'error'); console.error(`Geocoding failed: ${err.message}`); },
   });
 
   useEffect(() => {

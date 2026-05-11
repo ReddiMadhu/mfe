@@ -1,7 +1,6 @@
 ﻿import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { ChevronRight, AlertCircle, CheckCircle2, Loader2, Brain, X } from 'lucide-react';
 import { suggestColumns, confirmColumns, forgetMapping } from '@/lib/api';
 import { usePipelineStore } from '@/store/usePipelineStore';
@@ -68,20 +67,17 @@ export default function ColumnMappingPage() {
     mutationFn: () => confirmColumns(uploadId, localMap),
     onSuccess: (result) => {
       setColumnMap(localMap);
-      result.warnings?.forEach((w) => toast.warning(w));
-      toast.success(`Confirmed â€” ${result.mapped_count} columns mapped`);
       navigate(`/session/${uploadId}/running`);
     },
-    onError: (err) => toast.error(`Confirm failed: ${err.message}`),
+    onError: (err) => console.error(`Confirm failed: ${err.message}`),
   });
 
   const forgetMutation = useMutation({
     mutationFn: ({ sourceCol }) => forgetMapping(sourceCol, targetFormat),
     onSuccess: (_, { sourceCol }) => {
-      toast.success(`Memory cleared for "${sourceCol}"`);
       queryClient.invalidateQueries({ queryKey: ['suggest-columns', uploadId] });
     },
-    onError: (err) => toast.error(`Forget failed: ${err.message}`),
+    onError: (err) => console.error(`Forget failed: ${err.message}`),
   });
 
   const sourceColumns = data?.suggestions ? Object.keys(data.suggestions) : [];

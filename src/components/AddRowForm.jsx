@@ -2,7 +2,6 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Plus, Check, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 import DuplicateResolverModal from './DuplicateResolverModal';
 
 const API = import.meta.env.VITE_API_URL || '';
@@ -44,9 +43,9 @@ export default function AddRowForm({ tab, format, onSave, onCancel }) {
     const trimCode = code.trim();
     const trimDesc = description.trim();
 
-    if (!trimCode) return toast.error('Code is required.');
-    if (!trimDesc) return toast.error('Description is required.');
-    if (isExposure && !section) return toast.error('Section is required for exposure entries.');
+    if (!trimCode) return;
+    if (!trimDesc) return;
+    if (isExposure && !section) return;
 
     setSaving(true);
     try {
@@ -72,7 +71,7 @@ export default function AddRowForm({ tab, format, onSave, onCancel }) {
       const json = await res.json();
 
       if (!res.ok) {
-        toast.error(json.detail || 'Failed to add entry.');
+        console.error(json.detail || 'Failed to add entry.');
         return;
       }
 
@@ -91,14 +90,13 @@ export default function AddRowForm({ tab, format, onSave, onCancel }) {
         return;
       }
 
-      toast.success(`Entry "${trimCode}" added successfully.`);
       setCode('');
       setDescription('');
       setKeywords('');
       setSection('');
       onSave?.();
     } catch (err) {
-      toast.error('Error: ' + err.message);
+      console.error('Error: ' + err.message);
     } finally {
       setSaving(false);
     }
@@ -107,7 +105,6 @@ export default function AddRowForm({ tab, format, onSave, onCancel }) {
   const handleDupeResolve = useCallback(async (resolvedEntries) => {
     setShowDupeModal(false);
     if (Object.keys(resolvedEntries).length === 0) {
-      toast.info('No entries saved — kept existing.');
       return;
     }
 
@@ -127,17 +124,16 @@ export default function AddRowForm({ tab, format, onSave, onCancel }) {
       );
       const json = await res.json();
       if (res.ok) {
-        toast.success(`${json.entries_committed} entry saved.`);
         setCode('');
         setDescription('');
         setKeywords('');
         setSection('');
         onSave?.();
       } else {
-        toast.error(json.detail || 'Commit failed.');
+        console.error(json.detail || 'Commit failed.');
       }
     } catch (err) {
-      toast.error('Error: ' + err.message);
+      console.error('Error: ' + err.message);
     } finally {
       setSaving(false);
     }

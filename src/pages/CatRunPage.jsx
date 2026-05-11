@@ -1,7 +1,6 @@
 ﻿import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { Tag, BarChart3, CheckCircle2, Loader2, ChevronRight, AlertCircle } from 'lucide-react';
 import { runMapCodes, runNormalizeValues } from '@/lib/api';
 import { usePipelineStore } from '@/store/usePipelineStore';
@@ -38,10 +37,9 @@ export default function CatRunPage() {
     onMutate:  () => setStepStatus('mapCodes', 'running'),
     onSuccess: (data) => {
       setStepStatus('mapCodes', 'done');
-      toast.success(`Code mapping complete â€” ${data.unique_occ_pairs} occ, ${data.unique_const_pairs} const pairs`);
       normalizeMutation.mutate();
     },
-    onError: (err) => { setStepStatus('mapCodes', 'error'); toast.error(`Code mapping failed: ${err.message}`); },
+    onError: (err) => { setStepStatus('mapCodes', 'error'); console.error(`Code mapping failed: ${err.message}`); },
   });
 
   const normalizeMutation = useMutation({
@@ -50,9 +48,8 @@ export default function CatRunPage() {
     onSuccess: (data) => {
       setStepStatus('normalizeValues', 'done');
       setCatResult(data);
-      toast.success(`Normalization complete â€” ${data.flags_added ?? 0} flags`);
     },
-    onError: (err) => { setStepStatus('normalizeValues', 'error'); toast.error(`Normalization failed: ${err.message}`); },
+    onError: (err) => { setStepStatus('normalizeValues', 'error'); console.error(`Normalization failed: ${err.message}`); },
   });
 
   useEffect(() => {

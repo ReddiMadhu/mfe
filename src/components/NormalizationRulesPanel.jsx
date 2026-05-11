@@ -6,7 +6,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 import { usePipelineStore } from '@/store/usePipelineStore';
 
 const API = import.meta.env.VITE_API_URL || '';
@@ -151,12 +150,11 @@ export default function NormalizationRulesPanel() {
       const json = await res.json();
       if (res.ok) {
         setRulesConfig(json.config);
-        toast.success('Rules configuration saved');
       } else {
-        toast.error(json.detail || 'Failed to save');
+        console.error(json.detail || 'Failed to save');
       }
     } catch (err) {
-      toast.error('Failed to save: ' + err.message);
+      console.error('Failed to save: ' + err.message);
     } finally {
       setSaving(false);
     }
@@ -173,10 +171,9 @@ export default function NormalizationRulesPanel() {
       if (res.ok) {
         setConfig(json.config);
         setRulesConfig({});
-        toast.success('Reset to defaults');
       }
     } catch (err) {
-      toast.error('Reset failed');
+      console.error('Reset failed');
     }
   };
 

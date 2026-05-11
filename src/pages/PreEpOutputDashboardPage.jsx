@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, BarChart3, FileText, TrendingUp } from 'lucide-react';
-import { toast } from 'sonner';
 
 import { getPreEpOutput } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -162,7 +161,7 @@ export default function PreEpOutputDashboardPage() {
   });
 
   if (error) {
-    toast.error(error?.message || 'Failed to load Pre‑EP output');
+    // No toast notifications (intentionally silent here).
   }
 
   const aepRows = data?.aep_rows ?? [];
