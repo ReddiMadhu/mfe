@@ -341,8 +341,8 @@ function PipelineNode({
 
   const COLOR = {
     pending: { bg: '#e2e8fc', border: '0.5px solid #e2e8f0', text: '#64748b', iconC: nodeDef.color + '80', div: '#e2e8f0' },
-    running: { bg: '#fff7ed', border: '1.5px solid #fb923c',  text: '#0f172a', iconC: '#ea580c',         div: '#fed7aa' },
-    done:    { bg: '#ecfdf5', border: '1.5px solid #6ee7b7',  text: '#0f172a', iconC: '#059669',         div: '#d1fae5' },
+    running: { bg: '#ecfdf5', border: '1.5px solid #6ee7b7',  text: '#0f172a', iconC: '#ea580c',         div: '#fed7aa' },
+    done:    { bg: '#fff7ed', border: '1.5px solid #fb923c',  text: '#0f172a', iconC: '#059669',         div: '#d1fae5' },
     error:   { bg: '#fff1f2', border: '1px solid #fca5a5',    text: '#0f172a', iconC: '#e11d48',         div: '#fee2e2' },
     locked:  { bg: '#f8fafc', border: '0.5px solid #e2e8f0',  text: '#94a3b8', iconC: '#94a3b8',         div: '#e2e8f0' },
   };
