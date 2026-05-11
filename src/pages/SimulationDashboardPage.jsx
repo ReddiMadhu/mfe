@@ -56,6 +56,92 @@ function MetricCard({ icon: Icon, title, primary, primaryLabel, stats, colorClas
   );
 }
 
+function PolicyExtractPanel({ slip }) {
+  if (!slip) return null;
+
+  const title = slip.pdf_name ? `Policy Extract — ${slip.pdf_name}` : 'Policy Extract (Slip Coding)';
+  const perils = Array.isArray(slip.perils_covered) ? slip.perils_covered.join(', ') : '—';
+
+  const kv = [
+    { label: 'Extraction Status', value: slip.extraction_status || '—' },
+    { label: 'Currency', value: slip.currency || '—' },
+    { label: 'Insured Name', value: slip.insured_name || '—' },
+    { label: 'Account #', value: slip.account_num || '—' },
+    { label: 'Perils', value: perils || '—' },
+    { label: 'Participation', value: slip.participation ?? '—' },
+    { label: 'Policy Limit', value: slip.policy_limit ?? '—' },
+    { label: 'Attachment', value: slip.attachment_point ?? '—' },
+    { label: 'Deductible', value: slip.blanket_deductible ?? '—' },
+    { label: 'Inception', value: slip.inception_date || '—' },
+    { label: 'Expiry', value: slip.expiry_date || '—' },
+  ];
+
+  const summary = Array.isArray(slip.extraction_summary) ? slip.extraction_summary : [];
+
+  return (
+    <div className="p-4 border-b border-border/20 bg-gradient-to-r from-indigo-50/40 to-white">
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-indigo-600" />
+          <h3 className="text-[12px] font-bold text-indigo-950">{title}</h3>
+        </div>
+        <span className="text-[10px] font-bold bg-indigo-600/10 text-indigo-700 border border-indigo-600/15 px-2.5 py-1 rounded-full uppercase tracking-wider">
+          Slip_Coded
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+        {kv.map(({ label, value }) => (
+          <div key={label} className="rounded-lg border border-border/30 bg-white/80 px-3 py-2">
+            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{label}</div>
+            <div className="text-[12px] font-semibold text-foreground truncate" title={String(value)}>
+              {String(value)}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-border/30 bg-white/70 overflow-hidden">
+        <div className="px-3 py-2 bg-muted/30 border-b border-border/20 flex items-center justify-between">
+          <div className="text-[11px] font-bold text-foreground">Extraction Summary</div>
+          <div className="text-[10px] text-muted-foreground">{summary.length} fields</div>
+        </div>
+        <div className="max-h-64 overflow-auto">
+          <table className="w-full text-left text-[11px] border-collapse">
+            <thead className="sticky top-0 bg-white z-10">
+              <tr className="border-b border-border/20">
+                <th className="px-3 py-2 font-bold text-muted-foreground uppercase tracking-wider">Field</th>
+                <th className="px-3 py-2 font-bold text-muted-foreground uppercase tracking-wider">Value</th>
+                <th className="px-3 py-2 font-bold text-muted-foreground uppercase tracking-wider">Confidence</th>
+                <th className="px-3 py-2 font-bold text-muted-foreground uppercase tracking-wider">Source Text</th>
+                <th className="px-3 py-2 font-bold text-muted-foreground uppercase tracking-wider">Flag</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/10">
+              {summary.map((r, i) => (
+                <tr key={i} className="hover:bg-indigo-50/30">
+                  <td className="px-3 py-2 font-mono text-foreground/80 whitespace-nowrap">{r.field ?? '—'}</td>
+                  <td className="px-3 py-2 text-foreground/80">{r.value == null ? '—' : String(r.value)}</td>
+                  <td className="px-3 py-2 text-foreground/70 whitespace-nowrap">{r.confidence ?? '—'}</td>
+                  <td className="px-3 py-2 text-foreground/70 max-w-[520px] truncate" title={r.source_text || ''}>{r.source_text || '—'}</td>
+                  <td className="px-3 py-2 text-rose-700/80 max-w-[320px] truncate" title={r.flag || ''}>{r.flag || '—'}</td>
+                </tr>
+              ))}
+              {summary.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground italic">
+                    No extraction summary available.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Highlight matched text ────────────────────────────────────────────────────
 function Highlight({ text, search }) {
   if (!search || !text) return <>{text ?? '—'}</>;
@@ -313,16 +399,18 @@ export default function SimulationDashboardPage() {
     staleTime: 60_000,
   });
 
+  // Use final-* endpoints so slip coding (location updates + RMS/AIR account rows) appears in tables.
+  // base-location / base-account are intentionally pre-slip SOV only (EP node panels).
   const { data: locData, isLoading: locLoading } = useQuery({
     queryKey: ['sim-location', uploadId],
-    queryFn: () => fetch(`${API_BASE}/api/base-location/${uploadId}`).then(r => r.json()),
+    queryFn: () => fetch(`${API_BASE}/api/final-location/${uploadId}`).then(r => r.json()),
     enabled: !!uploadId && activeTab === 'location',
     staleTime: 60_000,
   });
 
   const { data: accData, isLoading: accLoading } = useQuery({
     queryKey: ['sim-account', uploadId],
-    queryFn: () => fetch(`${API_BASE}/api/base-account/${uploadId}`).then(r => r.json()),
+    queryFn: () => fetch(`${API_BASE}/api/final-account/${uploadId}`).then(r => r.json()),
     enabled: !!uploadId && activeTab === 'account',
     staleTime: 60_000,
   });
@@ -450,6 +538,11 @@ export default function SimulationDashboardPage() {
             </button>
           ))}
         </div>
+
+        {/* Policy Extract (Slip Coding) */}
+        {activeTab === 'policy' && (
+          <PolicyExtractPanel slip={policyData?.slip_extract} />
+        )}
 
         {/* Active table */}
         <SimDataTable

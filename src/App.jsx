@@ -8,6 +8,7 @@ import AgentConfigPage from '@/pages/AgentConfigPage';
 import PipelinePage from '@/pages/PipelinePage';
 import OntologyPage from '@/pages/OntologyPage';
 import SimulationDashboardPage from '@/pages/SimulationDashboardPage';
+import PreEpOutputDashboardPage from '@/pages/PreEpOutputDashboardPage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -28,6 +29,7 @@ export default function App() {
                 <Route path="/pipeline"            element={<PipelinePage />} />
                 <Route path="/pipeline/:id"        element={<PipelinePage />} />
                 <Route path="/simulation/:id/dashboard" element={<SimulationDashboardPage />} />
+                <Route path="/simulation/:id/pre-ep-output" element={<PreEpOutputDashboardPage />} />
                 <Route path="/session/:id/done"    element={<Navigate to="/pipeline" replace />} />
                 {/* Legacy redirects in case any old links are used */}
                 <Route path="/upload"                   element={<Navigate to="/pipeline" replace />} />

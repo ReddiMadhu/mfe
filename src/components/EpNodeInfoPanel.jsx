@@ -4,6 +4,7 @@ import {
   MapPin, Building2, FileText, Activity, CloudRain,
   CheckCircle2, AlertCircle, Loader2, Database,
   Hash, Cpu, Globe, BarChart3, ShieldCheck, ChevronDown, ChevronRight, Download, X,
+  ArrowRight,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -344,6 +345,7 @@ export default function EpNodeInfoPanel({
     epPolicy:    { icon: FileText,  label: 'Insurance Terms',          color: 'text-orange-500',  ring: 'ring-orange-200'  },
     epFrequency: { icon: Activity,  label: 'Annual Simulation',        color: 'text-orange-500',  ring: 'ring-orange-200'  },
     epCurve:     { icon: BarChart3, label: 'EP Curve Output',          color: 'text-violet-600',  ring: 'ring-violet-200'  },
+    preEpOutput: { icon: Database,  label: 'Pre‑EP Modeling Output',   color: 'text-slate-600',   ring: 'ring-slate-200'   },
   };
 
   const meta = PANEL_META[nodeId];
@@ -401,6 +403,30 @@ export default function EpNodeInfoPanel({
                   className="gradient-primary glow-primary text-white h-9 px-5 rounded-lg text-xs font-semibold shadow-sm"
                 >
                   View Simulation Dashboard <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {nodeId === 'preEpOutput' && (
+          <div className="py-2">
+            {!epCurveResult ? (
+              <div className="text-[11px] text-slate-400 italic">
+                Pre‑EP output becomes available after Annual Simulation completes.
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-5 bg-slate-50/60 rounded-xl border border-slate-200/60">
+                <Database size={30} className="text-slate-600 mb-3" />
+                <p className="text-sm font-bold text-slate-900 mb-1">Pre‑EP Output Ready</p>
+                <p className="text-[11px] text-slate-600/80 mb-4 text-center max-w-[280px]">
+                  View mock AIR/RMS-style EP output tables and curves.
+                </p>
+                <Button
+                  onClick={() => navigate(`/simulation/${uploadId}/pre-ep-output`)}
+                  className="gradient-primary glow-primary text-white h-9 px-5 rounded-lg text-xs font-semibold shadow-sm"
+                >
+                  View Pre‑EP Output <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
                 </Button>
               </div>
             )}

@@ -104,6 +104,10 @@ export const getSimulationSummary = (uploadId) =>
 export const getPolicyData = (uploadId) =>
   req(`/ep-curve/policy-data/${uploadId}`);
 
+// Pre‑EP Curve Modeling Output (mock scaffold)
+export const getPreEpOutput = (uploadId) =>
+  req(`/ep-curve/pre-ep-output/${uploadId}`);
+
 // ── Slip Coding ──────────────────────────────────────────────────────────────
 
 // Sessionless extraction — used on Configure page (no uploadId yet)

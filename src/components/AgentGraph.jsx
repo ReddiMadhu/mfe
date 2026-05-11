@@ -37,12 +37,13 @@ const NODE_DEFS = [
   { id: 'epPolicy',    label: 'Insurance Terms',        icon: Sparkles,  agentKey: 'ep_policy',    color: '#f97316', epSource: 'input'  },
   { id: 'epAccount',   label: 'Portfolio Roll-up',      icon: Building2, agentKey: 'ep_account',   color: '#10b981', epSource: 'sov'    },
   { id: 'epCurve',     label: 'Annual Simulation',        icon: TrendingUp,agentKey: 'ep_curve_out', color: '#7c3aed' },
+  { id: 'preEpOutput', label: 'Pre‑EP Modeling Output',   icon: FileOutput, agentKey: 'pre_ep_output', color: '#334155' },
 ];
 
 const NODE_STEP_MAP = { upload: 1, geocode: 2, catMap: 7, catNorm: 8, catOut: 9, epCurve: 10 };
 
 // EP node IDs for filtering
-const EP_NODE_IDS = new Set(['epLocation','epPolicy','epAccount','epCurve']);
+const EP_NODE_IDS = new Set(['epLocation','epPolicy','epAccount','epCurve','preEpOutput']);
 
 const EDGES = [
   { from: 'upload',     to: 'geocode'     },
@@ -64,6 +65,7 @@ const EDGES = [
   { from: 'epLocation', to: 'epCurve'     },
   { from: 'epAccount',  to: 'epCurve'     },
   { from: 'epPolicy',   to: 'epCurve'     },
+  { from: 'epCurve',    to: 'preEpOutput' },
 ];
 
 function makePath(fromDef, toDef, fromPos, toPos) {
@@ -614,12 +616,13 @@ export default function AgentGraph({
     const lowestY = uwTop + uw_ry_obj;
     const dataY = Math.round((catNodeTop + lowestY) / 2);
 
-    // Pre-EP Curve Geometry — new column to the right
+    // Pre-EP Curve Geometry — keep within BASE_W
     const epNW = 120;
     const epNH = 28;
-    const epWX  = NX3 + 185;   // wrapper left (reduced gap to UW/CAT)
+    const epWX  = NX3 + 180;   // wrapper left
     const epNX  = epWX + 10;   // sub-agent nodes left
-    const epNX2 = epNX + 144;  // convergence node left (reduced horizontal margin)
+    const epNX2 = epNX + 143;  // convergence node left (+~10% total)
+    const epNX3 = epNX2 + 143; // post-simulation output node left (+~10% total)
     const epTop = catTop + 20; // push down below header row
     const epRowGap = 32;       // tighter vertical gap for shorter nodes
     const epH   = epRowGap * 2 + epNH + 20; // 10px top/bottom padding (3 parallel nodes)
@@ -648,11 +651,12 @@ export default function AgentGraph({
         epAccount:   { left: epNX, top: epTop + 10 + epRowGap },
         epPolicy:    { left: epNX, top: epTop + 10 + epRowGap * 2 },
         epCurve:     { left: epNX2, top: epTop + 10 + epRowGap }, // final output convergence
+        preEpOutput: { left: epNX3, top: epTop + 10 + epRowGap }, // post-simulation output
       },
       wrappers: {
         cat:          { left: WX, width: 576, top: catTop, height: catH },
         underwriting: { left: WX, width: 576, top: uwTop, height: uwH },
-        epCurve:      { left: epWX, width: 430, top: epTop, height: epH },
+        epCurve:      { left: epWX, width: 431, top: epTop, height: epH }, // +~10% total
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -795,9 +799,9 @@ export default function AgentGraph({
             style={{ left: layout.wrappers.epCurve.left, top: layout.wrappers.epCurve.top, width: layout.wrappers.epCurve.width, height: layout.wrappers.epCurve.height, zIndex: 0 }}
           >
             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-auto">
-              <div className={cn('text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm ring-4 ring-[#f9fafb]',
+              <div className={cn('text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full border shadow-sm ring-4 ring-[#f9fafb] max-w-[265px] truncate',
                 currentPipelineStep >= 9 ? 'text-purple-700 border-purple-200 bg-white' : 'text-slate-500 border-slate-200 bg-slate-50')}>
-                3. ANNUAL SIMULATION
+                PRE-EP CURVE MODELING READY
               </div>
             </div>
             <div className="absolute top-0 right-4 -translate-y-1/2 z-20 pointer-events-auto">
@@ -825,7 +829,7 @@ export default function AgentGraph({
         {/* Node cards — automatically transition positions spacing based on layout */}
         {NODE_DEFS.map(nodeDef => {
           const st = getStatus(nodeDef);
-          const isEpNode = ['epLocation', 'epAccount', 'epPolicy', 'epCurve'].includes(nodeDef.id);
+          const isEpNode = ['epLocation', 'epAccount', 'epPolicy', 'epCurve', 'preEpOutput'].includes(nodeDef.id);
           const isExpanded = isLiveMode && !isEpNode && (st === 'done' || st === 'running');
           const pos = layout.nodes[nodeDef.id];
           const result =

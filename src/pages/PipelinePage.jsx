@@ -551,12 +551,57 @@ function NormalizeValuesStep({ uploadId, onDone, viewMode }) {
   );
 }
 
+/**
+ * Runs Annual Simulation (EP curve) as soon as SOV COPE + policy/slip inputs are ready.
+ * Must NOT live inside Section(activeViewStep===10): after normalize the user stays on
+ * step 9 (dashboard), so EpCurveStep would never mount and the effect would never fire.
+ */
+function EpCurveAutoRunner({ uploadId, onDone }) {
+  const {
+    epPolicyFile,
+    slipCodingResult,
+    epCurveResult,
+    setEpCurveResult,
+    setStepStatus,
+    stepStatus,
+  } = usePipelineStore();
+
+  const sovDone = stepStatus.normalizeValues === 'done' || stepStatus.mapCodes === 'done';
+  const policyReady = !!epPolicyFile?.row_count || !!slipCodingResult;
+  const allReady = sovDone && policyReady;
+
+  useEffect(() => {
+    if (!uploadId) return;
+    if (allReady && !epCurveResult && (stepStatus.epCurve === 'idle' || stepStatus.epCurve === 'error')) {
+      setStepStatus('epCurve', 'running');
+
+      const run = async () => {
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          const data = await generateEpCurve(uploadId);
+          setStepStatus('epCurve', 'done');
+          setEpCurveResult(data);
+          toast.success('Annual simulation complete — EP curve generated');
+          onDone?.();
+        } catch (err) {
+          setStepStatus('epCurve', 'error');
+          toast.error(err.message);
+        }
+      };
+
+      run();
+    }
+  }, [allReady, epCurveResult, stepStatus.epCurve, setStepStatus, uploadId, setEpCurveResult, onDone]);
+
+  return null;
+}
+
 // ── Step 10: EP Curve Generation ──────────────────────────────────────────
-function EpCurveStep({ uploadId, onDone }) {
+function EpCurveStep({ uploadId }) {
   const {
     epPolicyFile, setEpPolicyFile,
-    epCurveResult, setEpCurveResult,
-    setStepStatus, stepStatus, uploadMeta,
+    epCurveResult,
+    stepStatus, uploadMeta,
     slipCodingResult,
   } = usePipelineStore();
 
@@ -591,31 +636,6 @@ function EpCurveStep({ uploadId, onDone }) {
   const policyReady = !!epPolicyFile?.row_count || !!slipCodingResult;
   const readyCount = (sovDone ? 2 : 0) + (policyReady ? 1 : 0);
   const allReady = sovDone && policyReady;
-
-  // Auto-generate EP Curve when all inputs are ready
-  useEffect(() => {
-    // Allow retry on 'error' (e.g. previous run failed when policy wasn't recognized)
-    if (allReady && !epCurveResult && (stepStatus.epCurve === 'idle' || stepStatus.epCurve === 'error')) {
-      setStepStatus('epCurve', 'running');
-      
-      const run = async () => {
-        try {
-          // 2-second delay to simulate the agents running
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          const data = await generateEpCurve(uploadId);
-          setStepStatus('epCurve', 'done');
-          setEpCurveResult(data);
-          toast.success('EP Curve generated');
-          onDone?.();
-        } catch (err) {
-          setStepStatus('epCurve', 'error');
-          toast.error(err.message);
-        }
-      };
-      
-      run();
-    }
-  }, [allReady, epCurveResult, stepStatus.epCurve, setStepStatus, uploadId, setEpCurveResult, onDone]);
 
   const SubCard = ({ title, desc, ready, color, children }) => (
     <div className={cn(
@@ -778,7 +798,7 @@ export default function PipelinePage() {
   }, [setActiveViewStep, setStep]);
 
   const geocodeMutation = useMutation({
-    mutationFn: () => runGeocode(activeId),
+    mutationFn: (uploadIdForGeo) => runGeocode(uploadIdForGeo),
     onMutate: () => setStepStatus('geocode', 'running'),
     onSuccess: (data) => {
       setStepStatus('geocode', 'done');
@@ -786,13 +806,21 @@ export default function PipelinePage() {
       if (data?.diff_data) setGeocodeDiff(data.diff_data);
       toast.success(`Geocoding complete — ${data.geocoded} geocoded`);
     },
-    onError: (err) => { setStepStatus('geocode', 'error'); toast.error(`Geocoding failed: ${err.message}`); },
+    onError: (err) => {
+      setStepStatus('geocode', 'error');
+      const msg = err?.message || 'unknown error';
+      if (msg.includes('not found') || msg.includes('404')) {
+        toast.error(`Geocoding failed: session missing or expired — re-upload your SOV. (${msg})`);
+      } else {
+        toast.error(`Geocoding failed: ${msg}`);
+      }
+    },
   });
 
-  // Auto-run geocoding when step advances to 2
+  // Auto-run geocoding when step advances to 2 (pass id into mutate so we never use a stale activeId)
   useEffect(() => {
     if (step === 2 && (!stepStatus.geocode || stepStatus.geocode === 'idle') && activeId) {
-      geocodeMutation.mutate();
+      geocodeMutation.mutate(activeId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, activeId]);
@@ -845,6 +873,10 @@ export default function PipelinePage() {
       applySlipToSession(activeId, slipCodingResult)
         .then((res) => {
           console.log('[SlipApply] ✅ Applied:', res);
+          if (res?.ok === false) {
+            toast.error(`Slip could not be saved: ${res?.reason || 'session not found'} — re-upload SOV or refresh.`);
+            return;
+          }
           toast.success('Slip Coding applied to session');
         })
         .catch((err) => {
@@ -1100,6 +1132,10 @@ export default function PipelinePage() {
       {/* CatAI path */}
       {agentType === 'catai' && (
         <>
+          {/* Annual simulation auto-run: mount whenever step≥9 so it still runs while user is on the step 9 dashboard */}
+          {step >= 9 && !!activeId && (
+            <EpCurveAutoRunner uploadId={activeId} onDone={() => setStep(11)} />
+          )}
           <Section {...sectionProps} stepNum={5} title="2.SOV COPE CI/CD MODELING" icon={Tag}
             headerAction={
               <Badge variant="outline" className="text-[11px] font-bold uppercase tracking-wide border-emerald-500/30 text-emerald-600 bg-emerald-50/50 px-3 py-1">
@@ -1135,8 +1171,8 @@ export default function PipelinePage() {
           {step >= 9 && activeViewStep === 9 && <DashboardView uploadId={activeId} />}
 
           {step >= 9 && (
-            <Section {...sectionProps} stepNum={10} title="3. Annual Simulation" icon={TrendingUp}>
-              <EpCurveStep uploadId={activeId} onDone={() => setStep(11)} />
+            <Section {...sectionProps} stepNum={10} title="3. Pre‑EP Curve Modeling Ready" icon={TrendingUp}>
+              <EpCurveStep uploadId={activeId} />
             </Section>
           )}
         </>
