@@ -171,16 +171,8 @@ export default function PreEpOutputDashboardPage() {
   return (
     <div className="min-h-[calc(100vh-4rem)] p-6 w-full max-w-[1470px] mx-auto flex flex-col gap-6 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors group"
-        >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-          Back
-        </button>
-        <div className="h-4 w-px bg-border/40" />
-        <div className="flex items-center gap-3 flex-1">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-violet-400 flex items-center justify-center shrink-0 shadow-sm">
             <TrendingUp className="w-4.5 h-4.5 text-white" />
           </div>
@@ -189,9 +181,18 @@ export default function PreEpOutputDashboardPage() {
             <p className="text-[11px] text-muted-foreground">Mock outputs in AIR/RMS-style schema (display scaffold)</p>
           </div>
         </div>
-        <span className="font-mono text-[10px] text-muted-foreground bg-muted px-2 py-1 rounded-md border border-border/50">
-          {uploadId?.slice(0, 8)}
-        </span>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="font-mono text-[10px] text-muted-foreground bg-muted px-2 py-1 rounded-md border border-border/50">
+            {uploadId?.slice(0, 8)}
+          </span>
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors group"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+            Back
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-5">
