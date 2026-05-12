@@ -66,7 +66,7 @@ export default function TopBar() {
             </Button>
           ) : (
             <Button variant="ghost" size="sm" onClick={() => navigate('/ontology')} className="text-sm font-semibold text-muted-foreground hover:text-foreground">
-              Ontology
+              C.O.P.E ontology
             </Button>
           )
         )}

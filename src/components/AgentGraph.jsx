@@ -34,7 +34,7 @@ const NODE_DEFS = [
   { id: 'catOut',      label: 'Output Formatting',      icon: FileOutput,      agentKey: 'cat_output',      color: '#64748b' },
   { id: 'riskModel',   label: '7 - Property Vulnerability Risk', icon: TrendingUp, agentKey: 'risk_model',      color: '#4f46e5' },
   { id: 'propensity',  label: '8 - Quote Propensity',       icon: Award,           agentKey: 'quote_propensity',color: '#f43f5e' },
-  // ── Pre-EP Curve Modeling Ready sub-agents ──
+  // ── Pre-EP Curve Modeling sub-agents ──
   { id: 'epLocation',  label: 'Exposure & Geography',   icon: MapPin,    agentKey: 'ep_location',  color: '#10b981', epSource: 'sov'    },
   { id: 'epPolicy',    label: 'Insurance Terms',        icon: Sparkles,  agentKey: 'ep_policy',    color: '#f97316', epSource: 'input'  },
   { id: 'epAccount',   label: 'Portfolio Roll-up',      icon: Building2, agentKey: 'ep_account',   color: '#10b981', epSource: 'sov'    },
@@ -970,9 +970,9 @@ export default function AgentGraph({
                         'text-primary border-primary/35 bg-primary/8 dark:bg-primary/18 dark:border-primary/45 dark:text-primary',
                       ),
                 )}
-                title="PRE-EP CURVE MODELING READY"
+                title="PRE-EP CURVE MODELING"
               >
-                PRE-EP CURVE MODELING READY
+                PRE-EP CURVE MODELING
               </div>
             </div>
             <div className="absolute top-0 right-4 -translate-y-1/2 z-30 pointer-events-auto">

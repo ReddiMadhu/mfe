@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 const STEPS = [
   { icon: MapPin, label: 'Data Agent' },
   { icon: Tag, label: 'SOV COPE Modeling', isAI: true },
-  { icon: TrendingUp, label: 'Pre-EP Curve Modeling Ready', isAI: true },
+  { icon: TrendingUp, label: 'Pre-EP Curve Modeling', isAI: true },
   { icon: LayoutDashboard, label: 'Dashboard' },
   { icon: ShieldCheck, label: 'Underwriting Agent (Coming Soon)', disabled: true },
 ];

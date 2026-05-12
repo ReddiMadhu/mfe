@@ -186,7 +186,7 @@ export default function AgentConfigPage() {
               </div>
             </PipelineStage>
 
-            {/* Stage 3: Pre‑EP Curve Modeling Ready — auto-enabled with SOV COPE */}
+            {/* Stage 3: Pre‑EP Curve Modeling — auto-enabled with SOV COPE */}
             <div className={cn("flex gap-4 relative group")}>
               <div className="flex flex-col items-center mt-5">
                 <div className={cn(
@@ -206,7 +206,7 @@ export default function AgentConfigPage() {
                   <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
                     <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
                       <TrendingUp size={16} className="text-muted-foreground" />
-                      3. Pre‑EP Curve Modeling Ready
+                      3. Pre‑EP Curve Modeling
                     </h3>
                     <Badge variant="outline" className={cn("text-[10px]",
                       selectedAgents.sovCope
@@ -293,7 +293,7 @@ export default function AgentConfigPage() {
 
 
 
-          {/* View Ontology */}
+          {/* View C.O.P.E ontology */}
           <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border">
             {/* Subtle background decoration */}
             <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-muted/60 blur-3xl pointer-events-none" />
@@ -303,7 +303,7 @@ export default function AgentConfigPage() {
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-muted-foreground shadow-sm border border-border">
                 <BookOpen className="w-4 h-4" />
               </div>
-              <h2 className="font-bold text-sm uppercase tracking-wider text-foreground">Ontology & Rules</h2>
+              <h2 className="font-bold text-sm uppercase tracking-wider text-foreground">C.O.P.E ontology & Rules</h2>
               <Badge variant="outline" className="ml-auto text-[10px] border-border text-muted-foreground bg-muted font-bold shadow-sm uppercase tracking-wide">
                 Reference
               </Badge>
@@ -317,7 +317,7 @@ export default function AgentConfigPage() {
               className="relative z-10 w-full flex items-center gap-3 px-4 py-2.5 rounded-xl bg-muted text-foreground text-sm font-bold border border-border hover:bg-muted/80 hover:border-border active:scale-[0.98] transition-all duration-200"
             >
               <BookOpen className="w-4 h-4 shrink-0 text-muted-foreground" />
-              <span>View Ontology</span>
+              <span>View C.O.P.E ontology</span>
               <ArrowRight className="w-4 h-4 ml-auto shrink-0 text-muted-foreground" />
             </button>
 
@@ -441,7 +441,7 @@ export default function AgentConfigPage() {
       <Dialog open={launchGateOpen} onOpenChange={setLaunchGateOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Review ontology first?</DialogTitle>
+            <DialogTitle>Review C.O.P.E ontology first?</DialogTitle>
             <DialogDescription>
               You can review the COPE dictionary, normalization rules, and geocoding settings that drive mapping—or go straight to the pipeline.
             </DialogDescription>
@@ -459,7 +459,7 @@ export default function AgentConfigPage() {
               className="gradient-primary glow-primary text-white font-semibold shadow-sm"
               onClick={goToOntologyFromGate}
             >
-              Review ontology
+              Review C.O.P.E ontology
             </Button>
           </DialogFooter>
         </DialogContent>

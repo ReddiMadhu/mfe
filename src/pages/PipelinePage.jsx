@@ -1034,7 +1034,7 @@ export default function PipelinePage() {
               <span className="ml-auto text-[10px] border border-border text-muted-foreground bg-muted/60 font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Optional</span>
             </div>
             <p className="relative z-10 text-xs text-muted-foreground mb-4 leading-relaxed font-medium">
-              Upload an insurance policy slip PDF. Our AI extracts participation terms, limits, and deductibles.
+              Upload an insurance policy slip PDF. AI-Powered Policy File Generation for EP curve.
             </p>
 
             {/* Drop zone */}
@@ -1178,7 +1178,7 @@ export default function PipelinePage() {
           {step >= 9 && activeViewStep === 9 && <DashboardView uploadId={activeId} />}
 
           {step >= 9 && (
-            <Section {...sectionProps} stepNum={10} title="3. Pre‑EP Curve Modeling Ready" icon={TrendingUp}>
+            <Section {...sectionProps} stepNum={10} title="3. Pre‑EP Curve Modeling" icon={TrendingUp}>
               <EpCurveStep uploadId={activeId} />
             </Section>
           )}
