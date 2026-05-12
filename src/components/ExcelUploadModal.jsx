@@ -134,9 +134,9 @@ export default function ExcelUploadModal({ open, onClose, tab, format, onComplet
   return (
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-        <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/60 w-full max-w-2xl max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+        <div className="bg-card rounded-2xl shadow-2xl border border-border/60 w-full max-w-2xl max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/60">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border/60">
             <div className="flex items-center gap-3">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -162,12 +162,12 @@ export default function ExcelUploadModal({ open, onClose, tab, format, onComplet
           </div>
 
           {/* Step indicator */}
-          <div className="flex items-center gap-1 px-6 py-2 bg-slate-50/50">
+          <div className="flex items-center gap-1 px-6 py-2 bg-muted/50">
             {[1, 2, 3, 4].map((s) => (
               <div key={s} className="flex items-center gap-1 flex-1">
                 <div className={cn(
                   'h-1.5 flex-1 rounded-full transition-colors',
-                  s <= step ? 'bg-primary' : 'bg-slate-200'
+                  s <= step ? 'bg-primary' : 'bg-muted'
                 )} />
               </div>
             ))}
@@ -183,7 +183,7 @@ export default function ExcelUploadModal({ open, onClose, tab, format, onComplet
                     'rounded-xl border-2 border-dashed p-8 text-center transition-colors cursor-pointer',
                     file
                       ? 'border-emerald-300 bg-emerald-50/30'
-                      : 'border-slate-300 bg-slate-50/30 hover:border-primary/40 hover:bg-primary/[0.02]'
+                      : 'border-border bg-muted/30 hover:border-primary/40 hover:bg-primary/[0.02]'
                   )}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={handleFileDrop}
@@ -206,8 +206,8 @@ export default function ExcelUploadModal({ open, onClose, tab, format, onComplet
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-2">
-                      <Upload className="w-8 h-8 text-slate-400" />
-                      <p className="text-sm font-medium text-slate-600">
+                      <Upload className="w-8 h-8 text-muted-foreground" />
+                      <p className="text-sm font-medium text-muted-foreground">
                         Drop your file here or click to browse
                       </p>
                       <p className="text-[11px] text-muted-foreground">
@@ -217,13 +217,13 @@ export default function ExcelUploadModal({ open, onClose, tab, format, onComplet
                   )}
                 </div>
 
-                <div className="rounded-lg bg-blue-50/50 border border-blue-200/40 p-3">
-                  <p className="text-[11px] text-blue-700 font-medium mb-1">Expected Columns</p>
-                  <p className="text-[10px] text-blue-600">
+                <div className="rounded-lg bg-blue-500/10 dark:bg-blue-500/15 border border-blue-200/40 dark:border-blue-500/30 p-3">
+                  <p className="text-[11px] text-blue-700 dark:text-blue-300 font-medium mb-1">Expected Columns</p>
+                  <p className="text-[10px] text-blue-600 dark:text-blue-400">
                     <strong>Code</strong> (required) • <strong>Description</strong> (required) • <strong>Keywords</strong> (optional, semicolon-separated)
                     {tab.key === 'exposure' && <> • <strong>Section</strong> (required for exposure)</>}
                   </p>
-                  <p className="text-[10px] text-blue-500 mt-1">
+                  <p className="text-[10px] text-blue-500 dark:text-blue-400 mt-1">
                     Tip: Download the CSV template first for the correct format.
                   </p>
                 </div>
@@ -235,7 +235,7 @@ export default function ExcelUploadModal({ open, onClose, tab, format, onComplet
               <div className="space-y-4">
                 {/* Summary cards */}
                 <div className="grid grid-cols-4 gap-2">
-                  <div className="rounded-lg border bg-slate-50/50 p-3 text-center">
+                  <div className="rounded-lg border bg-muted/50 p-3 text-center">
                     <p className="text-lg font-bold">{result.total_entries}</p>
                     <p className="text-[10px] text-muted-foreground">Total Rows</p>
                   </div>
@@ -307,8 +307,8 @@ export default function ExcelUploadModal({ open, onClose, tab, format, onComplet
             {/* Step 4: Complete */}
             {step === 4 && (
               <div className="flex flex-col items-center justify-center py-8 gap-3">
-                <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <CheckCircle2 className="w-7 h-7 text-emerald-600" />
+                <div className="w-14 h-14 rounded-full bg-emerald-500/15 dark:bg-emerald-900/40 flex items-center justify-center">
+                  <CheckCircle2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <h4 className="text-base font-bold">Upload Complete!</h4>
                 <p className="text-xs text-muted-foreground text-center max-w-sm">
@@ -324,7 +324,7 @@ export default function ExcelUploadModal({ open, onClose, tab, format, onComplet
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between px-6 py-3 border-t border-slate-200/60 bg-slate-50/50">
+          <div className="flex items-center justify-between px-6 py-3 border-t border-border/60 bg-muted/50">
             <div>
               {step === 2 && result && (
                 <p className="text-[11px] text-muted-foreground">

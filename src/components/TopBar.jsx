@@ -1,16 +1,34 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Sun, Moon, Monitor, ArrowRight } from 'lucide-react';
 import { usePipelineStore } from '@/store/usePipelineStore';
+import { useThemeStore } from '@/store/useThemeStore';
 import { Button } from '@/components/ui/button';
 
 export default function TopBar() {
   const navigate = useNavigate();
   const location = useLocation();
   const reset = usePipelineStore((s) => s.reset);
+  const theme = useThemeStore((s) => s.theme);
+  const resolved = useThemeStore((s) => s.resolved);
+  const setTheme = useThemeStore((s) => s.setTheme);
 
   const showOntology = location.pathname !== '/' && location.pathname !== '/configure';
 
+  const cycleTheme = () => {
+    const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light';
+    setTheme(next);
+  };
+
+  const ThemeIcon = theme === 'light' ? Sun : theme === 'dark' ? Moon : Monitor;
+  const themeLabel =
+    theme === 'system'
+      ? `Match system (${resolved === 'dark' ? 'dark' : 'light'})`
+      : theme === 'dark'
+        ? 'Dark'
+        : 'Light';
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-white/80 backdrop-blur-md border-b border-border/60 flex items-center justify-between px-6 shadow-sm">
+    <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-background/80 backdrop-blur-md border-b border-border/60 flex items-center justify-between px-6 shadow-sm">
       {/* Logo + Brand */}
       <button
         onClick={() => { reset(); navigate('/'); }}
@@ -37,10 +55,31 @@ export default function TopBar() {
       {/* Right Actions */}
       <div className="flex items-center gap-2">
         {showOntology && (
-          <Button variant="ghost" size="sm" onClick={() => navigate('/ontology')} className="text-sm font-semibold text-slate-600 hover:text-slate-900">
-            Ontology
-          </Button>
+          location.pathname === '/ontology' ? (
+            <Button
+              size="sm"
+              onClick={() => navigate('/pipeline')}
+              className="text-sm font-semibold gradient-primary glow-primary text-white shadow-sm hover:opacity-90"
+            >
+              Launch Pipeline
+              <ArrowRight className="size-4 ml-1.5" />
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => navigate('/ontology')} className="text-sm font-semibold text-muted-foreground hover:text-foreground">
+              Ontology
+            </Button>
+          )
         )}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          type="button"
+          onClick={cycleTheme}
+          title={`Theme: ${themeLabel}. Click to cycle (light → dark → system).`}
+          aria-label={`Theme: ${themeLabel}. Click to cycle.`}
+        >
+          <ThemeIcon className="size-4" />
+        </Button>
       </div>
     </header>
   );

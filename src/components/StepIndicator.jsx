@@ -21,7 +21,7 @@ export default function StepIndicator({ currentStep }) {
             <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all
               ${active ? 'bg-primary text-white shadow-sm' : done ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
               <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold
-                ${active ? 'bg-white/20' : done ? 'bg-primary text-white' : 'bg-muted-foreground/20'}`}>
+                ${active ? 'bg-primary-foreground/25' : done ? 'bg-primary text-white' : 'bg-muted-foreground/20'}`}>
                 {done ? '✓' : i + 1}
               </span>
               <span className="hidden sm:inline">{s.label}</span>

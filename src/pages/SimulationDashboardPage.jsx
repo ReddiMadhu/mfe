@@ -78,20 +78,23 @@ function PolicyExtractPanel({ slip }) {
   const summary = Array.isArray(slip.extraction_summary) ? slip.extraction_summary : [];
 
   return (
-    <div className="p-4 border-b border-border/20 bg-gradient-to-r from-indigo-50/40 to-white">
+    <div className="p-4 border-b border-border/20 bg-gradient-to-br from-indigo-50/50 via-background to-muted/30 dark:from-indigo-950/45 dark:via-card/60 dark:to-background dark:ring-1 dark:ring-inset dark:ring-indigo-500/15">
       <div className="flex items-center justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-indigo-600" />
-          <h3 className="text-[12px] font-bold text-indigo-950">{title}</h3>
+        <div className="flex items-center gap-2 min-w-0">
+          <CheckCircle2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+          <h3 className="text-[12px] font-bold text-indigo-950 dark:text-indigo-100 truncate">{title}</h3>
         </div>
-        <span className="text-[10px] font-bold bg-indigo-600/10 text-indigo-700 border border-indigo-600/15 px-2.5 py-1 rounded-full uppercase tracking-wider">
+        <span className="text-[10px] font-bold shrink-0 bg-indigo-600/10 text-indigo-700 border border-indigo-600/15 dark:bg-indigo-500/15 dark:text-indigo-200 dark:border-indigo-400/30 px-2.5 py-1 rounded-full uppercase tracking-wider">
           Slip_Coded
         </span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
         {kv.map(({ label, value }) => (
-          <div key={label} className="rounded-lg border border-border/30 bg-white/80 px-3 py-2">
+          <div
+            key={label}
+            className="rounded-lg border border-border/40 bg-card/90 dark:bg-zinc-900/55 dark:border-zinc-700/60 px-3 py-2 shadow-sm dark:shadow-none"
+          >
             <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{label}</div>
             <div className="text-[12px] font-semibold text-foreground truncate" title={String(value)}>
               {String(value)}
@@ -100,14 +103,14 @@ function PolicyExtractPanel({ slip }) {
         ))}
       </div>
 
-      <div className="rounded-xl border border-border/30 bg-white/70 overflow-hidden">
-        <div className="px-3 py-2 bg-muted/30 border-b border-border/20 flex items-center justify-between">
+      <div className="rounded-xl border border-border/40 bg-card/80 dark:bg-zinc-950/50 dark:border-zinc-700/60 overflow-hidden">
+        <div className="px-3 py-2 bg-muted/35 dark:bg-zinc-900/70 border-b border-border/25 flex items-center justify-between">
           <div className="text-[11px] font-bold text-foreground">Extraction Summary</div>
           <div className="text-[10px] text-muted-foreground">{summary.length} fields</div>
         </div>
         <div className="max-h-64 overflow-auto">
           <table className="w-full text-left text-[11px] border-collapse">
-            <thead className="sticky top-0 bg-white z-10">
+            <thead className="sticky top-0 bg-card z-10">
               <tr className="border-b border-border/20">
                 <th className="px-3 py-2 font-bold text-muted-foreground uppercase tracking-wider">Field</th>
                 <th className="px-3 py-2 font-bold text-muted-foreground uppercase tracking-wider">Value</th>
@@ -118,12 +121,12 @@ function PolicyExtractPanel({ slip }) {
             </thead>
             <tbody className="divide-y divide-border/10">
               {summary.map((r, i) => (
-                <tr key={i} className="hover:bg-indigo-50/30">
+                <tr key={i} className="hover:bg-indigo-50/35 dark:hover:bg-indigo-950/35">
                   <td className="px-3 py-2 font-mono text-foreground/80 whitespace-nowrap">{r.field ?? '—'}</td>
                   <td className="px-3 py-2 text-foreground/80">{r.value == null ? '—' : String(r.value)}</td>
                   <td className="px-3 py-2 text-foreground/70 whitespace-nowrap">{r.confidence ?? '—'}</td>
                   <td className="px-3 py-2 text-foreground/70 max-w-[520px] truncate" title={r.source_text || ''}>{r.source_text || '—'}</td>
-                  <td className="px-3 py-2 text-rose-700/80 max-w-[320px] truncate" title={r.flag || ''}>{r.flag || '—'}</td>
+                  <td className="px-3 py-2 text-rose-700/90 dark:text-rose-400 max-w-[320px] truncate" title={r.flag || ''}>{r.flag || '—'}</td>
                 </tr>
               ))}
               {summary.length === 0 && (
@@ -222,7 +225,7 @@ function SimDataTable({ headers = [], rows = [], isLoading, uploadId, fileKey })
   return (
     <div className="flex flex-col h-full">
       {/* Toolbar */}
-      <div className="flex items-center gap-3 p-3 border-b border-border/20 bg-muted/20">
+      <div className="flex items-center gap-3 p-3 border-b border-border/25 bg-muted/25 dark:bg-zinc-950/60 dark:border-zinc-800/80">
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
           <input
@@ -253,8 +256,9 @@ function SimDataTable({ headers = [], rows = [], isLoading, uploadId, fileKey })
                     className={cn(
                       'px-3.5 py-2.5 font-bold uppercase tracking-[0.07em] whitespace-nowrap select-none cursor-pointer transition-colors',
                       'bg-gradient-to-r from-slate-800 to-slate-700 text-white',
+                      'dark:from-zinc-900 dark:to-zinc-800 dark:text-zinc-100 dark:border-b dark:border-zinc-700/50',
                       i === 0 && 'sticky left-0 z-30',
-                      isActive ? 'text-primary bg-slate-900' : 'hover:bg-slate-600',
+                      isActive ? 'text-primary bg-zinc-950 dark:bg-zinc-950 dark:text-primary' : 'hover:bg-zinc-600 dark:hover:bg-zinc-700',
                     )}
                   >
                     <span className="flex items-center gap-1.5">
@@ -277,8 +281,8 @@ function SimDataTable({ headers = [], rows = [], isLoading, uploadId, fileKey })
               <tr
                 key={ri}
                 className={cn(
-                  'transition-colors duration-100 hover:bg-indigo-50/40',
-                  ri % 2 === 0 ? 'bg-white' : 'bg-slate-50/60',
+                  'transition-colors duration-100 hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20',
+                  ri % 2 === 0 ? 'bg-card' : 'bg-muted/60',
                 )}
               >
                 {headers.map((h, ci) => {
@@ -290,7 +294,7 @@ function SimDataTable({ headers = [], rows = [], isLoading, uploadId, fileKey })
                       title={val != null ? String(val) : undefined}
                       className={cn(
                         'px-3.5 py-2.5 border-b border-border/10 align-middle max-w-[200px] truncate',
-                        ci === 0 && 'sticky left-0 z-10 bg-inherit border-r border-border/20 shadow-[2px_0_6px_rgba(0,0,0,0.06)] font-medium',
+                        ci === 0 && 'sticky left-0 z-10 bg-inherit border-r border-border/20 shadow-[2px_0_6px_rgba(0,0,0,0.06)] dark:shadow-[2px_0_6px_rgba(0,0,0,0.25)] font-medium',
                         isNum && 'font-mono tabular-nums text-right',
                         val == null || val === '' ? 'text-muted-foreground/30 italic text-[11px]' : 'text-foreground/80',
                       )}
@@ -509,10 +513,10 @@ export default function SimulationDashboardPage() {
       </div>
 
       {/* ── Tabbed Tables ───────────────────────────────────────────────── */}
-      <div className="glass rounded-2xl border border-border/30 shadow-sm overflow-hidden">
+      <div className="glass rounded-2xl border border-border/35 shadow-sm overflow-hidden dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] dark:ring-1 dark:ring-white/[0.06]">
 
         {/* Tab bar */}
-        <div className="flex border-b border-border/30 bg-muted/20">
+        <div className="flex border-b border-border/30 bg-muted/25 dark:bg-zinc-950/70 dark:border-zinc-800/70">
           {TABS.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -520,8 +524,8 @@ export default function SimulationDashboardPage() {
               className={cn(
                 'flex items-center gap-2 px-5 py-3.5 text-[12px] font-semibold transition-all relative',
                 activeTab === key
-                  ? 'text-primary bg-white border-b-2 border-primary'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/30',
+                  ? 'text-primary bg-card dark:bg-background/85 border-b-2 border-primary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/35 dark:hover:bg-zinc-900/50',
               )}
             >
               <Icon className="w-3.5 h-3.5" />

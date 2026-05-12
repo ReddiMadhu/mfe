@@ -72,9 +72,9 @@ export default function DuplicateResolverModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/60 w-full max-w-3xl max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-card rounded-2xl shadow-2xl border border-border/60 w-full max-w-3xl max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/60">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border/60">
           <div className="flex items-center gap-3">
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -95,7 +95,7 @@ export default function DuplicateResolverModal({
         </div>
 
         {/* Bulk Actions */}
-        <div className="flex items-center gap-2 px-6 py-2.5 bg-slate-50/80 border-b border-slate-200/40">
+        <div className="flex items-center gap-2 px-6 py-2.5 bg-muted/80 border-b border-border/40">
           <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mr-2">
             Bulk Actions:
           </span>
@@ -180,14 +180,14 @@ export default function DuplicateResolverModal({
                   </div>
 
                   {/* Existing entry */}
-                  <div className="rounded-lg border border-slate-200/60 bg-slate-50/50 p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-1.5">
+                  <div className="rounded-lg border border-border/60 bg-muted/50 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-1.5">
                       Existing Entry
                     </p>
                     <p className="text-xs font-medium mb-1">{match?.existing_description}</p>
                     <div className="flex flex-wrap gap-1">
                       {(match?.existing_keywords || []).slice(0, 6).map((kw, i) => (
-                        <span key={i} className="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-[9px] text-slate-600">
+                        <span key={i} className="inline-block px-1.5 py-0.5 rounded bg-muted text-[9px] text-foreground">
                           {kw}
                         </span>
                       ))}
@@ -205,7 +205,7 @@ export default function DuplicateResolverModal({
                   <Button
                     variant={decision === 'keep_existing' ? 'default' : 'outline'}
                     size="sm"
-                    className={cn('text-[10px] h-7 px-3 gap-1', decision === 'keep_existing' && 'bg-slate-700')}
+                    className="text-[10px] h-7 px-3 gap-1"
                     onClick={() => setDecision(code, 'keep_existing')}
                   >
                     Keep Existing
@@ -233,7 +233,7 @@ export default function DuplicateResolverModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-3 border-t border-slate-200/60 bg-slate-50/50">
+        <div className="flex items-center justify-between px-6 py-3 border-t border-border/60 bg-muted/50">
           <p className="text-[11px] text-muted-foreground">
             {Object.keys(decisions).length} of {codes.length} resolved
           </p>

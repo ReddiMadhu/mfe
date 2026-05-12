@@ -114,7 +114,7 @@ function ValueCell({ val, isOutput, isChanged, isError, viewMode, disableHighlig
   if (isOutput) {
     if (isError) {
       return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded border border-rose-200 bg-rose-50 text-rose-700 font-semibold text-[11px]">
+        <span className="inline-flex items-center px-2 py-0.5 rounded border border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800/55 dark:bg-rose-950/45 dark:text-rose-300 font-semibold text-[11px]">
           {String(val)}
         </span>
       );
@@ -141,7 +141,7 @@ function ValueCell({ val, isOutput, isChanged, isError, viewMode, disableHighlig
   }
 
   return (
-    <span className="text-muted-foreground text-[11px] block">
+    <span className="text-muted-foreground dark:text-zinc-300 text-[11px] block">
       {String(val)}
     </span>
   );
@@ -212,7 +212,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
 
   if (!data?.rows?.length) {
     return (
-      <div className="h-full flex items-center justify-center p-8 text-muted-foreground bg-white/40">
+      <div className="h-full flex items-center justify-center p-8 text-muted-foreground bg-card/40">
         <div className="text-center">
           <div className={cn('w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3', stepBgColor)}>
             <ArrowRight className={cn('w-5 h-5', stepColor)} />
@@ -255,7 +255,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
     const totalAfterCols = addrPairs.length + otherPairs.reduce((s, p) => s + (p.after ? 1 : 0), 0);
 
     return (
-      <div className="flex flex-col h-full w-full min-w-0 bg-white">
+      <div className="flex flex-col h-full w-full min-w-0 bg-card">
         {toolbar}
         <div className="overflow-auto flex-1 w-full relative custom-scrollbar">
           <table className="w-max min-w-full text-left border-collapse isolate">
@@ -264,13 +264,13 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
               {/* Row 1: Group super-headers */}
               <tr>
                 <th rowSpan={viewMode === 'combined' ? 3 : 2}
-                  className="sticky left-0 z-30 bg-muted px-4 py-2 border border-slate-200 w-12 align-bottom shadow-[2px_0_5px_rgba(0,0,0,0.02)]" />
+                  className="sticky left-0 z-30 bg-muted px-4 py-2 border border-border w-12 align-bottom shadow-[2px_0_5px_rgba(0,0,0,0.02)]" />
 
                 {/* "Full Address Input" spanning 1 column */}
                 {viewMode === 'combined' && (
                   <th
                     colSpan={1}
-                    className="px-4 py-1.5 border border-slate-200 text-[10px] font-bold uppercase tracking-wider text-center bg-amber-50/80 text-amber-700"
+                    className="px-4 py-1.5 border border-border text-[10px] font-bold uppercase tracking-wider text-center bg-amber-50/85 text-amber-800 dark:bg-amber-950/50 dark:text-amber-100 dark:border-amber-900/40"
                   >
                     Original Address Input
                   </th>
@@ -279,7 +279,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
                 {/* Arrow spacer */}
                 {viewMode === 'combined' && (
                   <th rowSpan={3}
-                    className="px-2 py-2 border border-slate-200 text-muted-foreground/30 w-6 text-center align-middle bg-white/80">
+                    className="px-2 py-2 border border-border text-muted-foreground/30 w-6 text-center align-middle bg-card/80">
                     <ArrowRight className="w-3.5 h-3.5 inline-block opacity-40" />
                   </th>
                 )}
@@ -289,7 +289,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
                   <th
                     colSpan={addrPairs.length}
                     className={cn(
-                      'px-4 py-1.5 border border-slate-200 text-[10px] font-bold uppercase tracking-wider text-center',
+                      'px-4 py-1.5 border border-border text-[10px] font-bold uppercase tracking-wider text-center',
                       stepBgColor, stepColor
                     )}
                   >
@@ -304,7 +304,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
                 {otherGroups.map((g, gIdx) => (
                   <th key={gIdx}
                     colSpan={g.pairs.reduce((s, p) => s + (p.after ? 1 : 0), 0)}
-                    className="px-4 py-1.5 border border-slate-200 text-[10px] font-bold uppercase tracking-wider text-center bg-muted/60 text-muted-foreground"
+                    className="px-4 py-1.5 border border-border text-[10px] font-bold uppercase tracking-wider text-center bg-muted/60 text-muted-foreground"
                   >
                     {g.title}
                   </th>
@@ -315,7 +315,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
               {viewMode === 'combined' && (
                 <tr>
                   {/* "Before" label under Full Address Input */}
-                  <th className="bg-amber-50/80 px-3 py-1 border border-slate-200 text-[9px] font-semibold uppercase tracking-wider text-amber-700 text-center whitespace-nowrap">
+                  <th className="bg-amber-50/85 dark:bg-amber-950/45 px-3 py-1 border border-border dark:border-amber-900/35 text-[9px] font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-200 text-center whitespace-nowrap">
                     {fullAddressSrc ?? 'FullAddress'}
                   </th>
 
@@ -323,7 +323,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
                 {addrPairs.map((pair, i) => (
                   <th key={`addr-new-lbl-${i}`}
                     className={cn(
-                      'px-3 py-1 border border-slate-200 text-[9px] font-semibold uppercase tracking-wider text-center whitespace-nowrap',
+                      'px-3 py-1 border border-border text-[9px] font-semibold uppercase tracking-wider text-center whitespace-nowrap',
                       stepBgColor, stepColor
                     )}>
                     Extracted
@@ -333,7 +333,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
                 {/* Other pairs labels */}
                 {otherPairs.map((pair, i) => (
                   <th key={`other-lbl-${i}`}
-                    className="px-3 py-1 border border-slate-200 text-[9px] font-semibold uppercase tracking-wider text-center whitespace-nowrap bg-muted/30 text-muted-foreground">
+                    className="px-3 py-1 border border-border text-[9px] font-semibold uppercase tracking-wider text-center whitespace-nowrap bg-muted/30 text-muted-foreground">
                     API
                   </th>
                 ))}
@@ -344,7 +344,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
               <tr>
                 {/* Full Address source col name */}
                 {viewMode === 'combined' && (
-                  <th className="bg-white/95 px-3 py-2 border border-slate-200 text-[10px] font-medium text-amber-600"
+                  <th className="bg-card/95 px-3 py-2 border border-border text-[10px] font-medium text-amber-700 dark:text-amber-300"
                     title={fullAddressSrc ?? 'FullAddress'}>
                     {fullAddressSrc ?? 'FullAddress'}
                   </th>
@@ -354,7 +354,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
                 {addrPairs.map((pair, i) => (
                   <th key={`addr-col-${i}`}
                     className={cn(
-                      'bg-white/95 px-3 py-2 border border-slate-200 text-[10px] font-bold',
+                      'bg-card/95 px-3 py-2 border border-border text-[10px] font-bold',
                       stepColor
                     )}
                     title={pair.after}>
@@ -365,7 +365,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
                 {/* Other col names */}
                 {otherPairs.map((pair, i) => (
                   <th key={`other-col-${i}`}
-                    className="bg-white/95 px-3 py-2 border border-slate-200 text-[10px] font-bold text-muted-foreground"
+                    className="bg-card/95 px-3 py-2 border border-border text-[10px] font-bold text-muted-foreground"
                     title={pair.after}>
                     {pair.after}
                   </th>
@@ -380,17 +380,17 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
 
                 return (
                   <tr key={rowIdx} className={cn(
-                    'hover:bg-muted/30 even:bg-slate-50 transition-colors font-mono text-[11px]',
+                    'hover:bg-muted/30 even:bg-muted/40 transition-colors font-mono text-[11px]',
                     isFailedGeocode && 'bg-rose-500/5 hover:bg-rose-500/10'
                   )}>
                     {/* Sticky Row # */}
-                    <td className="sticky left-0 z-10 bg-white/95 px-4 py-2 border border-slate-200 text-muted-foreground/40 shadow-[2px_0_5px_rgba(0,0,0,0.02)] whitespace-nowrap">
+                    <td className="sticky left-0 z-10 bg-card/95 px-4 py-2 border border-border text-muted-foreground/55 dark:text-zinc-400 font-medium tabular-nums shadow-[2px_0_5px_rgba(0,0,0,0.02)] whitespace-nowrap">
                       {rowIdx + 1}
                     </td>
 
                     {/* Raw full address */}
                     {viewMode === 'combined' && (
-                      <td className="px-3 py-2 bg-amber-50/30 border border-slate-200"
+                      <td className="px-3 py-2 bg-amber-50/35 dark:bg-zinc-900/75 dark:border-zinc-700/80 border border-border"
                         title={String(rawFull ?? '')}>
                         <ValueCell val={rawFull} isOutput={false} viewMode={viewMode} />
                       </td>
@@ -398,7 +398,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
 
                     {/* Arrow (visual separator, already in header) */}
                     {viewMode === 'combined' && (
-                      <td className="px-1 py-2 text-muted-foreground/20 text-center bg-white/80 border border-slate-200">
+                      <td className="px-1 py-2 text-muted-foreground/20 text-center bg-card/80 border border-border">
                         <ArrowRight className="w-3 h-3 inline-block opacity-30" />
                       </td>
                     )}
@@ -408,7 +408,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
                       const val = row.after[pair.after];
                       return (
                         <td key={`addr-${i}`}
-                          className="px-2 py-2 border border-slate-200"
+                          className="px-2 py-2 border border-border"
                           title={String(val ?? '')}>
                           <ValueCell
                             val={val}
@@ -428,7 +428,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
                       const isErrorCol = pair.after?.toLowerCase().includes('status') && isFailedGeocode;
                       return (
                         <td key={`other-${i}`}
-                          className="px-2 py-2 border border-slate-200"
+                          className="px-2 py-2 border border-border"
                           title={String(val ?? '')}>
                           <ValueCell val={val} isOutput={true} isChanged={false} isError={isErrorCol} viewMode={viewMode} disableHighlight={pair.after && pair.after.endsWith('_Method')} />
                         </td>
@@ -442,7 +442,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
         </div>
 
         {/* Footer */}
-        <div className="bg-slate-50 px-4 py-2 border-t border-border/60 text-[10px] text-muted-foreground flex items-center justify-between z-10 shrink-0">
+        <div className="bg-muted/50 px-4 py-2 border-t border-border/60 text-[10px] text-muted-foreground flex items-center justify-between z-10 shrink-0">
           <span>
             Showing <strong className="text-foreground">{data.rows.length}</strong> of {data.total} row{data.total !== 1 ? 's' : ''} processed.
           </span>
@@ -457,7 +457,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
   // ── Standard (field-by-field) layout ─────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-full w-full min-w-0 bg-white">
+    <div className="flex flex-col h-full w-full min-w-0 bg-card">
       {toolbar}
       <div className="overflow-auto flex-1 w-full relative custom-scrollbar">
         <table className="w-max min-w-full text-left border-collapse isolate">
@@ -467,7 +467,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
             <tr>
               <th
                 rowSpan={2}
-                className="sticky left-0 z-30 bg-muted px-3 py-1.5 border border-slate-200 w-10 align-bottom shadow-[2px_0_5px_rgba(0,0,0,0.02)]"
+                className="sticky left-0 z-30 bg-muted px-3 py-1.5 border border-border w-10 align-bottom shadow-[2px_0_5px_rgba(0,0,0,0.02)]"
               />
               {groups.map((group, gIdx) => {
                 const colSpan = group.pairs.reduce(
@@ -478,7 +478,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
                 return (
                   <th key={gIdx} colSpan={colSpan}
                     className={cn(
-                      'px-3 py-1.5 border border-slate-200 text-[9px] font-bold uppercase tracking-wider text-center',
+                      'px-3 py-1.5 border border-border text-[9px] font-bold uppercase tracking-wider text-center',
                       gIdx % 2 === 0 ? 'bg-muted/60 text-muted-foreground' : `${stepBgColor} ${stepColor}`
                     )}>
                     {group.title}
@@ -494,7 +494,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
                 if (pair.before && viewMode === 'combined') {
                   cols.push(
                     <th key={`${pIdx}-old-col`}
-                      className="bg-amber-50/60 backdrop-blur-md px-2 py-1.5 border border-slate-200 text-[9px] font-semibold text-amber-600/80"
+                      className="bg-amber-50/70 dark:bg-amber-950/45 backdrop-blur-md px-2 py-1.5 border border-border dark:border-amber-900/35 text-[9px] font-semibold text-amber-800 dark:text-amber-200"
                       title={pair.before}>
                       {pair.before}
                     </th>
@@ -504,7 +504,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
                   cols.push(
                     <th key={`${pIdx}-new-col`}
                       className={cn(
-                        'bg-white/95 backdrop-blur-md px-2 py-1.5 border border-slate-200 text-[9px] font-bold',
+                        'bg-card/95 backdrop-blur-md px-2 py-1.5 border border-border text-[9px] font-bold',
                         stepColor
                       )}
                       title={pair.after}>
@@ -524,10 +524,10 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
 
               return (
                 <tr key={rowIdx} className={cn(
-                  'hover:bg-muted/30 even:bg-slate-50 transition-colors font-mono text-[10px]',
+                  'hover:bg-muted/30 even:bg-muted/40 transition-colors font-mono text-[11px]',
                   isFailedGeocode && 'bg-rose-500/5 hover:bg-rose-500/10'
                 )}>
-                  <td className="sticky left-0 z-10 bg-white/95 px-3 py-1.5 border border-slate-200 text-muted-foreground/40 shadow-[2px_0_5px_rgba(0,0,0,0.02)] whitespace-nowrap">
+                  <td className="sticky left-0 z-10 bg-card/95 px-3 py-1.5 border border-border text-muted-foreground/55 dark:text-zinc-400 font-medium tabular-nums shadow-[2px_0_5px_rgba(0,0,0,0.02)] whitespace-nowrap">
                     {rowIdx + 1}
                   </td>
 
@@ -538,7 +538,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
                       const val = row.before[pair.before];
                       cells.push(
                         <td key={`${pIdx}-old`}
-                          className="px-2 py-1.5 bg-amber-50/30 border border-slate-200"
+                          className="px-2 py-1.5 bg-amber-50/35 dark:bg-zinc-900/75 dark:border-zinc-700/80 border border-border"
                           title={String(val ?? '')}>
                           <ValueCell val={val} isOutput={false} viewMode={viewMode} />
                         </td>
@@ -554,7 +554,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
 
                       cells.push(
                         <td key={`${pIdx}-new`}
-                          className="px-2 py-1.5 border border-slate-200"
+                          className="px-2 py-1.5 border border-border"
                           title={String(val ?? '')}>
                           <ValueCell
                             val={val}
@@ -578,7 +578,7 @@ export default function StepDiffTable({ uploadId, step, stepColor, stepBgColor, 
       </div>
 
       {/* Footer */}
-      <div className="bg-slate-50 px-4 py-2 border-t border-border/60 text-[10px] text-muted-foreground flex items-center justify-between z-10 shrink-0">
+      <div className="bg-muted/50 px-4 py-2 border-t border-border/60 text-[10px] text-muted-foreground flex items-center justify-between z-10 shrink-0">
         <span>
           Showing <strong className="text-foreground">{data.rows.length}</strong> of {data.total} row{data.total !== 1 ? 's' : ''} processed.
         </span>

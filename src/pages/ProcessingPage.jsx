@@ -59,7 +59,7 @@ function PipelineStrip({ stepStatus, agentStates }) {
   return (
     <div className={cn(
       'fixed bottom-0 left-0 right-0 z-50 border-t backdrop-blur-lg',
-      'bg-white/90 border-border/40 shadow-[0_-4px_24px_rgba(0,0,0,0.08)]',
+      'bg-card/90 border-border/40 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.35)]',
       'transition-all duration-500',
     )}>
       {/* Overall progress bar at very top of strip */}
@@ -180,10 +180,10 @@ export default function ProcessingPage() {
     <div className="min-h-[calc(100vh-6rem)] p-4 pb-20 w-full max-w-[1400px] mx-auto flex flex-col gap-4">
 
       {/* ── Pipeline DAG graph ──────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm p-4">
+      <div className="bg-card rounded-2xl overflow-hidden border border-border shadow-sm p-4">
         {/* Header row: label + connection badge */}
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pipeline Graph</span>
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pipeline Graph</span>
           <div className={cn(
             'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border',
             connStatus === 'open'       ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600' :

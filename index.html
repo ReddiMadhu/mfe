@@ -5,6 +5,23 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>frontend</title>
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('ui-theme');
+          var theme = 'system';
+          if (raw) {
+            var p = JSON.parse(raw);
+            if (p && p.state && (p.state.theme === 'light' || p.state.theme === 'dark' || p.state.theme === 'system'))
+              theme = p.state.theme;
+          }
+          var dark =
+            theme === 'dark' ||
+            (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', dark);
+        } catch (e) { /* ignore */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

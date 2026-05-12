@@ -1,9 +1,18 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight, MapPin, Tag, ShieldCheck, CloudRain, Layers, Eye,
   TrendingUp, Award, Check, Sparkles, Settings2, FileOutput, BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { usePipelineStore } from '@/store/usePipelineStore';
 import { cn } from '@/lib/utils';
@@ -53,8 +62,8 @@ function PipelineStage({ num, title, description, active, locked, onToggle, chil
             active
               ? 'border-primary bg-transparent text-primary'
               : disabled
-                ? 'border-slate-200 bg-slate-50 text-slate-300 cursor-not-allowed'
-                : 'border-slate-300 bg-white text-transparent hover:border-slate-400 cursor-pointer'
+                ? 'border-border bg-muted text-muted-foreground/50 cursor-not-allowed'
+                : 'border-border bg-card text-transparent hover:border-border cursor-pointer'
           )}
         >
           <Check size={14} strokeWidth={4} className={cn(!active && "opacity-0")} />
@@ -64,7 +73,7 @@ function PipelineStage({ num, title, description, active, locked, onToggle, chil
       <div className="flex-1 pb-6">
         <div className={cn(
           "rounded-2xl border p-5 transition-all duration-300",
-          active ? 'glass-strong border-slate-300 shadow-sm'
+          active ? 'glass-strong border-border shadow-sm'
             : 'glass border-border/40'
         )}>
           <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
@@ -73,7 +82,7 @@ function PipelineStage({ num, title, description, active, locked, onToggle, chil
               {title}
             </h3>
             {locked ? (
-              <Badge variant="outline" className="text-[10px] border-slate-300 text-slate-500 bg-slate-50">
+              <Badge variant="outline" className="text-[10px] border-border text-muted-foreground bg-muted">
                 Required
               </Badge>
             ) : null}
@@ -90,12 +99,23 @@ function PipelineStage({ num, title, description, active, locked, onToggle, chil
 
 export default function AgentConfigPage() {
   const navigate = useNavigate();
+  const [launchGateOpen, setLaunchGateOpen] = useState(false);
   const {
     targetFormat, setTargetFormat,
     selectedAgents, toggleAgent,
   } = usePipelineStore();
 
-  function handleLaunch() {
+  function openLaunchGate() {
+    setLaunchGateOpen(true);
+  }
+
+  function goToOntologyFromGate() {
+    setLaunchGateOpen(false);
+    navigate('/ontology');
+  }
+
+  function skipToPipelineFromGate() {
+    setLaunchGateOpen(false);
     navigate('/pipeline');
   }
 
@@ -155,7 +175,7 @@ export default function AgentConfigPage() {
                     className={cn(
                       'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-semibold border transition-colors',
                       selectedAgents.sovCope
-                        ? 'bg-slate-100 border-slate-200 text-slate-800'
+                        ? 'bg-muted border-border text-foreground'
                         : 'bg-muted/50 border-border/30 text-muted-foreground',
                     )}
                   >
@@ -173,7 +193,7 @@ export default function AgentConfigPage() {
                   'w-5 h-5 rounded-[4px] flex items-center justify-center border-2 shrink-0 transition-all duration-200 shadow-sm',
                   selectedAgents.sovCope
                     ? 'border-primary bg-transparent text-primary'
-                    : 'border-slate-200 bg-slate-50 text-slate-300 cursor-not-allowed'
+                    : 'border-border bg-muted text-muted-foreground/50 cursor-not-allowed'
                 )}>
                   {selectedAgents.sovCope && <Check size={14} strokeWidth={4} />}
                 </div>
@@ -181,7 +201,7 @@ export default function AgentConfigPage() {
               <div className="flex-1 pb-6">
                 <div className={cn(
                   "rounded-2xl border p-5 transition-all duration-300",
-                  selectedAgents.sovCope ? 'glass-strong border-slate-300 shadow-sm' : 'glass border-border/40 opacity-50'
+                  selectedAgents.sovCope ? 'glass-strong border-border shadow-sm' : 'glass border-border/40 opacity-50'
                 )}>
                   <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
                     <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
@@ -190,8 +210,8 @@ export default function AgentConfigPage() {
                     </h3>
                     <Badge variant="outline" className={cn("text-[10px]",
                       selectedAgents.sovCope
-                        ? "border-slate-300 text-slate-500 bg-slate-50"
-                        : "border-slate-300 text-slate-400")}>
+                        ? "border-border text-muted-foreground bg-muted"
+                        : "border-border text-muted-foreground")}>
                       {selectedAgents.sovCope ? 'Auto-enabled' : 'Requires SOV COPE'}
                     </Badge>
                   </div>
@@ -208,7 +228,7 @@ export default function AgentConfigPage() {
                         className={cn(
                           'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-semibold border transition-colors',
                           selectedAgents.sovCope
-                            ? 'bg-slate-100 border-slate-200 text-slate-800'
+                            ? 'bg-muted border-border text-foreground'
                             : 'bg-muted/50 border-border/30 text-muted-foreground'
                         )}
                       >
@@ -234,7 +254,7 @@ export default function AgentConfigPage() {
             >
               <div className="mt-3 pt-3 border-t border-border/40">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Select Modules</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Select Modules</span>
                   <button
                     onClick={toggleAllUw}
                     className="text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors"
@@ -252,11 +272,11 @@ export default function AgentConfigPage() {
                         className={cn(
                           "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-[10px] font-medium transition-all duration-200",
                           isSelected
-                            ? "bg-white border-primary text-primary shadow-sm"
-                            : "bg-white border-slate-300 text-slate-700 shadow-sm hover:border-slate-400 hover:bg-slate-50"
+                            ? "bg-card border-primary text-primary shadow-sm"
+                            : "bg-card border-border text-foreground shadow-sm hover:border-border hover:bg-muted"
                         )}
                       >
-                        {isSelected ? <Check size={12} /> : <agent.icon size={12} className="text-slate-500" />}
+                        {isSelected ? <Check size={12} /> : <agent.icon size={12} className="text-muted-foreground" />}
                         {agent.label}
                       </button>
                     );
@@ -274,38 +294,38 @@ export default function AgentConfigPage() {
 
 
           {/* View Ontology */}
-          <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-slate-300">
+          <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-border">
             {/* Subtle background decoration */}
-            <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-slate-100/60 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-slate-100/60 blur-3xl pointer-events-none" />
+            <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-muted/60 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-muted/60 blur-3xl pointer-events-none" />
 
             <div className="relative z-10 flex items-center gap-3 mb-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500 shadow-sm border border-slate-200">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-muted-foreground shadow-sm border border-border">
                 <BookOpen className="w-4 h-4" />
               </div>
-              <h2 className="font-bold text-sm uppercase tracking-wider text-slate-700">Ontology & Rules</h2>
-              <Badge variant="outline" className="ml-auto text-[10px] border-slate-200 text-slate-500 bg-slate-50 font-bold shadow-sm uppercase tracking-wide">
+              <h2 className="font-bold text-sm uppercase tracking-wider text-foreground">Ontology & Rules</h2>
+              <Badge variant="outline" className="ml-auto text-[10px] border-border text-muted-foreground bg-muted font-bold shadow-sm uppercase tracking-wide">
                 Reference
               </Badge>
             </div>
-            <p className="relative z-10 text-xs text-slate-400 mb-4 leading-relaxed pr-2 font-medium">
+            <p className="relative z-10 text-xs text-muted-foreground mb-4 leading-relaxed pr-2 font-medium">
               Browse the COPE dictionary, normalization rules, and geocoding settings that drive the AI agent mapping logic.
             </p>
 
             <button
               onClick={() => navigate('/ontology')}
-              className="relative z-10 w-full flex items-center gap-3 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-bold border border-slate-200 hover:bg-slate-200 hover:border-slate-300 active:scale-[0.98] transition-all duration-200"
+              className="relative z-10 w-full flex items-center gap-3 px-4 py-2.5 rounded-xl bg-muted text-foreground text-sm font-bold border border-border hover:bg-muted/80 hover:border-border active:scale-[0.98] transition-all duration-200"
             >
-              <BookOpen className="w-4 h-4 shrink-0 text-slate-500" />
+              <BookOpen className="w-4 h-4 shrink-0 text-muted-foreground" />
               <span>View Ontology</span>
-              <ArrowRight className="w-4 h-4 ml-auto shrink-0 text-slate-400" />
+              <ArrowRight className="w-4 h-4 ml-auto shrink-0 text-muted-foreground" />
             </button>
 
             <div className="relative z-10 mt-4 grid grid-cols-3 gap-2">
               {[
-                { label: 'COPE Dictionary', color: 'bg-slate-50 border-slate-200 text-slate-500' },
-                { label: 'Normalization Rules', color: 'bg-slate-50 border-slate-200 text-slate-500' },
-                { label: 'Geocoding Info', color: 'bg-slate-50 border-slate-200 text-slate-500' },
+                { label: 'COPE Dictionary', color: 'bg-muted border-border text-muted-foreground' },
+                { label: 'Normalization Rules', color: 'bg-muted border-border text-muted-foreground' },
+                { label: 'Geocoding Info', color: 'bg-muted border-border text-muted-foreground' },
               ].map(item => (
                 <div key={item.label} className={`flex items-center justify-center text-center px-2 py-1.5 rounded-lg border text-[9px] font-bold uppercase tracking-wide ${item.color}`}>
                   {item.label}
@@ -315,7 +335,7 @@ export default function AgentConfigPage() {
           </div>
 
           {/* Target Format */}
-          <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-white via-slate-50 to-primary/5 p-6 shadow-md mt-2 transition-all duration-300">
+          <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-card via-muted/50 to-primary/5 p-6 shadow-md mt-2 transition-all duration-300">
             {/* Glow blobs */}
             <div className="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
             <div className="absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
@@ -326,11 +346,11 @@ export default function AgentConfigPage() {
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm border border-primary/20">
                     <Settings2 className="w-4 h-4" />
                   </div>
-                  <h2 className="font-bold text-sm uppercase tracking-wider text-slate-900">
+                  <h2 className="font-bold text-sm uppercase tracking-wider text-foreground">
                     Target Output Format
                   </h2>
                 </div>
-                <p className="text-[11px] text-slate-500 font-medium max-w-sm leading-relaxed">
+                <p className="text-[11px] text-muted-foreground font-medium max-w-sm leading-relaxed">
                   Select the downstream catastrophe modeling schema. This drives mapping logic and final export generation.
                 </p>
               </div>
@@ -358,8 +378,8 @@ export default function AgentConfigPage() {
                     className={cn(
                       'group relative flex flex-col rounded-xl p-5 text-left transition-all duration-300 overflow-hidden',
                       isActive
-                        ? 'border-2 border-primary bg-white shadow-[0_8px_16px_-6px_rgba(0,0,0,0.1),0_4px_8px_-4px_rgba(0,0,0,0.06)] scale-[1.02]'
-                        : 'border-2 border-slate-200/80 bg-slate-50/50 hover:border-slate-300 hover:bg-white hover:shadow-sm',
+                        ? 'border-2 border-primary bg-card shadow-[0_8px_16px_-6px_rgba(0,0,0,0.1),0_4px_8px_-4px_rgba(0,0,0,0.06)] scale-[1.02]'
+                        : 'border-2 border-border/80 bg-muted/50 hover:border-border hover:bg-card hover:shadow-sm',
                     )}
                   >
                     {/* Active Background Glow */}
@@ -373,7 +393,7 @@ export default function AgentConfigPage() {
                           'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 shadow-sm',
                           isActive
                             ? 'border-primary bg-primary'
-                            : 'border-slate-300 bg-white group-hover:border-slate-400',
+                            : 'border-border bg-card group-hover:border-border',
                         )}
                       >
                         {isActive && <Check size={12} className="text-white" strokeWidth={3} />}
@@ -383,13 +403,13 @@ export default function AgentConfigPage() {
                     <div className="relative z-10">
                       <h3 className={cn(
                         'text-lg font-black tracking-tight mb-1',
-                        isActive ? 'text-primary' : 'text-slate-700'
+                        isActive ? 'text-primary' : 'text-foreground'
                       )}>
                         {fmt.id}
                       </h3>
                       <p className={cn(
                         'text-[13px] font-bold',
-                        isActive ? 'text-slate-800' : 'text-slate-600'
+                        isActive ? 'text-foreground' : 'text-muted-foreground'
                       )}>
                         {fmt.name}
                       </p>
@@ -403,7 +423,7 @@ export default function AgentConfigPage() {
           {/* Launch CTA */}
           <div className="mt-2">
             <Button
-              onClick={handleLaunch}
+              onClick={openLaunchGate}
               size="lg"
               className="w-full gradient-primary glow-primary text-white font-bold h-14 rounded-xl text-base shadow-sm hover:opacity-90 hover:-translate-y-0.5 transition-all"
             >
@@ -417,6 +437,33 @@ export default function AgentConfigPage() {
         </div>
 
       </div>
+
+      <Dialog open={launchGateOpen} onOpenChange={setLaunchGateOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Review ontology first?</DialogTitle>
+            <DialogDescription>
+              You can review the COPE dictionary, normalization rules, and geocoding settings that drive mapping—or go straight to the pipeline.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 flex flex-col sm:flex-row sm:justify-end">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setLaunchGateOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={skipToPipelineFromGate}>
+              Skip to pipeline
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="gradient-primary glow-primary text-white font-semibold shadow-sm"
+              onClick={goToOntologyFromGate}
+            >
+              Review ontology
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

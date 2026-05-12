@@ -106,7 +106,7 @@ function TextField({ label, value, onChange }) {
 
 function RuleGroup({ title, icon: Icon, color, children }) {
   return (
-    <div className="rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-300 p-5 space-y-4">
+    <div className="rounded-2xl bg-card border border-border/60 shadow-sm hover:shadow-md hover:border-border transition-all duration-300 p-5 space-y-4">
       <div className="flex items-center gap-2">
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center"

@@ -56,7 +56,7 @@ function LivePreviewTable({ uploadId, apiPath, color, showSlipBadge = true }) {
           {title}
         </h4>
       )}
-      <div className="rounded-xl border border-border/30 max-h-[420px] overflow-auto custom-scrollbar bg-white">
+      <div className="rounded-xl border border-border/30 max-h-[420px] overflow-auto custom-scrollbar bg-card">
         <table className="w-full text-left border-collapse min-w-max">
           <thead>
             <tr>
@@ -101,14 +101,14 @@ function LivePreviewTable({ uploadId, apiPath, color, showSlipBadge = true }) {
 
 
 // ── Stat row inside panel ───────────────────────────────────────────────────
-function PanelStat({ icon: Icon, label, value, color = 'text-slate-500' }) {
+function PanelStat({ icon: Icon, label, value, color = 'text-muted-foreground' }) {
   return (
-    <div className="flex items-center justify-between py-1.5 border-b border-slate-100 last:border-0">
+    <div className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
       <div className={cn('flex items-center gap-1.5', color)}>
         <Icon size={12} className="shrink-0" />
-        <span className="text-[11px] text-slate-500">{label}</span>
+        <span className="text-[11px] text-muted-foreground">{label}</span>
       </div>
-      <span className="text-[11px] font-semibold text-slate-700 tabular-nums">{value ?? '—'}</span>
+      <span className="text-[11px] font-semibold text-foreground tabular-nums">{value ?? '—'}</span>
     </div>
   );
 }
@@ -171,7 +171,7 @@ function FrequencyPanel({ uploadId, epFrequencyConfig, freqForm, setFreqForm, on
     <div className="space-y-1">
 
       {/* Account & Location File Previews (Collapsible) */}
-      <div className="mt-4 space-y-2 border-t border-slate-100 pt-3">
+      <div className="mt-4 space-y-2 border-t border-border pt-3">
         <FilePreviewAccordion
           title="Account File (Slip-derived terms)"
           icon={Building2}
@@ -214,7 +214,7 @@ function FilePreviewAccordion({ title, icon: Icon, color, bg, border, downloadPa
 
   return (
     <div className={cn("rounded-lg border overflow-hidden transition-all", border, bg)}>
-      <div className="flex items-center justify-between px-2 py-1.5 border-b border-black/5 bg-white/50">
+      <div className="flex items-center justify-between px-2 py-1.5 border-b border-black/5 bg-card/50">
         <button
           onClick={() => setOpen(!open)}
           className="flex-1 flex items-center justify-between text-left hover:bg-black/5 transition-colors rounded px-2 py-1"
@@ -228,7 +228,7 @@ function FilePreviewAccordion({ title, icon: Icon, color, bg, border, downloadPa
         {downloadPath && uploadId && (
           <button
             onClick={handleDownload}
-            className="flex items-center gap-1.5 px-2 py-1 ml-2 bg-white rounded shadow-sm border border-black/10 text-[10px] font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors whitespace-nowrap"
+            className="flex items-center gap-1.5 px-2 py-1 ml-2 bg-card rounded shadow-sm border border-black/10 text-[10px] font-bold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors whitespace-nowrap"
             title={`Download ${formatLabel} file`}
           >
             <Download size={10} /> XLSX
@@ -236,7 +236,7 @@ function FilePreviewAccordion({ title, icon: Icon, color, bg, border, downloadPa
         )}
       </div>
       {open && (
-        <div className="bg-white p-2">
+        <div className="bg-card p-2">
           {children}
         </div>
       )}
@@ -251,12 +251,12 @@ function PerilPanel({ epPerilConfig, stepStatus }) {
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2 mb-3">
-        <div className={cn('w-7 h-7 rounded-full flex items-center justify-center', ready ? 'bg-emerald-100' : hazardStatus === 'error' ? 'bg-red-100' : 'bg-slate-100')}>
-          <CloudRain size={14} className={ready ? 'text-emerald-600' : hazardStatus === 'error' ? 'text-red-500' : 'text-slate-400'} />
+        <div className={cn('w-7 h-7 rounded-full flex items-center justify-center', ready ? 'bg-emerald-500/20 dark:bg-emerald-900/50' : hazardStatus === 'error' ? 'bg-red-100 dark:bg-red-950/50' : 'bg-muted')}>
+          <CloudRain size={14} className={ready ? 'text-emerald-600' : hazardStatus === 'error' ? 'text-red-500' : 'text-muted-foreground'} />
         </div>
         <div>
-          <p className="text-xs font-bold text-slate-800">Model Setup (Peril)</p>
-          <p className="text-[10px] text-slate-400">Peril + Region — from EP Hazard Assessment</p>
+          <p className="text-xs font-bold text-foreground">Model Setup (Peril)</p>
+          <p className="text-[10px] text-muted-foreground">Peril + Region — from EP Hazard Assessment</p>
         </div>
         {ready
           ? <Badge className="ml-auto bg-emerald-100 text-emerald-700 border-emerald-200 text-[9px]">✓ Ready</Badge>
@@ -264,16 +264,16 @@ function PerilPanel({ epPerilConfig, stepStatus }) {
             ? <Badge className="ml-auto bg-blue-100 text-blue-700 border-blue-200 text-[9px]">Running</Badge>
             : hazardStatus === 'error'
               ? <Badge className="ml-auto bg-red-100 text-red-700 border-red-200 text-[9px]">Error</Badge>
-              : <Badge className="ml-auto bg-slate-100 text-slate-500 border-slate-200 text-[9px]">Pending</Badge>
+              : <Badge className="ml-auto bg-muted text-muted-foreground border-border text-[9px]">Pending</Badge>
         }
       </div>
 
       {!ready && hazardStatus !== 'error' && (
         <div className="py-3">
-          <div className="flex items-center gap-2 text-[11px] text-slate-500">
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
             {hazardStatus === 'running'
               ? <><Loader2 size={12} className="animate-spin text-blue-500" /><span>Running Hazard Assessment… please wait</span></>
-              : <><Loader2 size={12} className="text-slate-300" /><span>Waiting for SOV COPE completion to trigger assessment</span></>
+              : <><Loader2 size={12} className="text-muted-foreground/50" /><span>Waiting for SOV COPE completion to trigger assessment</span></>
             }
           </div>
         </div>
@@ -292,8 +292,8 @@ function PerilPanel({ epPerilConfig, stepStatus }) {
           <PanelStat icon={CloudRain}    label="Wind Regions"       value={epPerilConfig.wind_regions?.length ?? 0}               color="text-violet-500" />
           <PanelStat icon={CheckCircle2} label="Source"             value="EP Hazard Assessment"                                  color="text-emerald-500"/>
           {epPerilConfig.earthquake_regions?.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-slate-100">
-              <p className="text-[10px] font-semibold text-slate-500 mb-1">Earthquake Regions</p>
+            <div className="mt-2 pt-2 border-t border-border">
+              <p className="text-[10px] font-semibold text-muted-foreground mb-1">Earthquake Regions</p>
               <div className="flex flex-wrap gap-1">
                 {epPerilConfig.earthquake_regions.map(r => (
                   <span key={r} className="text-[9px] bg-sky-50 text-sky-600 border border-sky-200 rounded px-1.5 py-0.5">{r}</span>
@@ -302,8 +302,8 @@ function PerilPanel({ epPerilConfig, stepStatus }) {
             </div>
           )}
           {epPerilConfig.wind_regions?.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-slate-100">
-              <p className="text-[10px] font-semibold text-slate-500 mb-1">Wind Regions</p>
+            <div className="mt-2 pt-2 border-t border-border">
+              <p className="text-[10px] font-semibold text-muted-foreground mb-1">Wind Regions</p>
               <div className="flex flex-wrap gap-1">
                 {epPerilConfig.wind_regions.map(r => (
                   <span key={r} className="text-[9px] bg-violet-50 text-violet-600 border border-violet-200 rounded px-1.5 py-0.5">{r}</span>
@@ -345,24 +345,24 @@ export default function EpNodeInfoPanel({
     epPolicy:    { icon: FileText,  label: 'Insurance Terms',          color: 'text-orange-500',  ring: 'ring-orange-200'  },
     epFrequency: { icon: Activity,  label: 'Annual Simulation',        color: 'text-orange-500',  ring: 'ring-orange-200'  },
     epCurve:     { icon: BarChart3, label: 'EP Curve Output',          color: 'text-violet-600',  ring: 'ring-violet-200'  },
-    preEpOutput: { icon: Database,  label: 'Pre‑EP Modeling Output',   color: 'text-slate-600',   ring: 'ring-slate-200'   },
+    preEpOutput: { icon: Database,  label: 'Pre‑EP Modeling Output',   color: 'text-muted-foreground',   ring: 'ring-border'   },
   };
 
   const meta = PANEL_META[nodeId];
 
   return (
-    <div className="animate-in slide-in-from-top-3 fade-in duration-300 rounded-2xl border border-slate-200 bg-white shadow-md overflow-hidden">
+    <div className="animate-in slide-in-from-top-3 fade-in duration-300 rounded-2xl border border-border bg-card shadow-md overflow-hidden">
       {/* Header bar — X button closes the panel */}
-      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-100 bg-slate-50/60">
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-muted/50">
         {meta && (
           <>
             <meta.icon size={13} className={meta.color} />
-            <span className="text-[11px] font-bold uppercase tracking-widest text-slate-600">{meta.label}</span>
+            <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{meta.label}</span>
           </>
         )}
         <button
           onClick={onClose}
-          className="ml-auto p-1 rounded hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors"
+          className="ml-auto p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
           title="Close panel"
         >
           <X size={13} />
@@ -388,14 +388,14 @@ export default function EpNodeInfoPanel({
         {nodeId === 'epCurve' && (
           <div className="py-2">
             {!epCurveResult ? (
-              <div className="text-[11px] text-slate-400 italic">
+              <div className="text-[11px] text-muted-foreground italic">
                 Final output will appear here once all inputs are ready.
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-5 bg-violet-50/50 rounded-xl border border-violet-100/50">
-                <CheckCircle2 size={32} className="text-violet-500 mb-3" />
-                <p className="text-sm font-bold text-violet-900 mb-1">Annual Simulation Completed</p>
-                <p className="text-[11px] text-violet-600/80 mb-4 text-center max-w-[280px]">
+              <div className="flex flex-col items-center justify-center py-5 rounded-xl border bg-violet-500/[0.07] dark:bg-violet-950/45 border-violet-200/70 dark:border-violet-500/35">
+                <CheckCircle2 size={32} className="text-violet-600 dark:text-violet-400 mb-3" />
+                <p className="text-sm font-bold text-violet-950 dark:text-violet-100 mb-1">Annual Simulation Completed</p>
+                <p className="text-[11px] text-violet-800/90 dark:text-violet-200/85 mb-4 text-center max-w-[280px]">
                   Final output file, location file, and account file generated successfully.
                 </p>
                 <Button 
@@ -412,14 +412,14 @@ export default function EpNodeInfoPanel({
         {nodeId === 'preEpOutput' && (
           <div className="py-2">
             {!epCurveResult ? (
-              <div className="text-[11px] text-slate-400 italic">
+              <div className="text-[11px] text-muted-foreground italic">
                 Pre‑EP output becomes available after Annual Simulation completes.
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-5 bg-slate-50/60 rounded-xl border border-slate-200/60">
-                <Database size={30} className="text-slate-600 mb-3" />
-                <p className="text-sm font-bold text-slate-900 mb-1">Pre‑EP Output Ready</p>
-                <p className="text-[11px] text-slate-600/80 mb-4 text-center max-w-[280px]">
+              <div className="flex flex-col items-center justify-center py-5 bg-muted/50 rounded-xl border border-border/60">
+                <Database size={30} className="text-muted-foreground mb-3" />
+                <p className="text-sm font-bold text-foreground mb-1">Pre‑EP Output Ready</p>
+                <p className="text-[11px] text-muted-foreground/80 mb-4 text-center max-w-[280px]">
                   View mock AIR/RMS-style EP output tables and curves.
                 </p>
                 <Button

@@ -57,15 +57,15 @@ export default function HomePage() {
             <div 
               key={i} 
               className={cn(
-                "relative group flex items-center gap-3 bg-white/60 backdrop-blur-md rounded-2xl px-5 py-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
-                s.disabled ? "opacity-50 grayscale" : "hover:bg-white shadow-sm border",
-                s.isAI ? "border-primary/30 hover:border-primary/50 shadow-primary/5" : "border-slate-200/60 hover:border-slate-300"
+                "relative group flex items-center gap-3 bg-card/60 backdrop-blur-md rounded-2xl px-5 py-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
+                s.disabled ? "opacity-50 grayscale" : "hover:bg-card shadow-sm border",
+                s.isAI ? "border-primary/30 hover:border-primary/50 shadow-primary/5" : "border-border/60 hover:border-border"
               )}
             >
               {/* Icon Container */}
               <div className={cn(
                 "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110",
-                "bg-slate-100 text-slate-500 group-hover:bg-primary/10 group-hover:text-primary"
+                "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
               )}>
                 <s.icon className="w-4 h-4" />
               </div>
@@ -109,8 +109,8 @@ export default function HomePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {FEATURES.map(({ icon: Icon, label, desc }) => (
-            <div key={label} className="relative group bg-white/60 backdrop-blur-md rounded-3xl p-6 border border-slate-200/60 hover:bg-white hover:border-primary/30 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1.5 flex flex-col gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-500 group-hover:bg-primary/10 group-hover:text-primary flex items-center justify-center group-hover:scale-110 group-hover:-rotate-3 transition-all duration-300">
+            <div key={label} className="relative group bg-card/60 backdrop-blur-md rounded-3xl p-6 border border-border/60 hover:bg-card hover:border-primary/30 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1.5 flex flex-col gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary flex items-center justify-center group-hover:scale-110 group-hover:-rotate-3 transition-all duration-300">
                 <Icon className="w-5 h-5" />
               </div>
               <div>

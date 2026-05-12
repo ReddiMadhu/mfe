@@ -51,7 +51,7 @@ function EditableRow({ row, tab, saving, onSave, onCancel }) {
               onSave(row.description, keywords);
             }}
             disabled={saving}
-            className="p-1 rounded-md text-emerald-600 hover:bg-emerald-100 transition-colors disabled:opacity-40"
+            className="p-1 rounded-md text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/15 transition-colors disabled:opacity-40"
             title="Save"
           >
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
@@ -246,10 +246,10 @@ function CopeSection({ tab, format }) {
   const Icon = tab.icon;
 
   return (
-    <div className="rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-300 overflow-hidden">
+    <div className="rounded-2xl bg-card border border-border/60 shadow-sm hover:shadow-md hover:border-border transition-all duration-300 overflow-hidden">
       <button
         onClick={() => { setExpanded(!expanded); if (!expanded) fetchVersions(); }}
-        className="w-full flex items-center gap-4 p-5 hover:bg-slate-50/50 transition-colors text-left"
+        className="w-full flex items-center gap-4 p-5 hover:bg-muted/50 transition-colors text-left"
       >
         <div
           className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -269,7 +269,7 @@ function CopeSection({ tab, format }) {
           </div>
           <p className="text-[11px] text-muted-foreground">{tab.desc}</p>
         </div>
-        {expanded ? <ChevronDown className="w-5 h-5 text-slate-400 stroke-[2.5px]" /> : <ChevronRight className="w-5 h-5 text-slate-400 stroke-[2.5px]" />}
+        {expanded ? <ChevronDown className="w-5 h-5 text-muted-foreground stroke-[2.5px]" /> : <ChevronRight className="w-5 h-5 text-muted-foreground stroke-[2.5px]" />}
       </button>
 
       {expanded && (

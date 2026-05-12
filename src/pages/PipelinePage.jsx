@@ -63,10 +63,10 @@ function CollapsibleSummary({ summaryText }) {
         className="flex items-center gap-2 text-left group w-full"
       >
         <Sparkles className="w-4 h-4 text-primary shrink-0" />
-        <span className="text-[11px] font-bold uppercase tracking-wide text-primary/80">
+        <span className="text-[11px] font-bold uppercase tracking-wide text-primary dark:text-orange-400">
           GenAI Summary
         </span>
-        <Badge variant="outline" className="text-[9px] border-primary/20 text-primary/60 ml-1">
+        <Badge variant="outline" className="text-[9px] border-primary/25 dark:border-orange-500/35 text-primary/70 dark:text-orange-300/90 ml-1">
           {points.length} insights
         </Badge>
         <div className="flex-1" />
@@ -78,12 +78,10 @@ function CollapsibleSummary({ summaryText }) {
       </button>
 
       {!collapsed && (
-        <ul className="space-y-1.5 pl-6 animate-in fade-in slide-in-from-top-1 duration-200">
+        <ul className="space-y-2 pl-6 animate-in fade-in slide-in-from-top-1 duration-200">
           {points.map((pt, i) => (
-            <li key={i} className="flex items-start gap-2 text-[12px] text-foreground/80 leading-relaxed">
-              <span
-                className="mt-[5px] w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0"
-              />
+            <li key={i} className="flex items-start gap-2.5 text-[13px] sm:text-[14px] text-foreground/85 dark:text-zinc-200 leading-relaxed">
+              <span className="mt-[6px] w-1.5 h-1.5 rounded-full bg-primary/50 dark:bg-orange-500/60 shrink-0" />
               <span>{pt}</span>
             </li>
           ))}
@@ -100,7 +98,7 @@ function Section({ stepNum, activeViewStep, title, icon: Icon, badge, headerActi
   if (activeViewStep !== stepNum) return null;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden animate-in fade-in duration-300">
+    <div className="bg-card rounded-2xl border border-border/60 shadow-sm overflow-hidden animate-in fade-in duration-300">
       <div className="flex items-center gap-2.5 px-4 py-2.5 border-b border-border/20 bg-primary/5">
         <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-primary/15 text-primary">
           <Icon size={12} />
@@ -200,9 +198,10 @@ function AcquireStep({ onStartPipeline }) {
       onClick={() => inputRef.current?.click()}
       className={cn(
         'border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all',
-        dragging ? 'border-primary bg-primary/5' :
-          file ? 'border-emerald-500/50 bg-emerald-500/5' :
-            'border-border/40 hover:border-primary/40 hover:bg-primary/3',
+        'bg-muted/15 dark:bg-muted/25',
+        dragging ? 'border-primary bg-primary/10' :
+          file ? 'border-primary/70 bg-primary/10' :
+            'border-foreground/20 dark:border-zinc-500 hover:border-primary/60 hover:bg-primary/5',
       )}
     >
       <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
@@ -215,7 +214,7 @@ function AcquireStep({ onStartPipeline }) {
         }} />
       {file ? (
         <div className="flex flex-col items-center gap-2">
-          {uploadMutation.isPending ? <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" /> : <FileSpreadsheet className="w-10 h-10 text-emerald-400" />}
+          {uploadMutation.isPending ? <Loader2 className="w-10 h-10 text-primary animate-spin" /> : <FileSpreadsheet className="w-10 h-10 text-primary" />}
           <p className="font-semibold text-foreground">{file.name}</p>
           <p className="text-xs text-muted-foreground">
             {uploadMutation.isPending ? 'Uploading...' : `${(file.size / 1024).toFixed(1)} KB`}
@@ -223,7 +222,7 @@ function AcquireStep({ onStartPipeline }) {
         </div>
       ) : (
         <div className="flex flex-col items-center gap-2">
-          <Upload className="w-10 h-10 text-muted-foreground/40" />
+          <Upload className="w-10 h-10 text-muted-foreground/70" />
           <p className="text-sm font-medium text-foreground">Drag & drop or <span className="text-primary underline">browse</span></p>
           <p className="text-xs text-muted-foreground">CSV, XLSX, XLS supported</p>
         </div>
@@ -392,7 +391,10 @@ function MappingStep({ uploadId, targetFormat, onDone }) {
                   return (
                     <div className="flex flex-wrap gap-1">
                       {samples.slice(0, 3).map((v, i) => (
-                        <span key={i} className="inline-block px-1.5 py-0.5 rounded bg-muted/60 text-[10px] font-mono text-foreground/70 max-w-[120px] truncate">
+                        <span
+                          key={i}
+                          className="inline-block px-2 py-1 rounded-md bg-muted/70 dark:bg-muted/50 border border-border/40 text-[12px] leading-snug font-mono text-foreground/85 dark:text-foreground/90 max-w-[140px] truncate"
+                        >
                           {String(v)}
                         </span>
                       ))}
@@ -447,7 +449,17 @@ function MappingStep({ uploadId, targetFormat, onDone }) {
         <span className="flex items-center gap-1.5 text-muted-foreground">
           <CheckCircle2 className="w-4 h-4 text-green-400" />{mappedCount} mapped · {sourceColumns.length - mappedCount} skipped
         </span>
-        <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">{targetFormat}</Badge>
+        <Badge
+          variant="outline"
+          className={cn(
+            'text-[10px] font-semibold uppercase tracking-wide',
+            targetFormat === 'AIR'
+              ? 'border-amber-300/70 text-amber-950 bg-amber-50/80 dark:border-amber-500/40 dark:bg-amber-950/50 dark:text-amber-100'
+              : 'border-sky-300/70 text-sky-950 bg-sky-50/80 dark:border-sky-500/40 dark:bg-sky-950/50 dark:text-sky-100',
+          )}
+        >
+          {targetFormat}
+        </Badge>
       </div>
       <Button
         onClick={() => confirmMutation.mutate()}
@@ -632,17 +644,17 @@ function EpCurveStep({ uploadId }) {
     <div className={cn(
       'rounded-xl border p-4 transition-all',
       ready
-        ? 'border-emerald-200 bg-emerald-50/50'
+        ? 'border-emerald-200 dark:border-emerald-700/45 bg-emerald-50/50 dark:bg-emerald-950/25'
         : color === 'orange'
-          ? 'border-orange-200 bg-orange-50/30'
-          : 'border-slate-200 bg-slate-50/30'
+          ? 'border-orange-200 dark:border-orange-700/40 bg-orange-50/30 dark:bg-orange-950/20'
+          : 'border-border bg-muted/30 dark:bg-zinc-900/40'
     )}>
       <div className="flex items-center gap-2 mb-1">
         {ready
           ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
           : color === 'orange'
             ? <AlertCircle className="w-4 h-4 text-orange-500 shrink-0" />
-            : <Loader2 className="w-4 h-4 text-slate-400 shrink-0" />
+            : <Loader2 className="w-4 h-4 text-muted-foreground shrink-0" />
         }
         <span className="text-xs font-bold text-foreground">{title}</span>
         {ready && <Badge variant="outline" className="ml-auto text-[9px] border-emerald-300 text-emerald-600">Ready</Badge>}
@@ -701,14 +713,14 @@ function EpCurveStep({ uploadId }) {
 
       {/* View Dashboard CTA — shown after successful generation */}
       {epCurveResult && (
-        <div className="mt-2 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50/50 p-4 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="mt-2 rounded-xl border border-emerald-200/80 dark:border-emerald-600/35 bg-gradient-to-r from-emerald-50 to-teal-50/50 dark:from-emerald-950/40 dark:to-teal-950/25 dark:bg-gradient-to-br p-4 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0 shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 dark:bg-emerald-600 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-emerald-500/30">
               <CheckCircle2 className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="font-bold text-sm text-emerald-900">Annual Simulation Completed</p>
-              <p className="text-xs text-emerald-600 mt-0.5">
+              <p className="font-bold text-sm text-emerald-950 dark:text-emerald-100">Annual Simulation Completed</p>
+              <p className="text-xs text-emerald-700 dark:text-emerald-300/90 mt-0.5">
                 Final output file, location file, and account file generated.
               </p>
             </div>
@@ -761,7 +773,7 @@ export default function PipelinePage() {
   });
 
   const ViewToggle = ({ stepKey }) => (
-    <div className="flex items-center gap-3 bg-white/50 px-2 py-1 rounded-md border border-border/50">
+    <div className="flex items-center gap-3 bg-card/50 px-2 py-1 rounded-md border border-border/50">
       <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-medium text-foreground">
         <input type="radio" checked={viewModes[stepKey] === 'cleaned'} onChange={() => updateViewMode(stepKey, 'cleaned')} className="h-3 w-3 accent-primary cursor-pointer" />
         Cleaned
@@ -942,10 +954,12 @@ export default function PipelinePage() {
   const sectionProps = { activeViewStep };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] p-6 w-full max-w-[1470px] mx-auto flex flex-col gap-5">
+    <section className="min-h-[calc(100vh-4rem)] w-full dark:bg-card">
+      {/* pt-3 = half of former p-6 top inset; aligns with REGION_VERTICAL_GAP in AgentGraph */}
+      <div className="px-6 pb-6 pt-3 w-full max-w-[1470px] mx-auto flex flex-col gap-5">
 
-      {/* ── Agent Network ─────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-border/30 px-3 py-2 shadow-sm">
+      {/* ── Agent Network (dark: recessed canvas — swapped vs page shell) ── */}
+      <div className="bg-card dark:bg-background rounded-2xl border border-border/30 dark:border-border/50 px-3 py-2 shadow-sm">
         <AgentGraph
           activeId={activeId}
           agentStates={agentStates}
@@ -1006,20 +1020,20 @@ export default function PipelinePage() {
       >
         <AcquireStep onStartPipeline={handleUploaded} />
 
-        {/* ── AI Policy Slip Coding ── */}
+        {/* ── AI Policy Slip Coding (theme-aware; dashed zone visible in dark + light) ── */}
         <div className="mt-4 pt-4 border-t border-border/30">
-          <div className="relative overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-b from-white to-indigo-50/40 p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-indigo-200">
-            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-indigo-500/5 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-purple-500/5 blur-3xl pointer-events-none" />
+          <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary/35">
+            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary/[0.06] blur-3xl pointer-events-none dark:bg-primary/10" />
+            <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-primary/[0.04] blur-3xl pointer-events-none" />
 
             <div className="relative z-10 flex items-center gap-3 mb-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-100/80 text-indigo-600 shadow-sm border border-indigo-200/50">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/15 text-primary shadow-sm border border-primary/25">
                 <FileText className="w-3.5 h-3.5" />
               </div>
-              <h3 className="font-bold text-sm uppercase tracking-wider text-indigo-950">AI Policy Slip Coding</h3>
-              <span className="ml-auto text-[10px] border border-indigo-200/80 text-indigo-600 bg-indigo-50/80 font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Optional</span>
+              <h3 className="font-bold text-sm uppercase tracking-wider text-foreground">AI Policy Slip Coding</h3>
+              <span className="ml-auto text-[10px] border border-border text-muted-foreground bg-muted/60 font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Optional</span>
             </div>
-            <p className="relative z-10 text-xs text-slate-500 mb-4 leading-relaxed font-medium">
+            <p className="relative z-10 text-xs text-muted-foreground mb-4 leading-relaxed font-medium">
               Upload an insurance policy slip PDF. Our AI extracts participation terms, limits, and deductibles.
             </p>
 
@@ -1033,47 +1047,47 @@ export default function PipelinePage() {
                 className={cn(
                   'relative z-10 group overflow-hidden rounded-xl border-2 border-dashed p-5 text-center cursor-pointer transition-all duration-300',
                   slipDragging
-                    ? 'border-indigo-400 bg-indigo-50/80 scale-[1.02] shadow-inner'
-                    : 'border-indigo-200 bg-white/60 hover:border-indigo-300 hover:bg-indigo-50/50'
+                    ? 'border-primary bg-primary/12 scale-[1.02] shadow-inner'
+                    : 'border-foreground/18 dark:border-zinc-500 bg-muted/25 dark:bg-muted/35 hover:border-primary/55 hover:bg-primary/5',
                 )}
               >
                 <input ref={slipInputRef} type="file" accept=".pdf,application/pdf" className="hidden"
                   onChange={e => { const f = e.target.files?.[0]; if (f) handleSlipFile(f); }} />
                 <div className={cn(
                   'mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full transition-transform duration-300',
-                  slipDragging ? 'bg-indigo-200 scale-110' : 'bg-indigo-100/80 group-hover:scale-110 group-hover:bg-indigo-200/80'
+                  slipDragging ? 'bg-primary/25 scale-110' : 'bg-primary/12 group-hover:scale-110 group-hover:bg-primary/20'
                 )}>
-                  <Upload className={cn('h-4 w-4 transition-colors duration-300', slipDragging ? 'text-indigo-700' : 'text-indigo-600')} />
+                  <Upload className={cn('h-4 w-4 transition-colors duration-300 text-primary', slipDragging && 'opacity-90')} />
                 </div>
-                <p className="text-[12px] font-bold text-indigo-900 mb-0.5">{slipDragging ? 'Drop to upload' : 'Click or drag PDF here'}</p>
-                <p className="text-[10px] font-medium text-slate-400">Max 50MB · PDF only</p>
+                <p className="text-[12px] font-bold text-foreground mb-0.5">{slipDragging ? 'Drop to upload' : 'Click or drag PDF here'}</p>
+                <p className="text-[10px] font-medium text-muted-foreground">Max 50MB · PDF only</p>
               </div>
             )}
 
             {/* Spinner */}
             {isSlipRunning && (
-              <div className="relative z-10 flex items-center gap-3 p-4 rounded-xl border border-indigo-100 bg-white/80 shadow-sm">
+              <div className="relative z-10 flex items-center gap-3 p-4 rounded-xl border border-border bg-muted/30 dark:bg-muted/20 shadow-sm">
                 <div className="relative shrink-0">
-                  <div className="h-10 w-10 rounded-full border-4 border-indigo-100" />
-                  <div className="absolute inset-0 h-10 w-10 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
-                  <Sparkles size={14} className="absolute inset-0 m-auto text-indigo-500 animate-pulse" />
+                  <div className="h-10 w-10 rounded-full border-4 border-muted" />
+                  <div className="absolute inset-0 h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                  <Sparkles size={14} className="absolute inset-0 m-auto text-primary animate-pulse" />
                 </div>
                 <div>
-                  <p className="text-[12px] font-bold text-indigo-900">AI is reading document...</p>
-                  <p className="text-[10px] text-indigo-500 font-medium">Extracting complex peril terms</p>
+                  <p className="text-[12px] font-bold text-foreground">AI is reading document...</p>
+                  <p className="text-[10px] text-primary font-medium">Extracting complex peril terms</p>
                 </div>
               </div>
             )}
 
             {/* Error */}
             {isSlipError && (
-              <div className="relative z-10 flex items-start gap-3 p-3.5 bg-rose-50/80 border border-rose-200 rounded-xl">
+              <div className="relative z-10 flex items-start gap-3 p-3.5 bg-rose-500/10 dark:bg-rose-950/30 border border-rose-300/60 dark:border-rose-800/80 rounded-xl">
                 <AlertCircle size={15} className="text-rose-500 shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-[12px] font-bold text-rose-900">Extraction failed</p>
-                  <p className="text-[10px] text-rose-700 font-medium">Ensure the PDF has selectable text and try again.</p>
+                  <p className="text-[12px] font-bold text-rose-900 dark:text-rose-100">Extraction failed</p>
+                  <p className="text-[10px] text-rose-700 dark:text-rose-300 font-medium">Ensure the PDF has selectable text and try again.</p>
                 </div>
-                <button onClick={handleSlipClear} className="rounded-full p-1 text-rose-400 hover:bg-rose-100 transition-colors">
+                <button onClick={handleSlipClear} className="rounded-full p-1 text-rose-400 hover:bg-rose-500/15 transition-colors">
                   <X size={13} strokeWidth={2.5} />
                 </button>
               </div>
@@ -1082,22 +1096,22 @@ export default function PipelinePage() {
             {/* Success */}
             {isSlipDone && (
               <div className="relative z-10 space-y-2">
-                <div className="flex items-center gap-3 p-3 bg-white border border-emerald-200/80 rounded-xl shadow-sm">
-                  <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
+                <div className="flex items-center gap-3 p-3 bg-card border border-primary/35 dark:border-primary/40 rounded-xl shadow-sm">
+                  <CheckCircle2 size={16} className="text-primary shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-bold text-emerald-950 truncate">{slipPdfName}</p>
-                    <p className="text-[10px] text-emerald-600 font-semibold">{slipCodingResult.rms_account_file?.length ?? 0} peril rows · {slipCodingResult.currency ?? 'USD'}</p>
+                    <p className="text-[12px] font-bold text-foreground truncate">{slipPdfName}</p>
+                    <p className="text-[10px] text-primary font-semibold">{slipCodingResult.rms_account_file?.length ?? 0} peril rows · {slipCodingResult.currency ?? 'USD'}</p>
                   </div>
-                  <button onClick={handleSlipClear} className="rounded-full p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-colors">
+                  <button onClick={handleSlipClear} className="rounded-full p-1.5 text-muted-foreground hover:bg-rose-500/15 hover:text-rose-500 transition-colors">
                     <X size={13} strokeWidth={2.5} />
                   </button>
                 </div>
                 {slipPreviewFields.length > 0 && (
                   <div className="grid grid-cols-2 gap-2">
                     {slipPreviewFields.map(f => (
-                      <div key={f.label} className="flex flex-col bg-white border border-slate-200/70 rounded-lg p-2 hover:border-indigo-200 transition-all group">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 group-hover:text-indigo-400">{f.label}</span>
-                        <span className="text-[12px] font-bold text-slate-700 tabular-nums truncate">{String(f.value)}</span>
+                      <div key={f.label} className="flex flex-col bg-card border border-border/70 rounded-lg p-2 hover:border-primary/40 transition-all group">
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5 group-hover:text-primary">{f.label}</span>
+                        <span className="text-[12px] font-bold text-foreground tabular-nums truncate">{String(f.value)}</span>
                       </div>
                     ))}
                   </div>
@@ -1123,7 +1137,15 @@ export default function PipelinePage() {
           )}
           <Section {...sectionProps} stepNum={5} title="2.SOV COPE CI/CD MODELING" icon={Tag}
             headerAction={
-              <Badge variant="outline" className="text-[11px] font-bold uppercase tracking-wide border-emerald-500/30 text-emerald-600 bg-emerald-50/50 px-3 py-1">
+              <Badge
+                variant="outline"
+                className={cn(
+                  'text-[10px] font-bold uppercase tracking-wide px-2.5 py-0.5 shrink-0',
+                  targetFormat === 'AIR'
+                    ? 'border-amber-300/70 bg-amber-50/90 text-amber-950 dark:border-amber-500/40 dark:bg-amber-950/60 dark:text-amber-100'
+                    : 'border-sky-300/70 bg-sky-50/90 text-sky-950 dark:border-sky-500/40 dark:bg-sky-950/60 dark:text-sky-100',
+                )}
+              >
                 {targetFormat}
               </Badge>
             }
@@ -1169,6 +1191,7 @@ export default function PipelinePage() {
           <UnderwritingStep />
         </Section>
       )}
-    </div>
+      </div>
+    </section>
   );
 }

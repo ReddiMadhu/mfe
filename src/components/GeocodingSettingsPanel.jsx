@@ -114,8 +114,8 @@ export default function GeocodingSettingsPanel() {
                   className={cn(
                     'relative group flex flex-col items-center gap-2 rounded-xl border p-4 transition-all duration-200 text-center',
                     active
-                      ? `border-transparent ring-2 ${api.ring} bg-white shadow-md scale-[1.02]`
-                      : 'border-border/50 bg-muted/10 hover:bg-white/70 hover:shadow-sm hover:border-border',
+                      ? `border-transparent ring-2 ${api.ring} bg-card shadow-md scale-[1.02]`
+                      : 'border-border/50 bg-muted/10 hover:bg-card/70 hover:shadow-sm hover:border-border',
                   )}
                 >
                   {active && (
@@ -149,8 +149,8 @@ export default function GeocodingSettingsPanel() {
                   className={cn(
                     'relative group w-full flex flex-col items-center gap-2 rounded-xl border p-4 transition-all duration-200 text-center',
                     active
-                      ? `border-transparent ring-2 ${api.ring} bg-white shadow-md scale-[1.02]`
-                      : 'border-border/50 bg-muted/10 hover:bg-white/70 hover:shadow-sm hover:border-border',
+                      ? `border-transparent ring-2 ${api.ring} bg-card shadow-md scale-[1.02]`
+                      : 'border-border/50 bg-muted/10 hover:bg-card/70 hover:shadow-sm hover:border-border',
                   )}
                 >
                   {active && (

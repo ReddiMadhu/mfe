@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { useThemeStore } from '@/store/useThemeStore';
 import TopBar from '@/components/TopBar';
 import HomePage from '@/pages/HomePage';
 import AgentConfigPage from '@/pages/AgentConfigPage';
@@ -13,10 +15,26 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
 });
 
+function ThemeSync() {
+  useEffect(() => {
+    useThemeStore.getState().syncTheme();
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = () => {
+      if (useThemeStore.getState().theme === 'system') {
+        useThemeStore.getState().syncTheme();
+      }
+    };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return null;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <ThemeSync />
         <BrowserRouter>
           <div className="min-h-screen flex flex-col">
             <TopBar />

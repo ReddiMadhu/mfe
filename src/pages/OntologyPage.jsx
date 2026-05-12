@@ -46,7 +46,7 @@ export default function OntologyPage() {
                 onClick={() => setTargetFormat('AIR')}
                 className={cn(
                   "px-4 py-1.5 rounded-md text-xs font-bold transition-all",
-                  targetFormat === 'AIR' ? 'bg-white shadow-sm text-primary border border-border/40' : 'text-muted-foreground hover:text-foreground'
+                  targetFormat === 'AIR' ? 'bg-card shadow-sm text-primary border border-border/40' : 'text-muted-foreground hover:text-foreground'
                 )}
               >
                 AIR
@@ -55,7 +55,7 @@ export default function OntologyPage() {
                 onClick={() => setTargetFormat('RMS')}
                 className={cn(
                   "px-4 py-1.5 rounded-md text-xs font-bold transition-all",
-                  targetFormat === 'RMS' ? 'bg-white shadow-sm text-primary border border-border/40' : 'text-muted-foreground hover:text-foreground'
+                  targetFormat === 'RMS' ? 'bg-card shadow-sm text-primary border border-border/40' : 'text-muted-foreground hover:text-foreground'
                 )}
               >
                 RMS
@@ -65,7 +65,7 @@ export default function OntologyPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 p-1.5 rounded-xl bg-slate-100/80 border border-slate-200/60 shadow-inner">
+        <div className="flex gap-2 p-1.5 rounded-xl bg-muted/80 border border-border/60 shadow-inner">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -76,11 +76,11 @@ export default function OntologyPage() {
                 className={cn(
                   'flex-1 flex items-center justify-center gap-2.5 px-4 py-3 rounded-lg text-sm transition-all duration-300',
                   isActive
-                    ? 'bg-white shadow-md text-primary font-bold border border-slate-200/50 scale-[1.01]'
-                    : 'bg-white/40 border border-slate-200/40 text-slate-500 font-semibold hover:text-slate-800 hover:bg-white/80 hover:shadow-sm'
+                    ? 'bg-card shadow-md text-primary font-bold border border-border/50 scale-[1.01]'
+                    : 'bg-card/40 border border-border/40 text-muted-foreground font-semibold hover:text-foreground hover:bg-card/80 hover:shadow-sm'
                 )}
               >
-                <Icon className={cn("w-4.5 h-4.5 transition-colors", isActive ? "text-primary" : "text-slate-400")} />
+                <Icon className={cn("w-4.5 h-4.5 transition-colors", isActive ? "text-primary" : "text-muted-foreground")} />
                 {tab.label}
               </button>
             );

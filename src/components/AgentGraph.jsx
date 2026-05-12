@@ -7,11 +7,13 @@ import {
   Cpu, Zap, Database, FileText, Building2, Activity,
 } from 'lucide-react';
 import { usePipelineStore } from '@/store/usePipelineStore';
+import { useThemeStore } from '@/store/useThemeStore';
 import { cn } from '@/lib/utils';
 
 // ─── Node dimensions ──────────────────────────────────────────────────────────
 const NW  = 136;
-const NH  = 34;
+/** Same vertical rhythm as EP compact pills (`EP_COMPACT_H`) so all agent labels align */
+const NH  = 36;
 const NCY = NH / 2;
 
 // Heights for container calculation
@@ -45,6 +47,12 @@ const NODE_STEP_MAP = { upload: 1, geocode: 2, catMap: 7, catNorm: 8, catOut: 9,
 // EP node IDs for filtering
 const EP_NODE_IDS = new Set(['epLocation','epPolicy','epAccount','epCurve','preEpOutput']);
 
+/** Compact pills in Pre‑EP region — larger type + spacing between stacked agents */
+const EP_COMPACT_W = 138;
+const EP_COMPACT_H = 36;
+const EP_ROW_GAP = 48;
+const EP_H_GAP = 14;
+
 const EDGES = [
   { from: 'upload',     to: 'geocode'     },
   { from: 'geocode',    to: 'catMap'      },
@@ -72,18 +80,22 @@ function makePath(fromDef, toDef, fromPos, toPos) {
   const isFromEp = EP_NODE_IDS.has(fromDef.id);
   const isToEp   = EP_NODE_IDS.has(toDef.id);
 
-  const fw = isFromEp ? 120 : NW;
-  const fh = isFromEp ? 28  : NH;
-  const th = isToEp   ? 28  : NH;
+  const fw = isFromEp ? EP_COMPACT_W : NW;
+  const fh = isFromEp ? EP_COMPACT_H : NH;
+  const th = isToEp ? EP_COMPACT_H : NH;
 
+  // Exit midpoint on source right edge; enter midpoint on target left edge
   const x1 = fromPos.left + fw;
-  const y1 = fromPos.top  + (fh / 2);
+  const y1 = fromPos.top + fh / 2;
   const x2 = toPos.left;
-  const y2 = toPos.top  + (th / 2);
+  const y2 = toPos.top + th / 2;
 
   const dx = x2 - x1;
-  const cxOffset = Math.max(16, Math.min(60, dx * 0.25));
-  return `M ${x1} ${y1} C ${x1 + cxOffset} ${y1}, ${x2 - cxOffset} ${y2}, ${x2} ${y2}`;
+  const adx = Math.abs(dx);
+  // Smoother bends when EP columns moved farther apart (wider nodes + gaps)
+  const cxOffset = Math.max(20, Math.min(80, adx * 0.28));
+  const sx = dx >= 0 ? 1 : -1;
+  return `M ${x1} ${y1} C ${x1 + sx * cxOffset} ${y1}, ${x2 - sx * cxOffset} ${y2}, ${x2} ${y2}`;
 }
 
 // ─── Tiny stat row ────────────────────────────────────────────────────────────
@@ -92,11 +104,11 @@ function StatRow({ icon: Icon, label, value, color }) {
     <div className="flex items-center justify-between py-[2px]">
       <div className={cn('flex items-center gap-1 min-w-0', color)}>
         <Icon size={8} className="shrink-0" />
-        <span className="text-[8px] text-slate-500 truncate">{label}</span>
+        <span className="text-[8px] text-muted-foreground truncate">{label}</span>
       </div>
       <span className={cn(
         'text-[9px] font-bold tabular-nums ml-1 shrink-0',
-        value === '—' ? 'text-slate-300' : 'text-slate-700',
+        value === '—' ? 'text-muted-foreground/50' : 'text-foreground',
       )}>
         {value}
       </span>
@@ -125,25 +137,25 @@ function NodeLiveProgress({ isRunning, logs = [], totalRows, label }) {
   if (!isRunning) return null;
 
   return (
-    <div className="px-0.5 pt-1 pb-0.5 space-y-0.5">
-      <div className="text-[7.5px] font-bold text-orange-500 tracking-wide leading-tight">
+    <div className="px-0.5 pt-1 pb-0.5 space-y-1">
+      <div className="text-[10px] font-semibold text-primary dark:text-orange-400 tracking-wide leading-snug">
         {label}
       </div>
       {total > 0 ? (
         <>
-          <div className="flex justify-between items-center text-[7px] text-slate-400 mb-0.5">
+          <div className="flex justify-between items-center text-[9px] text-muted-foreground mb-0.5">
             <span>{current.toLocaleString()} rows</span>
             <span className="font-mono">{Math.round(pct)}%</span>
           </div>
-          <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden">
+          <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
             <div
-              className="h-full rounded-full bg-orange-400 transition-all duration-500"
+              className="h-full rounded-full bg-primary dark:bg-orange-500 transition-all duration-500"
               style={{ width: `${pct}%` }}
             />
           </div>
         </>
       ) : (
-        <div className="text-[7.5px] text-slate-400 animate-pulse">Starting…</div>
+        <div className="text-[9px] text-muted-foreground animate-pulse">Starting…</div>
       )}
     </div>
   );
@@ -246,7 +258,7 @@ const NODE_SUMMARY = {
   catOut: (r) => ({
     headline: 'Output ready for download.',
     stats: [
-      { icon: FileOutput, label: 'Rows Out', value: safe(r?.output_rows), color: 'text-slate-500'   },
+      { icon: FileOutput, label: 'Rows Out', value: safe(r?.output_rows), color: 'text-muted-foreground'   },
       { icon: Database,   label: 'Format',   value: safe(r?.format),      color: 'text-emerald-500' },
     ],
   }),
@@ -307,6 +319,24 @@ const NODE_SUMMARY = {
   }),
 };
 
+/** Inline node surfaces — light uses soft pastels; dark uses muted fills (no neon ring). */
+const NODE_STATUS_STYLES = {
+  light: {
+    pending: { bg: '#e2e8fc', border: '0.5px solid #e2e8f0', text: '#64748b', div: '#e2e8f0' },
+    running: { bg: '#ecfdf5', border: '1.5px solid #6ee7b7', text: '#0f172a', div: '#d1fae5' },
+    done:    { bg: '#fff7ed', border: '1.5px solid #fb923c', text: '#0f172a', div: '#fed7aa' },
+    error:   { bg: '#fff1f2', border: '1px solid #fca5a5', text: '#0f172a', div: '#fee2e2' },
+    locked:  { bg: '#f8fafc', border: '0.5px solid #e2e8f0', text: '#94a3b8', div: '#e2e8f0' },
+  },
+  dark: {
+    pending: { bg: 'rgba(148,163,184,0.12)', border: '1px solid rgba(148,163,184,0.22)', text: '#e2e8f0', div: 'rgba(148,163,184,0.22)' },
+    running: { bg: 'rgba(6,78,59,0.45)', border: '1px solid rgba(45,212,191,0.35)', text: '#ecfdf5', div: 'rgba(45,212,191,0.18)' },
+    done:    { bg: 'rgba(120,53,15,0.35)', border: '1px solid rgba(251,146,60,0.4)', text: '#ffedd5', div: 'rgba(251,146,60,0.2)' },
+    error:   { bg: 'rgba(127,29,29,0.4)', border: '1px solid rgba(248,113,113,0.45)', text: '#fecaca', div: 'rgba(248,113,113,0.22)' },
+    locked:  { bg: 'rgba(51,65,85,0.35)', border: '1px solid rgba(71,85,105,0.45)', text: '#94a3b8', div: 'rgba(71,85,105,0.28)' },
+  },
+};
+
 // ─── Unified node card — grows in-place ───────────────────────────────────────
 function PipelineNode({ 
   nodeDef, 
@@ -318,13 +348,15 @@ function PipelineNode({
   currentPipelineStep, 
   expanded, 
   totalRows,
-  compact = false 
+  compact = false,
+  isDeselected = false,
 }) {
-  const nodeWidth = compact ? 120 : NW;
-  const nodeHeight = compact ? 28 : NH;
+  const nodeWidth = compact ? EP_COMPACT_W : NW;
+  const nodeHeight = compact ? EP_COMPACT_H : NH;
   const Icon = nodeDef.icon;
   const logsEndRef = useRef(null);
   const logs = agentState?.thinkingLog ?? [];
+  const isDark = useThemeStore((s) => s.resolved === 'dark');
 
   useEffect(() => {
     if (status === 'running') logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -339,14 +371,27 @@ function PipelineNode({
   const nodeStep = NODE_STEP_MAP[nodeDef.id];
   const canNav   = nodeStep != null && nodeStep <= (currentPipelineStep ?? 0);
 
-  const COLOR = {
-    pending: { bg: '#e2e8fc', border: '0.5px solid #e2e8f0', text: '#64748b', iconC: nodeDef.color + '80', div: '#e2e8f0' },
-    running: { bg: '#ecfdf5', border: '1.5px solid #6ee7b7',  text: '#0f172a', iconC: '#ea580c',         div: '#fed7aa' },
-    done:    { bg: '#fff7ed', border: '1.5px solid #fb923c',  text: '#0f172a', iconC: '#059669',         div: '#d1fae5' },
-    error:   { bg: '#fff1f2', border: '1px solid #fca5a5',    text: '#0f172a', iconC: '#e11d48',         div: '#fee2e2' },
-    locked:  { bg: '#f8fafc', border: '0.5px solid #e2e8f0',  text: '#94a3b8', iconC: '#94a3b8',         div: '#e2e8f0' },
-  };
-  const c = COLOR[status] || COLOR.pending;
+  const palette = isDark ? NODE_STATUS_STYLES.dark : NODE_STATUS_STYLES.light;
+  const base = palette[status] || palette.pending;
+  const iconC =
+    status === 'locked'
+      ? base.text
+      : isDark
+        ? nodeDef.color
+        : nodeDef.color + '80';
+  const c0 = { ...base, iconC };
+  /** Configure-disabled agents: neutral zinc / muted — no status tint */
+  const c = isDeselected
+    ? {
+        bg: isDark ? 'rgba(39,39,42,0.5)' : '#f4f4f5',
+        border: isDark ? '1px solid rgba(63,63,70,0.55)' : '1px solid #e4e4e7',
+        text: isDark ? '#a1a1aa' : '#52525b',
+        iconC: isDark ? '#a1a1aa' : '#71717a',
+        div: isDark ? 'rgba(63,63,70,0.45)' : '#d4d4d8',
+      }
+    : c0;
+
+  const showStatusChrome = !isDeselected;
 
   return (
     <div
@@ -359,11 +404,19 @@ function PipelineNode({
         borderRadius: expanded ? 10 : 9999,
         background:   c.bg,
         border:       c.border,
-        boxShadow:    status === 'running'
-          ? '0 4px 14px rgba(249,115,22,0.22)'
-          : status === 'done'
-            ? '0 2px 8px rgba(16,185,129,0.14)'
-            : '0 1px 3px rgba(0,0,0,0.05)',
+        boxShadow:    isDeselected
+          ? isDark ? 'none' : '0 1px 2px rgba(0,0,0,0.04)'
+          : status === 'running'
+            ? isDark
+              ? '0 1px 10px rgba(45,212,191,0.22)'
+              : '0 4px 14px rgba(16,185,129,0.22)'
+            : status === 'done'
+              ? isDark
+                ? '0 1px 8px rgba(251,146,60,0.18)'
+                : '0 2px 10px rgba(249,115,22,0.2)'
+              : isDark
+                ? '0 1px 4px rgba(0,0,0,0.4)'
+                : '0 1px 3px rgba(0,0,0,0.05)',
         zIndex:       10,
         transition:   'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
@@ -371,23 +424,30 @@ function PipelineNode({
       {/* ── pill header row ── */}
       <div className={cn("flex items-center shrink-0", compact ? "gap-1 px-1.5" : "gap-1.5 px-2")} style={{ height: nodeHeight, minHeight: nodeHeight }}>
         <div
-          className={cn("rounded-full flex items-center justify-center shrink-0 bg-white/60", compact ? "w-4 h-4" : "w-5 h-5")}
+          className={cn("rounded-full flex items-center justify-center shrink-0 bg-card/60", compact ? "w-5 h-5 min-w-5" : "w-6 h-6 min-w-6")}
           style={{ color: c.iconC }}
         >
-          {status === 'running' ? <Loader2 size={compact ? 8 : 10} className="animate-spin" /> :
-           status === 'done'    ? <Check    size={compact ? 8 : 10} /> :
-           status === 'error'   ? <AlertCircle size={compact ? 8 : 10} /> :
-           status === 'locked'  ? <Lock     size={compact ? 8 : 10} /> :
-           <Icon size={compact ? 8 : 10} />}
+          {isDeselected ? (
+            <Icon size={compact ? 12 : 14} className="opacity-80" />
+          ) : status === 'running' ? <Loader2 size={compact ? 12 : 14} className="animate-spin text-emerald-500" /> :
+           status === 'done'    ? <Check    size={compact ? 12 : 14} className="text-amber-600" /> :
+           status === 'error'   ? <AlertCircle size={compact ? 12 : 14} /> :
+           status === 'locked'  ? <Lock     size={compact ? 12 : 14} /> :
+           <Icon size={compact ? 12 : 14} />}
         </div>
         <div
-          className={cn("whitespace-normal leading-tight font-semibold flex-1 line-clamp-2 pr-1", compact ? "text-[9px]" : "text-[10px]")}
+          className={cn(
+            'graph-node-label whitespace-normal leading-snug flex-1 line-clamp-2 pr-0.5 text-[10px]',
+            // Dark: slightly lighter weight than region titles so headings read as structure, nodes as content
+            isDark ? 'font-medium' : 'font-semibold',
+          )}
           style={{ color: c.text }}
+          title={nodeDef.label}
         >
           {nodeDef.label}
         </div>
-        {status === 'running' && (
-          <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shrink-0 mr-0.5" />
+        {status === 'running' && showStatusChrome && (
+          <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse shrink-0 mr-0.5 shadow-[0_0_5px_rgba(16,185,129,0.6)]" />
         )}
       </div>
 
@@ -427,7 +487,7 @@ function PipelineNode({
               )}
               
               {logs.length === 0 && !['geocode', 'catMap', 'catNorm'].includes(nodeDef.id) && (
-                <div className="text-[8px] text-slate-400 italic animate-pulse px-0.5 pt-0.5">Starting agent…</div>
+                <div className="text-[9px] text-muted-foreground italic animate-pulse px-0.5 pt-0.5">Starting agent…</div>
               )}
               
               {logs.length > 0 && (
@@ -440,15 +500,15 @@ function PipelineNode({
                       <div key={i} className="flex items-start gap-1 min-w-0">
                         <span className={cn(
                           'shrink-0 mt-[1px]',
-                          isOk ? 'text-emerald-400' : isErr ? 'text-rose-400' : 'text-slate-300',
+                          isOk ? 'text-emerald-400' : isErr ? 'text-rose-400' : 'text-muted-foreground/50',
                         )}>
                           {isOk
                             ? <Check size={7} />
                             : isErr
                               ? <AlertCircle size={7} />
-                              : <span className="block w-1 h-1 rounded-full bg-slate-300 mt-1" />}
+                              : <span className="block w-1 h-1 rounded-full bg-muted-foreground/40 mt-1" />}
                         </span>
-                        <span className="text-[7.5px] text-slate-500 leading-tight truncate">{msg}</span>
+                        <span className="text-[9px] text-muted-foreground leading-snug truncate">{msg}</span>
                       </div>
                     );
                   })}
@@ -463,8 +523,8 @@ function PipelineNode({
               ))}
               {canNav && (
                 <div
-                  className="w-full mt-1 pt-1 flex items-center justify-center gap-0.5 text-[7.5px] font-bold border-t transition-colors group-hover:opacity-70 group-hover:underline"
-                  style={{ color: nodeDef.color, borderTopColor: c.div }}
+                  className="w-full mt-1 pt-1 flex items-center justify-center gap-0.5 text-[9px] font-bold border-t transition-colors group-hover:opacity-70 group-hover:underline"
+                  style={{ color: isDeselected ? c.text : nodeDef.color, borderTopColor: c.div }}
                 >
                   View output <ChevronRight size={7} />
                 </div>
@@ -479,29 +539,37 @@ function PipelineNode({
 
 // ─── Edge path ────────────────────────────────────────────────────────────────
 function EdgePath({ d, sourceStatus, targetStatus }) {
+  const isDark = useThemeStore((s) => s.resolved === 'dark');
   const srcDone   = sourceStatus === 'done';
   const tgtDone   = targetStatus === 'done';
   const running   = srcDone && targetStatus === 'running';
   const fullyDone = srcDone && tgtDone;
-  const stroke    = fullyDone ? '#10b981' : running ? '#fb923c' : '#94a3b8';
+  const strokeMuted = isDark ? 'rgba(148,163,184,0.35)' : '#94a3b8';
+  const strokeActive = '#fb923c';
+  const strokeRun = '#f97316';
+  const stroke = fullyDone ? strokeActive : running ? strokeRun : strokeMuted;
 
   return (
     <path
       d={d}
       stroke={stroke}
-      strokeWidth={fullyDone || running ? 2 : 1.5}
+      strokeWidth={fullyDone ? 2.25 : running ? 2 : 1.5}
       fill="none"
       strokeLinecap="round"
-      strokeDasharray={running ? '6 4' : undefined}
+      strokeLinejoin="round"
+      strokeDasharray={running ? '7 5' : undefined}
       className={running ? 'animate-flow-dash' : undefined}
-      opacity={fullyDone ? 0.9 : running ? 0.75 : 0.55}
+      opacity={fullyDone ? 0.95 : running ? 0.88 : 0.62}
     />
   );
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
-const BASE_W = 1300;
+const BASE_W = 1360;
 const BASE_H = 205;
+
+/** Vertical gap (px) between SOV COPE and Underwriting dashed shells — ~12px tighter top bar inset + original region spacing */
+const REGION_VERTICAL_GAP = 24;
 
 export default function AgentGraph({
   activeId, agentStates = {}, stepStatus = {}, onNodeClick,
@@ -595,16 +663,17 @@ export default function AgentGraph({
     const NX3 = 720; 
     const NX4 = anyStretched ? 950 : 1040;
 
-    // CAT Geometry
-    const catH = isCatStretched ? 180 : 55;
+    // CAT Geometry — compact wrapper must clear NH (36) + breathing room above bottom dashed edge
+    const CAT_WRAPPER_H_COMPACT = 74;
+    const catH = isCatStretched ? 180 : CAT_WRAPPER_H_COMPACT;
     const catTop = isCatStretched ? 0 : -3;
     const catNodeTop = isCatStretched ? 20 : 12;
 
-    // Underwriting Geometry
-    const uwTop = catTop + catH + 20; // halved gap between agent wrappers
+    // Underwriting Geometry — spacing below SOV COPE wrapper matches page top bar → Agent Network gap
+    const uwTop = catTop + catH + REGION_VERTICAL_GAP;
     // 4 rows: cope / hazards / geospatial / objAnalysis (4th row below parallel trio)
     const uw_ry_cope    = isUwStretched ? 25  :  8;
-    const uw_ry_hazards = isUwStretched ? 185 : 50;   // 42px gap (node NH=34 + 8px breathing room)
+    const uw_ry_hazards = isUwStretched ? 185 : 50;   // ~42px gap between stacked UW rows
     const uw_ry_geo     = isUwStretched ? 345 : 92;   // 42px gap
     const uw_ry_obj     = isUwStretched ? 505 : 134;  // 42px gap
     const uwH = isUwStretched ? 660 : 175; // compact: 4 rows × 42px + 8 top/bottom padding
@@ -617,15 +686,13 @@ export default function AgentGraph({
     const dataY = Math.round((catNodeTop + lowestY) / 2);
 
     // Pre-EP Curve Geometry — keep within BASE_W
-    const epNW = 120;
-    const epNH = 28;
     const epWX  = NX3 + 180;   // wrapper left
     const epNX  = epWX + 10;   // sub-agent nodes left
-    const epNX2 = epNX + 143;  // convergence node left (+~10% total)
-    const epNX3 = epNX2 + 143; // post-simulation output node left (+~10% total)
+    const epNX2 = epNX + EP_COMPACT_W + EP_H_GAP;   // convergence node (Annual Simulation)
+    const epNX3 = epNX2 + EP_COMPACT_W + EP_H_GAP; // Pre‑EP output
     const epTop = catTop + 20; // push down below header row
-    const epRowGap = 32;       // tighter vertical gap for shorter nodes
-    const epH   = epRowGap * 2 + epNH + 20; // 10px top/bottom padding (3 parallel nodes)
+    const epRowGap = EP_ROW_GAP; // vertical gap between Exposure / Portfolio / Insurance Terms stack
+    const epH   = 10 + epRowGap * 2 + EP_COMPACT_H + 18; // fits 3 stacked compact nodes + padding
 
     return {
       BASE_H: Math.max(uwTop + uwH + 25, epTop + epH + 25),
@@ -656,7 +723,7 @@ export default function AgentGraph({
       wrappers: {
         cat:          { left: WX, width: 576, top: catTop, height: catH },
         underwriting: { left: WX, width: 576, top: uwTop, height: uwH },
-        epCurve:      { left: epWX, width: 431, top: epTop, height: epH }, // +~10% total
+        epCurve:      { left: epWX, width: Math.round(epNX3 + EP_COMPACT_W + 14 - epWX), top: epTop, height: epH },
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -699,30 +766,43 @@ export default function AgentGraph({
 
   const effectiveIsGeocodeDone = isGeocodeDone;
 
+  /** Region badge — neutral (module off / default, no accent scheme) */
+  const rtNeutral =
+    'tracking-[0.16em] ring-1 ring-border/60 text-muted-foreground border-border bg-muted/90 dark:bg-muted/35 dark:border-border dark:text-muted-foreground';
+  const rtBase =
+    'graph-region-title text-[11px] leading-tight font-extrabold uppercase px-2.5 py-1 rounded-full border shadow-sm';
+
+  /** Matches Pipeline agent-network canvas — paints over dashed border where headings cross */
+  const dashedBorderNotchBg = 'bg-card dark:bg-background';
+
   return (
     <div className="w-full flex flex-col">
 
       {/* ── Internal header row: AGENT NETWORK label + Live Mode toggle ── */}
       <div className="flex items-center gap-2 mb-1.5 px-0.5">
         <div className={cn('w-1.5 h-1.5 rounded-full shrink-0', isLiveMode ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/40')} />
-        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Agent Network</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground dark:text-zinc-400">
+          Agent Network
+        </span>
         <div className="flex-1" />
         <label className="flex items-center gap-1.5 cursor-pointer select-none">
           <div
             onClick={handleToggle}
             className={cn(
               'w-9 h-5 rounded-full border-2 relative flex items-center transition-all duration-300',
-              isLiveMode ? 'bg-emerald-500 border-emerald-500' : 'bg-slate-200 border-slate-300',
+              isLiveMode
+                ? 'bg-emerald-600 border-emerald-500 shadow-[inset_0_1px_2px_rgba(0,0,0,0.12)]'
+                : 'bg-zinc-500/45 dark:bg-zinc-600 border-zinc-400/55 dark:border-zinc-500/80 shadow-inner',
             )}
           >
             <div className={cn(
-              'w-3.5 h-3.5 rounded-full bg-white shadow-sm absolute transition-transform duration-300',
+              'w-3.5 h-3.5 rounded-full bg-card border border-white/30 shadow-sm absolute transition-transform duration-300',
               isLiveMode ? 'translate-x-[18px]' : 'translate-x-[1px]',
             )} />
           </div>
           <span className={cn(
             'text-[10px] font-semibold uppercase tracking-wide transition-colors',
-            isLiveMode ? 'text-emerald-600' : 'text-slate-400',
+            isLiveMode ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground/70',
           )}>
             Live Mode
           </span>
@@ -734,31 +814,60 @@ export default function AgentGraph({
         className="relative overflow-visible shrink-0 self-center transition-[height] duration-500 ease-in-out"
         style={{ width: BASE_W, height: containerH }}
       >
-        {/* CAT Agent wrapper */}
+        {/* CAT Agent wrapper — dashed frame must read in light + dark */}
         <div
-          className={cn('absolute border border-dashed rounded-2xl transition-all duration-500 ease-in-out',
-            effectiveIsGeocodeDone ? 'border-violet-400/50 bg-violet-50/20' : 'border-slate-300 bg-slate-50/20 grayscale opacity-70')}
+          className={cn(
+            'absolute rounded-2xl border border-dashed transition-all duration-500 ease-in-out',
+            effectiveIsGeocodeDone
+              ? 'border-violet-400/40 dark:border-violet-500/30 bg-violet-500/[0.05] dark:bg-violet-950/20'
+              : 'border-foreground/12 dark:border-zinc-600/40 bg-muted/10 dark:bg-zinc-900/25',
+          )}
           style={{ left: layout.wrappers.cat.left, top: layout.wrappers.cat.top, width: layout.wrappers.cat.width, height: layout.wrappers.cat.height, zIndex: 0 }}
         >
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-auto">
-            <div className={cn('text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm ring-4 ring-[#f9fafb]',
-              effectiveIsGeocodeDone ? 'text-violet-700 border-violet-200 bg-white' : 'text-slate-500 border-slate-200 bg-slate-50')}>
+          <div
+            className={cn(
+              'pointer-events-none absolute left-1/2 top-0 z-[5] -translate-x-1/2 -translate-y-px h-[4px] w-[min(420px,88%)]',
+              dashedBorderNotchBg,
+            )}
+            aria-hidden
+          />
+          <div
+            className={cn(
+              'pointer-events-none absolute right-2 top-0 z-[5] h-[4px] w-[120px] -translate-y-px sm:right-3 sm:w-[140px]',
+              dashedBorderNotchBg,
+            )}
+            aria-hidden
+          />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-auto">
+            <div
+              className={cn(
+                rtBase,
+                selectedAgents.sovCope
+                  ? cn(
+                      'tracking-[0.16em] ring-1 ring-background/80',
+                      effectiveIsGeocodeDone
+                        ? 'text-primary border-primary/45 bg-primary/10 dark:bg-primary/20 dark:border-primary/55 dark:text-primary dark:shadow-[0_0_0_1px_rgba(251,78,11,0.18)]'
+                        : 'text-primary border-primary/35 bg-primary/8 dark:bg-primary/18 dark:border-primary/45 dark:text-primary',
+                    )
+                  : rtNeutral,
+              )}
+            >
               2.SOV COPE CI/CD MULTI AGENT
             </div>
           </div>
-          <div className="absolute top-0 right-4 -translate-y-1/2 z-20 pointer-events-auto">
+          <div className="absolute top-0 right-4 -translate-y-1/2 z-30 pointer-events-auto">
             {selectedAgents.sovCope ? (
-              <div className={cn('flex items-center justify-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-full shadow-sm border ring-4 ring-[#f9fafb] transition-all',
+              <div className={cn('flex items-center justify-center gap-1 px-2 py-0.5 text-[9px] font-bold rounded-full shadow-sm border ring-1 ring-background/80 transition-all',
                 currentPipelineStep >= 5
-                  ? 'bg-emerald-50 text-emerald-600 border-emerald-300'
+                  ? 'bg-emerald-500/15 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-600/50'
                   : effectiveIsGeocodeDone
-                    ? 'bg-violet-50 text-violet-600 border-violet-300 animate-pulse'
-                    : 'bg-slate-100 text-slate-500 border-slate-300')}>
-                {currentPipelineStep >= 5 ? <Check size={10} /> : <Loader2 size={10} className={effectiveIsGeocodeDone ? 'animate-spin' : ''} />}
+                    ? 'bg-violet-500/15 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 border-violet-300 dark:border-violet-600/50 animate-pulse'
+                    : 'bg-secondary text-secondary-foreground border-border shadow-sm')}>
+                {currentPipelineStep >= 5 ? <Check size={8} strokeWidth={2.5} /> : <Loader2 size={8} strokeWidth={2.5} className={effectiveIsGeocodeDone ? 'animate-spin' : ''} />}
                 <span>{currentPipelineStep >= 9 ? 'Complete' : currentPipelineStep >= 5 ? 'Running' : effectiveIsGeocodeDone ? 'Queued' : 'Selected'}</span>
               </div>
             ) : (
-              <div className="flex items-center justify-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-full shadow-sm border bg-slate-100 text-slate-400 border-slate-300 ring-4 ring-[#f9fafb]">
+              <div className="flex items-center justify-center gap-1 px-2 py-0.5 text-[9px] font-bold rounded-full shadow-sm border bg-secondary text-secondary-foreground border-border ring-1 ring-background/90">
                 <span>Not Selected</span>
               </div>
             )}
@@ -767,24 +876,53 @@ export default function AgentGraph({
 
         {/* Underwriting Agent wrapper */}
         <div
-          className={cn('absolute border border-dashed rounded-2xl transition-all duration-500 ease-in-out',
-            effectiveIsGeocodeDone ? 'border-blue-400/50 bg-blue-50/10' : 'border-slate-300 bg-slate-50/20 grayscale opacity-70')}
+          className={cn(
+            'absolute rounded-2xl border border-dashed transition-all duration-500 ease-in-out',
+            effectiveIsGeocodeDone
+              ? 'border-sky-400/40 dark:border-sky-500/30 bg-sky-500/[0.05] dark:bg-sky-950/22'
+              : 'border-foreground/12 dark:border-zinc-600/40 bg-muted/10 dark:bg-zinc-900/25',
+          )}
           style={{ left: layout.wrappers.underwriting.left, top: layout.wrappers.underwriting.top, width: layout.wrappers.underwriting.width, height: layout.wrappers.underwriting.height, zIndex: 0 }}
         >
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-auto">
-            <div className={cn('text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm ring-4 ring-[#f9fafb]',
-              effectiveIsGeocodeDone ? 'text-blue-600 border-blue-200 bg-white' : 'text-slate-500 border-slate-200 bg-slate-50')}>
+          <div
+            className={cn(
+              'pointer-events-none absolute left-1/2 top-0 z-[5] -translate-x-1/2 -translate-y-px h-[4px] w-[min(320px,82%)]',
+              dashedBorderNotchBg,
+            )}
+            aria-hidden
+          />
+          <div
+            className={cn(
+              'pointer-events-none absolute right-2 top-0 z-[5] h-[4px] w-[120px] -translate-y-px sm:right-3 sm:w-[140px]',
+              dashedBorderNotchBg,
+            )}
+            aria-hidden
+          />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-auto">
+            <div
+              className={cn(
+                rtBase,
+                uwSelected
+                  ? cn(
+                      'tracking-[0.16em] ring-1 ring-background/80',
+                      effectiveIsGeocodeDone
+                        ? 'text-sky-900 dark:text-sky-50 border-sky-300/90 dark:border-sky-400/45 bg-card dark:bg-sky-950/55 dark:shadow-[0_0_0_1px_rgba(56,189,248,0.12)]'
+                        : 'text-foreground/90 border-border/80 bg-secondary/90 shadow-sm dark:text-sky-50 dark:border-sky-500/40 dark:bg-sky-950/60 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]',
+                    )
+                  : rtNeutral,
+              )}
+            >
               UNDERWRITING AGENT
             </div>
           </div>
-          <div className="absolute top-0 right-4 -translate-y-1/2 z-20 pointer-events-auto">
+          <div className="absolute top-0 right-4 -translate-y-1/2 z-30 pointer-events-auto">
             {uwSelected ? (
-              <div className={cn('flex items-center justify-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-full shadow-sm border ring-4 ring-[#f9fafb]',
-                'bg-blue-50 text-blue-600 border-blue-300')}>
+              <div className={cn('flex items-center justify-center gap-1 px-2 py-0.5 text-[9px] font-bold rounded-full shadow-sm border ring-1 ring-background/80',
+                'bg-sky-500/15 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 border-sky-400/70 dark:border-sky-500/50')}>
                 <span>{uwSelectedCount} Module{uwSelectedCount !== 1 ? 's' : ''} Queued</span>
               </div>
             ) : (
-              <div className="flex items-center justify-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-full shadow-sm border bg-slate-100 text-slate-400 border-slate-300 ring-4 ring-[#f9fafb]">
+              <div className="flex items-center justify-center gap-1 px-2 py-0.5 text-[9px] font-bold rounded-full shadow-sm border bg-secondary text-secondary-foreground border-border ring-1 ring-background/90">
                 <span>Not Selected</span>
               </div>
             )}
@@ -794,19 +932,54 @@ export default function AgentGraph({
         {/* Pre-EP Curve Generation wrapper */}
         {selectedAgents.sovCope && (
           <div
-            className={cn('absolute border border-dashed rounded-2xl transition-all duration-500 ease-in-out',
-              currentPipelineStep >= 9 ? 'border-purple-400/50 bg-purple-50/15' : 'border-slate-300 bg-slate-50/20 grayscale opacity-70')}
+            className={cn(
+              'absolute rounded-2xl border border-dashed transition-all duration-500 ease-in-out',
+              currentPipelineStep >= 9
+                ? 'border-purple-400/40 dark:border-purple-500/30 bg-purple-500/[0.05] dark:bg-purple-950/20'
+                : 'border-foreground/12 dark:border-zinc-600/40 bg-muted/10 dark:bg-zinc-900/25',
+            )}
             style={{ left: layout.wrappers.epCurve.left, top: layout.wrappers.epCurve.top, width: layout.wrappers.epCurve.width, height: layout.wrappers.epCurve.height, zIndex: 0 }}
           >
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-auto">
-              <div className={cn('text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full border shadow-sm ring-4 ring-[#f9fafb] max-w-[265px] truncate',
-                currentPipelineStep >= 9 ? 'text-purple-700 border-purple-200 bg-white' : 'text-slate-500 border-slate-200 bg-slate-50')}>
+            <div
+              className={cn(
+                'pointer-events-none absolute left-1/2 top-0 z-[5] -translate-x-1/2 -translate-y-px h-[4px] w-[min(380px,92%)]',
+                dashedBorderNotchBg,
+              )}
+              aria-hidden
+            />
+            <div
+              className={cn(
+                'pointer-events-none absolute right-2 top-0 z-[5] h-[4px] w-[120px] -translate-y-px sm:right-3 sm:w-[140px]',
+                dashedBorderNotchBg,
+              )}
+              aria-hidden
+            />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-auto max-w-[min(100%,calc(100%-16px))]">
+              <div
+                className={cn(
+                  rtBase,
+                  'max-w-[min(100%,320px)] truncate',
+                  // Region only renders when SOV COPE is selected — always use primary (idle vs active like SOV COPE heading)
+                  currentPipelineStep >= 9
+                    ? cn(
+                        'tracking-[0.14em] ring-1 ring-background/80',
+                        'text-primary border-primary/45 bg-primary/10 dark:bg-primary/20 dark:border-primary/55 dark:text-primary dark:shadow-[0_0_0_1px_rgba(251,78,11,0.18)]',
+                      )
+                    : cn(
+                        'tracking-[0.14em] ring-1 ring-background/80',
+                        'text-primary border-primary/35 bg-primary/8 dark:bg-primary/18 dark:border-primary/45 dark:text-primary',
+                      ),
+                )}
+                title="PRE-EP CURVE MODELING READY"
+              >
                 PRE-EP CURVE MODELING READY
               </div>
             </div>
-            <div className="absolute top-0 right-4 -translate-y-1/2 z-20 pointer-events-auto">
-              <div className={cn('flex items-center justify-center gap-1.5 px-3 py-1 text-[10px] font-bold rounded-full shadow-sm border ring-4 ring-[#f9fafb]',
-                currentPipelineStep >= 9 ? 'bg-purple-50 text-purple-600 border-purple-300' : 'bg-slate-100 text-slate-400 border-slate-300')}>
+            <div className="absolute top-0 right-4 -translate-y-1/2 z-30 pointer-events-auto">
+              <div className={cn('flex items-center justify-center gap-1 px-2 py-0.5 text-[9px] font-bold rounded-full shadow-sm border ring-1 ring-background/80',
+                currentPipelineStep >= 9
+                  ? 'bg-primary/12 dark:bg-primary/20 text-primary border-primary/40 dark:border-primary/50'
+                  : 'bg-secondary text-secondary-foreground border-border shadow-sm dark:bg-muted dark:border-border')}>
                 <span>{currentPipelineStep >= 9 ? 'Ready' : 'Waiting'}</span>
               </div>
             </div>
@@ -830,13 +1003,13 @@ export default function AgentGraph({
         {NODE_DEFS.map(nodeDef => {
           const st = getStatus(nodeDef);
           const isEpNode = ['epLocation', 'epAccount', 'epPolicy', 'epCurve', 'preEpOutput'].includes(nodeDef.id);
-          const isExpanded = isLiveMode && !isEpNode && (st === 'done' || st === 'running');
+          const isDeselected = isNodeDeselected(nodeDef.id);
+          const isExpanded = isLiveMode && !isEpNode && (st === 'done' || st === 'running') && !isDeselected;
           const pos = layout.nodes[nodeDef.id];
           const result =
             nodeDef.id === 'geocode' ? geocodeResult :
             nodeDef.id === 'upload'  ? uploadMeta :
             agentStates[nodeDef.agentKey]?.result ?? null;
-          const isDeselected = isNodeDeselected(nodeDef.id);
           return (
             <PipelineNode
               key={nodeDef.id}
@@ -844,6 +1017,7 @@ export default function AgentGraph({
               pos={pos}
               status={st}
               expanded={isExpanded}
+              isDeselected={isDeselected}
               agentState={agentStates[nodeDef.agentKey]}
               result={result}
               onNavigate={isEpNode ? () => onEpNodeClick?.(nodeDef.id) : onNodeClick}

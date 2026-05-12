@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ChevronRight, AlertCircle, CheckCircle2, Loader2, Brain, X } from 'lucide-react';
@@ -153,8 +153,8 @@ export default function ColumnMappingPage() {
                 <div className="col-span-3"><code className="text-xs font-mono text-foreground/90 bg-muted px-2 py-1 rounded-md break-all">{col}</code></div>
                 <div className="col-span-3 flex gap-1 flex-wrap">
                   {samples.length > 0 ? samples.slice(0, 2).map((v, i) => (
-                    <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-mono truncate max-w-[110px]" title={v}>{v}</span>
-                  )) : <span className="text-[10px] text-muted-foreground/40 italic">no samples</span>}
+                    <span key={i} className="text-[12px] px-2 py-1 rounded-md bg-muted/70 dark:bg-muted/50 border border-border/40 text-foreground/85 dark:text-foreground/90 font-mono truncate max-w-[130px] leading-snug" title={v}>{v}</span>
+                  )) : <span className="text-[11px] text-muted-foreground/40 italic">no samples</span>}
                 </div>
                 <div className="col-span-3">
                   <Select value={currentValue ?? NONE_VALUE} onValueChange={(v) => setLocalMap((m) => ({ ...m, [col]: v === NONE_VALUE ? null : v }))}>
