@@ -568,6 +568,13 @@ function EdgePath({ d, sourceStatus, targetStatus }) {
 const BASE_W = 1360;
 const BASE_H = 205;
 
+/**
+ * Design-space px above y=0 drawn by the graph (negative tops, region badges with -translate-y-1/2).
+ * The responsive clip uses overflow-hidden; offsetting the scaled layer down by this amount (in screen px)
+ * prevents clipping the top badges and labels.
+ */
+const GRAPH_CLIP_TOP_OUTFLOW = 36;
+
 /** Vertical gap (px) between SOV COPE and Underwriting dashed shells — ~12px tighter top bar inset + original region spacing */
 const REGION_VERTICAL_GAP = 24;
 
@@ -589,6 +596,27 @@ export default function AgentGraph({
   const uwSelected = uwSelectedCount > 0;
 
   const [isLiveMode, setIsLiveMode] = useState(false);
+
+  const graphMeasureRef = useRef(null);
+  /** Content box width for fitting design-space graph (BASE_W) into the card */
+  const [measuredGraphWidth, setMeasuredGraphWidth] = useState(BASE_W);
+
+  useEffect(() => {
+    const el = graphMeasureRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0;
+      requestAnimationFrame(() => {
+        setMeasuredGraphWidth(w > 0 ? w : BASE_W);
+      });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const graphScale =
+    measuredGraphWidth > 0 ? Math.min(1, measuredGraphWidth / BASE_W) : 1;
 
   // Map node IDs to selectedAgents keys
   const isNodeDeselected = (nodeId) => {
@@ -809,11 +837,25 @@ export default function AgentGraph({
         </label>
       </div>
 
-      {/* ── Graph ── */}
-      <div
-        className="relative overflow-visible shrink-0 self-center transition-[height] duration-500 ease-in-out"
-        style={{ width: BASE_W, height: containerH }}
-      >
+      {/* ── Graph (design space BASE_W × containerH, uniformly scaled to fit measured width) ── */}
+      <div ref={graphMeasureRef} className="w-full min-w-0 shrink-0">
+        <div
+          className="relative mx-auto overflow-hidden transition-[height,width] duration-500 ease-in-out"
+          style={{
+            width: BASE_W * graphScale,
+            height: (containerH + GRAPH_CLIP_TOP_OUTFLOW) * graphScale,
+          }}
+        >
+          <div
+            className="absolute left-0 overflow-visible transition-[height] duration-500 ease-in-out"
+            style={{
+              top: GRAPH_CLIP_TOP_OUTFLOW * graphScale,
+              width: BASE_W,
+              height: containerH,
+              transform: `scale(${graphScale})`,
+              transformOrigin: 'top left',
+            }}
+          >
         {/* CAT Agent wrapper — dashed frame must read in light + dark */}
         <div
           className={cn(
@@ -1027,6 +1069,8 @@ export default function AgentGraph({
             />
           );
         })}
+          </div>
+        </div>
       </div>
     </div>
   );
